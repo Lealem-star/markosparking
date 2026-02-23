@@ -26,7 +26,7 @@ parkedCarRouter.post("/", isLoggedIn, async (req, res) => {
             plateCode: Joi.string().required().trim(),
             region: Joi.string().required().trim(),
             licensePlateNumber: Joi.string().required().trim(),
-            carType: Joi.string().valid('tripod', 'automobile', 'truck', 'trailer').required(),
+            carType: Joi.string().valid('tripod', 'automobile', 'truck', 'trailer', 'special_vehicles').required(),
             model: Joi.string().allow('').optional(),
             color: Joi.string().allow('').optional(),
             phoneNumber: Joi.string().required().trim(),

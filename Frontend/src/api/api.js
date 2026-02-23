@@ -57,10 +57,14 @@ export const resetPassword = async ({ user_id, body, handleResetPasswordSuccess,
     }
 }
 
-export const updateUser = async ({ user_id, body, handleUpdateUserSuccess, handleUpdateUserFailure }) => {
+export const updateUser = async ({ user_id, body, token, handleUpdateUserSuccess, handleUpdateUserFailure }) => {
     try {
         console.log('body ', body);
-        const result = await axios.put(`${BASE_URL}user/${user_id}`, { ...body })
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const result = await axios.put(`${BASE_URL}user/${user_id}`, { ...body }, { headers })
         console.log('updateUser ', result?.data);
         if (result?.data?.user) {
             return handleUpdateUserSuccess(result.data)
@@ -297,7 +301,6 @@ export const sendSmsNotification = async ({ phoneNumber, message, token, handleS
 // Chapa Payment API functions
 export const initializeChapaPayment = async ({ carId, amount, customerName, customerEmail, customerPhone, token, handleInitSuccess, handleInitFailure }) => {
     const maxRetries = 2;
-    let lastError = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -326,7 +329,6 @@ export const initializeChapaPayment = async ({ carId, amount, customerName, cust
             }
         } catch (error) {
             console.error(`initializeChapaPayment error (attempt ${attempt}/${maxRetries}):`, error);
-            lastError = error;
             
             // Check if it's a network/timeout error that we should retry
             const isNetworkError = !error.response && (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || error.message?.includes('timeout'));
@@ -357,7 +359,6 @@ export const initializeChapaPayment = async ({ carId, amount, customerName, cust
 // Initialize package payment (no carId) - payment-first flow
 export const initializePackagePayment = async ({ amount, packageDuration, customerPhone, carData, token, handleInitSuccess, handleInitFailure }) => {
     const maxRetries = 2;
-    let lastError = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -386,7 +387,6 @@ export const initializePackagePayment = async ({ amount, packageDuration, custom
             }
         } catch (error) {
             console.error(`initializePackagePayment error (attempt ${attempt}/${maxRetries}):`, error);
-            lastError = error;
             
             // Check if it's a network/timeout error that we should retry
             const isNetworkError = !error.response && (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || error.message?.includes('timeout'));

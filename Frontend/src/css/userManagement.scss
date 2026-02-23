@@ -8,7 +8,7 @@
         h1 {
             font-size: 28px;
             font-weight: 600;
-            color: #333;
+            color: white;
             margin: 0;
         }
 
@@ -50,12 +50,57 @@
         }
     }
 
+    .users-section {
+        margin-bottom: 40px;
+
+        .section-header {
+            font-size: 22px;
+            font-weight: 600;
+            color: #ffffff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            padding: 12px 20px;
+            border-radius: 8px;
+        }
+
+        .zone-group {
+            margin-bottom: 30px;
+
+            .zone-header {
+                font-size: 18px;
+                font-weight: 600;
+                color: white;
+                margin-bottom: 15px;
+                padding: 12px 20px;
+                background: rgba(102, 126, 234, 0.2);
+                border-radius: 8px;
+                border-left: 4px solid #667eea;
+
+                .zone-code {
+                    color: #ffd700;
+                    font-weight: 700;
+                }
+            }
+        }
+
+        .no-users-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            font-style: italic;
+        }
+    }
+
     .users-table-container {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         overflow-x: auto;
+        margin-bottom: 20px;
 
         .users-table {
             width: 100%;
@@ -114,6 +159,30 @@
                             }
                         }
 
+                        .action-buttons {
+                            display: flex;
+                            gap: 8px;
+                            align-items: center;
+                        }
+
+                        .btn-edit {
+                            background: #e3f2fd;
+                            border: none;
+                            color: #1976d2;
+                            padding: 8px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+
+                            &:hover {
+                                background: #1976d2;
+                                color: white;
+                            }
+                        }
+
                         .btn-delete {
                             background: #fee;
                             border: none;
@@ -122,6 +191,9 @@
                             border-radius: 6px;
                             cursor: pointer;
                             transition: all 0.2s;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
 
                             &:hover {
                                 background: #e74c3c;
@@ -280,6 +352,24 @@
             }
         }
 
+        .users-section {
+            margin-bottom: 30px;
+
+            .section-header {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+
+            .zone-group {
+                margin-bottom: 20px;
+
+                .zone-header {
+                    font-size: 16px;
+                    padding: 10px 15px;
+                }
+            }
+        }
+
         .alert {
             padding: 10px 15px;
             font-size: 13px;
@@ -399,6 +489,24 @@
                 svg {
                     width: 12px;
                     height: 12px;
+                }
+            }
+        }
+
+        .users-section {
+            margin-bottom: 25px;
+
+            .section-header {
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+
+            .zone-group {
+                margin-bottom: 15px;
+
+                .zone-header {
+                    font-size: 14px;
+                    padding: 8px 12px;
                 }
             }
         }

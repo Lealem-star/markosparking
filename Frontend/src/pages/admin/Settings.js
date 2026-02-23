@@ -5,7 +5,7 @@ import { fetchPricingSettings, updatePricingSettings } from '../../api/api';
 import { Edit2, Check, X as XIcon, Plus, Trash2 } from 'lucide-react';
 import '../../css/settings.scss';
 
-const carTypes = ['tripod', 'automobile', 'truck', 'trailer'];
+const carTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
 
 const Settings = () => {
     const { t } = useTranslation();
@@ -30,7 +30,8 @@ const Settings = () => {
         tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
         automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
         truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' }
+        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
+        special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
     });
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [priceLevelToDelete, setPriceLevelToDelete] = useState(null);
@@ -163,7 +164,8 @@ const Settings = () => {
             tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
             automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
             truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-            trailer: { hourly: '', weekly: '', monthly: '', yearly: '' }
+            trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
+            special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
         });
         setShowAddModal(false);
         setError('');
@@ -412,8 +414,8 @@ const Settings = () => {
                                                 const isEditing = editingPriceLevel === priceLevelName && editingCarType === carType;
                                                 return (
                                                     <tr key={carType}>
-                                                        <td className="car-type-cell" style={{ textTransform: 'capitalize', fontWeight: 'bold' }}>
-                                                            {carType}
+                                                        <td className="car-type-cell" style={{ fontWeight: 'bold' }}>
+                                                            {t(`valet.carType_${carType}`)}
                                                         </td>
                                                         <td className="price-cell">
                                                             {isEditing ? (
@@ -530,7 +532,8 @@ const Settings = () => {
                                         tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
                                         automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
                                         truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' }
+                                        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
+                                        special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
                                     });
                                     setError('');
                                 }}
@@ -556,7 +559,7 @@ const Settings = () => {
                                 <h4 style={{ marginBottom: '1rem', color: '#333', fontWeight: '600' }}>{t('settings.pricingForEachCarType')}</h4>
                                 {carTypes.map((carType) => (
                                     <div key={carType} style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-                                        <h5 style={{ marginBottom: '0.5rem', textTransform: 'capitalize', color: '#333', fontWeight: '600' }}>{carType}</h5>
+                                        <h5 style={{ marginBottom: '0.5rem', color: '#333', fontWeight: '600' }}>{t(`valet.carType_${carType}`)}</h5>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                                             <div className="form-group">
                                                 <label style={{ color: '#333', display: 'block', marginBottom: '8px', fontWeight: '500' }}>{t('settings.hourly')}</label>
@@ -625,7 +628,8 @@ const Settings = () => {
                                         tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
                                         automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
                                         truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' }
+                                        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
+                                        special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
                                     });
                                     setError('');
                                 }}

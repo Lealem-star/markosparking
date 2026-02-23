@@ -42,7 +42,7 @@ const Layout = () => {
                             <li className="nav-item">
                                 <Link className="nav-link" to='/about'>{t('navigation.about')}</Link>
                             </li>
-                            {user?.type === "system_admin" &&
+                            {(user?.type === "system_admin" || user?.type === "manager") &&
                                 <>
                                     <li className="nav-item">
                                         <Link className="nav-link" to='/admin/dashboard'>{t('navigation.adminDashboard')}</Link>

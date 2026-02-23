@@ -38,7 +38,7 @@ pricingSettingsRouter.put("/", isLoggedIn, async (req, res) => {
         }).or('hourly', 'weekly', 'monthly', 'yearly');
 
         const priceLevelSchema = Joi.object().pattern(
-            Joi.string().valid('tripod', 'automobile', 'truck', 'trailer'),
+            Joi.string().valid('tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'),
             carTypePricingSchema
         );
 

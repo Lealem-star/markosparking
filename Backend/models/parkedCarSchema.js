@@ -88,7 +88,7 @@ const parkedCarSchema = new mongoose.Schema({
     },
     carType: {
         type: String,
-        enum: ['tripod', 'automobile', 'truck', 'trailer'],
+        enum: ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'],
         default: null
     },
     serviceType: {

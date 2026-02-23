@@ -64,7 +64,8 @@ const ParkedCarsList = () => {
                         tripod: { hourly: 50, weekly: 0, monthly: 0, yearly: 0 },
                         automobile: { hourly: 50, weekly: 0, monthly: 0, yearly: 0 },
                         truck: { hourly: 75, weekly: 0, monthly: 0, yearly: 0 },
-                        trailer: { hourly: 100, weekly: 0, monthly: 0, yearly: 0 }
+                        trailer: { hourly: 100, weekly: 0, monthly: 0, yearly: 0 },
+                        special_vehicles: { hourly: 75, weekly: 0, monthly: 0, yearly: 0 }
                     });
                 }
                 // Store VAT rate from backend

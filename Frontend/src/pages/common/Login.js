@@ -24,7 +24,7 @@ const Login = () => {
     const handleLoginSuccess = (data) => {
         dispatch(setUser({ ...data?.user, token: data?.token }));
         // Redirect based on user type
-        if (data?.user?.type === 'system_admin') {
+        if (data?.user?.type === 'system_admin' || data?.user?.type === 'manager') {
             navigate('/admin/dashboard');
         } else if (data?.user?.type === 'valet') {
             navigate('/valet/dashboard');

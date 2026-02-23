@@ -13,7 +13,7 @@ function PublicRoute({ children }) {
   
   // If user is logged in, redirect to their dashboard
   if (user && user.token) {
-    if (user.type === 'system_admin') {
+    if (user.type === 'system_admin' || user.type === 'manager') {
       return <Navigate to="/admin/dashboard" replace />;
     } else if (user.type === 'valet') {
       return <Navigate to="/valet/dashboard" replace />;
@@ -29,7 +29,7 @@ function RootRedirect() {
   const user = useSelector((state) => state.user);
   
   if (user && user.token) {
-    if (user.type === 'system_admin') {
+    if (user.type === 'system_admin' || user.type === 'manager') {
       return <Navigate to="/admin/dashboard" replace />;
     } else if (user.type === 'valet') {
       return <Navigate to="/valet/dashboard" replace />;

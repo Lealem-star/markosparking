@@ -50,6 +50,7 @@ function Home() {
             <circle className="vehicle-wheel" cx="85" cy="38" r="6" />
           </svg>
         );
+      case 'special_vehicles':
       case 'automobile':
       default:
         return (
@@ -70,7 +71,7 @@ function Home() {
   };
 
   // Generate cars for animation
-  const carTypes = ['tripod', 'automobile', 'truck', 'trailer'];
+  const carTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
   const [cars] = useState(() => {
     const lanes = [
       { id: 0, direction: 'right', top: 68 },

@@ -46,11 +46,11 @@ const AdminDashboard = () => {
     const location = useLocation();
     const dispatch = useDispatch();
 
-    // Protect route - only system admin can access
+    // Protect route - system admin and manager can access
     useEffect(() => {
         if (!user) {
             navigate('/login');
-        } else if (user.type !== 'system_admin') {
+        } else if (user.type !== 'system_admin' && user.type !== 'manager') {
             navigate('/');
         }
     }, [user, navigate]);
@@ -271,7 +271,7 @@ const AdminDashboard = () => {
         return location.pathname === path;
     };
 
-    if (!user || user.type !== 'system_admin') {
+    if (!user || (user.type !== 'system_admin' && user.type !== 'manager')) {
         return null; // Or a loading spinner, or a redirect handled by useEffect
     }
 

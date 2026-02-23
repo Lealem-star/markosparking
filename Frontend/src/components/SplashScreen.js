@@ -53,6 +53,7 @@ const SplashScreen = ({ onComplete }) => {
                         <circle className="vehicle-wheel" cx="85" cy="38" r="6" />
                     </svg>
                 );
+            case 'special_vehicles':
             case 'automobile':
             default:
                 return (
@@ -73,7 +74,7 @@ const SplashScreen = ({ onComplete }) => {
     };
 
     // Generate more realistic "traffic" style cars for animation
-    const carTypes = ['tripod', 'automobile', 'truck', 'trailer'];
+    const carTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
     const [cars] = useState(() => {
         // Define horizontal lanes near the bottom of the screen,
         // with fixed directions to look like cars are driving on roads.

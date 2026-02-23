@@ -13,7 +13,7 @@ const pendingPackagePaymentSchema = new mongoose.Schema({
         licensePlateNumber: { type: String, required: true },
         carType: { 
             type: String, 
-            enum: ['tripod', 'automobile', 'truck', 'trailer'],
+            enum: ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'],
             required: true 
         },
         model: { type: String, default: '' },

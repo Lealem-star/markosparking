@@ -14,7 +14,7 @@ const regions = [
     'ET', 'AA', 'AF', 'AM', 'BG', 'DR', 'GM', 'HR', 'OR', 'SM', 'TG', 'SD', 'DE', 'ME', 'DM',
 ];
 
-const carTypes = ['tripod', 'automobile', 'truck', 'trailer'];
+const carTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
 
 const RegisterCar = () => {
     const { t } = useTranslation();
@@ -63,7 +63,7 @@ const RegisterCar = () => {
                 // If database has settings, use those keys; otherwise use defaults
                 if (data && typeof data === 'object' && Object.keys(data).length > 0) {
                     // Check if data has car type structure or plate code structure
-                    const hasCarTypes = ['tripod', 'automobile', 'truck', 'trailer'].some(type => data[type]);
+                    const hasCarTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'].some(type => data[type]);
                     if (!hasCarTypes && !data.priceLevels) {
                         // Old format - plate codes
                     const codes = Object.keys(data);
@@ -614,7 +614,7 @@ const RegisterCar = () => {
                                 <option value="" disabled>Select Car Type</option>
                                 {carTypes.map((type) => (
                                     <option key={type} value={type}>
-                                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                                        {t(`valet.carType_${type}`)}
                                     </option>
                                 ))}
                             </select>
