@@ -33,6 +33,14 @@ const ParkedCarsList = () => {
     });
 
     const [pricingSettings, setPricingSettings] = useState({});
+    const [banner, setBanner] = useState(null); // { message, type: 'error'|'success' }
+
+    const showBanner = useCallback((message, type = 'error') => {
+        setBanner({ message, type });
+        setTimeout(() => setBanner(null), 6000);
+    }, []);
+
+    const dismissBanner = useCallback(() => setBanner(null), []);
 
     const loadCars = useCallback(() => {
         if (!user?.token) return;
@@ -185,12 +193,12 @@ const ParkedCarsList = () => {
                     setFeeDetails(null);
                 },
                 handleFlagFailure: (error) => {
-                    alert(error || 'Failed to flag car');
+                    showBanner(error || 'Failed to flag car', 'error');
                 }
             });
         } catch (error) {
             console.error('Flag car error:', error);
-            alert('Failed to flag car. Please try again.');
+            showBanner('Failed to flag car. Please try again.', 'error');
         } finally {
             setLoading(false);
         }
@@ -209,7 +217,7 @@ const ParkedCarsList = () => {
                     setSelectedCar(null);
                 },
                 handleUpdateParkedCarFailure: (error) => {
-                    alert(error || 'Failed to update status');
+                    showBanner(error || 'Failed to update status', 'error');
                 }
             });
         }
@@ -272,7 +280,7 @@ const ParkedCarsList = () => {
                         
                         if (!chapaPublicKey) {
                             console.error('Chapa public key is not configured. Please add CHAPA_PUBLIC_KEY to backend .env or REACT_APP_CHAPA_PUBLIC_KEY to frontend .env');
-                            alert('Payment service is temporarily unavailable. Please try again.');
+                            showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                             setLoading(false);
                             return;
                         }
@@ -289,7 +297,7 @@ const ParkedCarsList = () => {
                             console.error('Expected format: CHAPUBK_TEST-... (test) or CHAPUBK-... (live)');
                             console.error('Current key starts with:', chapaPublicKey.substring(0, 15));
                             console.error('Full key:', chapaPublicKey);
-                            alert('Payment service is temporarily unavailable. Please try again.');
+                            showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                             setLoading(false);
                             return;
                         } else {
@@ -298,7 +306,7 @@ const ParkedCarsList = () => {
                         
                         if (!data.txRef) {
                             console.error('Missing txRef from payment initialization');
-                            alert('Payment initialization failed. Missing transaction reference.');
+                            showBanner('Payment initialization failed. Missing transaction reference.', 'error');
                             setLoading(false);
                             return;
                         }
@@ -337,7 +345,7 @@ const ParkedCarsList = () => {
                             }
                             
                             if (!ChapaCheckout) {
-                                alert('Chapa payment library is not loaded. Please refresh the page.');
+                                showBanner('Chapa payment library is not loaded. Please refresh the page.', 'error');
                                 setLoading(false);
                                 return;
                             }
@@ -350,7 +358,7 @@ const ParkedCarsList = () => {
                             // Check if Chapa script loaded correctly
                             if (typeof ChapaCheckout !== 'function') {
                                 console.error('ChapaCheckout is not a function!', ChapaCheckout);
-                                alert('Chapa library is not properly loaded. Please refresh the page.');
+                                showBanner('Chapa library is not properly loaded. Please refresh the page.', 'error');
                                 setLoading(false);
                                 return;
                             }
@@ -523,7 +531,7 @@ const ParkedCarsList = () => {
                                         },
                                         handleUpdateParkedCarFailure: (error) => {
                                             console.error('Failed to update car:', error);
-                                            alert('Payment successful but failed to update car status. Please contact support.');
+                                            showBanner('Payment successful but failed to update car status. Please contact support.', 'error');
                                             setLoading(false);
                                         }
                                     });
@@ -594,7 +602,7 @@ const ParkedCarsList = () => {
                                         errorMessage += helpText;
                                     }
                                     
-                                    alert(`Payment failed: ${errorMessage}`);
+                                    showBanner(`Payment failed: ${errorMessage}`, 'error');
                                     setLoading(false);
                                 },
                                 onClose: () => {
@@ -647,7 +655,7 @@ const ParkedCarsList = () => {
                             if (!chapaPublicKey || (!chapaPublicKey.startsWith('CHAPUBK_TEST-') && !chapaPublicKey.startsWith('CHAPUBK_LIVE-'))) {
                                 console.error('Invalid Chapa PUBLIC key format. Inline.js requires CHAPUBK_TEST-* or CHAPUBK_LIVE-*');
                                 console.error('Current key prefix:', chapaPublicKey ? chapaPublicKey.slice(0, 12) : 'MISSING');
-                                alert('Payment service is temporarily unavailable. Please try again.');
+                                showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                                 setLoading(false);
                                 return;
                             }
@@ -668,7 +676,7 @@ const ParkedCarsList = () => {
                                 
                                 if (missingFields.length > 0) {
                                     console.error('❌ Missing required Chapa fields:', missingFields);
-                                    alert(`Payment configuration error: Missing required fields (${missingFields.join(', ')}). Please contact support.`);
+                                    showBanner(`Payment configuration error: Missing required fields (${missingFields.join(', ')}). Please contact support.`, 'error');
                                     setLoading(false);
                                     return;
                                 }
@@ -901,13 +909,13 @@ const ParkedCarsList = () => {
                                                 name: initError?.name,
                                                 cause: initError?.cause
                                             });
-                                            alert(`Failed to initialize payment form: ${initError?.message || 'Unknown error'}`);
+                                            showBanner(`Failed to initialize payment form: ${initError?.message || 'Unknown error'}`, 'error');
                                             setShowPaymentFormModal(false);
                                             setLoading(false);
                                         }
                                 } else {
                                     console.error('Chapa container not found after rendering');
-                                    alert('Failed to load payment form. Please try again.');
+                                    showBanner('Failed to load payment form. Please try again.', 'error');
                                     setShowPaymentFormModal(false);
                                     setLoading(false);
                                 }
@@ -919,25 +927,25 @@ const ParkedCarsList = () => {
                                     stack: initError?.stack,
                                     name: initError?.name
                                 });
-                                alert(`Failed to initialize payment: ${initError?.message || 'Unknown error'}`);
+                                showBanner(`Failed to initialize payment: ${initError?.message || 'Unknown error'}`, 'error');
                                 setShowPaymentFormModal(false);
                                 setLoading(false);
                             }
                         } catch (error) {
                             console.error('Failed to initialize Chapa Inline:', error);
-                            alert('Failed to load payment form. Please try again.');
+                            showBanner('Failed to load payment form. Please try again.', 'error');
                             setLoading(false);
                         }
                     },
                     handleInitFailure: (error) => {
                         console.error('Failed to initialize Chapa payment:', error);
-                        alert(`Failed to initialize payment: ${error}`);
+                        showBanner(`Failed to initialize payment: ${error}`, 'error');
                         setLoading(false);
                     }
                 });
         } catch (error) {
             console.error('Error processing payment:', error);
-            alert('An error occurred. Please try again.');
+            showBanner('An error occurred. Please try again.', 'error');
             setLoading(false);
         }
     };
@@ -987,6 +995,20 @@ const ParkedCarsList = () => {
 
     return (
         <div className="parked-cars-list">
+            {/* Alert banner - fixed at top */}
+            {banner && (
+                <div className={`alert-banner alert-banner-${banner.type}`} role="alert">
+                    <span className="alert-banner-message">{banner.message}</span>
+                    <button
+                        type="button"
+                        className="alert-banner-dismiss"
+                        onClick={dismissBanner}
+                        aria-label="Dismiss"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
             <div className="page-header">
                 <h1>{t('valet.parkedCars')}</h1>
                 <button 

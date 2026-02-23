@@ -1033,3 +1033,65 @@
     }
 }
 
+// Alert banner - fixed at top, dismissible
+.alert-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    padding-right: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: alertBannerSlideIn 0.3s ease-out;
+
+    .alert-banner-message {
+        flex: 1;
+        font-size: 15px;
+        font-weight: 500;
+    }
+
+    .alert-banner-dismiss {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 16px;
+        padding: 4px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+        color: inherit;
+        opacity: 0.85;
+
+        &:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.08);
+        }
+    }
+
+    &.alert-banner-error {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    &.alert-banner-success {
+        background: #28a745;
+        color: #fff;
+    }
+}
+
+@keyframes alertBannerSlideIn {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+

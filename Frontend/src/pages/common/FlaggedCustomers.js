@@ -13,7 +13,16 @@ const FlaggedCustomers = () => {
     const [selectedCar, setSelectedCar] = useState(null);
     const [feeDetails, setFeeDetails] = useState(null);
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
+    const [banner, setBanner] = useState(null); // { message, type: 'error'|'success' }
     const chapaInstanceRef = useRef(null);
+
+    const showBanner = useCallback((message, type = 'error') => {
+        setBanner({ message, type });
+        // Auto-dismiss after 6 seconds
+        setTimeout(() => setBanner(null), 6000);
+    }, []);
+
+    const dismissBanner = useCallback(() => setBanner(null), []);
 
     const loadFlaggedCars = useCallback(() => {
         if (!user?.token) return;
@@ -106,7 +115,7 @@ const FlaggedCustomers = () => {
             const customerPhone = carToUse.phoneNumber;
 
             if (!customerPhone) {
-                alert('Customer phone number is required for payment');
+                showBanner('Customer phone number is required for payment', 'error');
                 setLoading(false);
                 return;
             }
@@ -132,7 +141,7 @@ const FlaggedCustomers = () => {
                     
                     if (!chapaPublicKey || !data.txRef) {
                         console.error('Chapa public key or txRef is missing');
-                        alert('Payment service is temporarily unavailable. Please try again.');
+                        showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                         setLoading(false);
                         return;
                     }
@@ -142,7 +151,7 @@ const FlaggedCustomers = () => {
                     const isValidLiveKey = chapaPublicKey.startsWith('CHAPUBK-');
                     if (!isValidTestKey && !isValidLiveKey) {
                         console.error('Invalid Chapa public key format. Expected CHAPUBK_TEST-* or CHAPUBK-*');
-                        alert('Payment service is temporarily unavailable. Please try again.');
+                        showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                         setLoading(false);
                         return;
                     }
@@ -172,7 +181,7 @@ const FlaggedCustomers = () => {
                         }
                         
                         if (!ChapaCheckout || typeof ChapaCheckout !== 'function') {
-                            alert('Chapa payment library is not loaded. Please refresh the page.');
+                            showBanner('Chapa payment library is not loaded. Please refresh the page.', 'error');
                             setLoading(false);
                             return;
                         }
@@ -243,18 +252,18 @@ const FlaggedCustomers = () => {
                                         setSelectedCar(null);
                                         setFeeDetails(null);
                                         setLoading(false);
-                                        alert(t('valet.paymentSuccessful'));
+                                        showBanner(t('valet.paymentSuccessful'), 'success');
                                     },
                                     handleUpdateParkedCarFailure: (err) => {
                                         console.error('Failed to update flagged car:', err);
-                                        alert(`${t('messages.error')}: ${t('messages.operationFailed')}`);
+                                        showBanner(`${t('messages.error')}: ${t('messages.operationFailed')}`, 'error');
                                         setLoading(false);
                                     }
                                 });
                             },
                             onPaymentFailure: (error) => {
                                 console.error('❌ Payment failed:', error);
-                                alert(`${t('messages.error')}: ${t('valet.paymentFailed')}`);
+                                showBanner(`${t('messages.error')}: ${t('valet.paymentFailed')}`, 'error');
                                 setLoading(false);
                             },
                             onClose: () => {
@@ -278,33 +287,33 @@ const FlaggedCustomers = () => {
                                     setLoading(false);
                                 } catch (initError) {
                                     console.error('Error during chapa.initialize():', initError);
-                                    alert(`Failed to initialize payment form: ${initError?.message || 'Unknown error'}`);
+                                    showBanner(`Failed to initialize payment form: ${initError?.message || 'Unknown error'}`, 'error');
                                     setShowPaymentFormModal(false);
                                     setLoading(false);
                                 }
                             } else {
                                 console.error('Chapa container not found after rendering');
-                                alert('Failed to load payment form. Please try again.');
+                                showBanner('Failed to load payment form. Please try again.', 'error');
                                 setShowPaymentFormModal(false);
                                 setLoading(false);
                             }
                         }, 100);
                     } catch (initError) {
                         console.error('ChapaCheckout constructor error:', initError);
-                        alert(`Failed to initialize payment: ${initError?.message || 'Unknown error'}`);
+                        showBanner(`Failed to initialize payment: ${initError?.message || 'Unknown error'}`, 'error');
                         setShowPaymentFormModal(false);
                         setLoading(false);
                     }
                 },
                 handleInitFailure: (error) => {
                     console.error('Payment initialization failed:', error);
-                    alert(`Failed to initialize payment: ${error}`);
+                    showBanner(`Failed to initialize payment: ${error}`, 'error');
                     setLoading(false);
                 }
             });
         } catch (error) {
             console.error('Payment initialization error:', error);
-            alert(`Failed to initialize payment: ${error?.message || 'Please try again.'}`);
+            showBanner(`Failed to initialize payment: ${error?.message || 'Please try again.'}`, 'error');
             setLoading(false);
         }
     };
@@ -330,18 +339,18 @@ const FlaggedCustomers = () => {
                 id: car._id,
                 token: user?.token,
                 handleNotifySuccess: () => {
-                    alert(t('valet.notificationSent'));
+                    showBanner(t('valet.notificationSent'), 'success');
                     loadFlaggedCars(); // Refresh to update notification status
                     setLoading(false);
                 },
                 handleNotifyFailure: (error) => {
-                    alert(`Failed to send notification: ${error}`);
+                    showBanner(`Failed to send notification: ${error}`, 'error');
                     setLoading(false);
                 }
             });
         } catch (error) {
             console.error('Notify error:', error);
-            alert('Failed to send notification. Please try again.');
+            showBanner('Failed to send notification. Please try again.', 'error');
             setLoading(false);
         }
     };
@@ -360,6 +369,20 @@ const FlaggedCustomers = () => {
 
     return (
         <div className="parked-cars-list">
+            {/* Alert banner - fixed at top */}
+            {banner && (
+                <div className={`alert-banner alert-banner-${banner.type}`} role="alert">
+                    <span className="alert-banner-message">{banner.message}</span>
+                    <button
+                        type="button"
+                        className="alert-banner-dismiss"
+                        onClick={dismissBanner}
+                        aria-label="Dismiss"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h1>{t('valet.flaggedCustomers')}</h1>
