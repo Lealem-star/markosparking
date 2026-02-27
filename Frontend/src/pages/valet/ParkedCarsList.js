@@ -651,9 +651,12 @@ const ParkedCarsList = () => {
                                 onClose: '[Function]'
                             }, null, 2));
                             
-                            // Validate public key format: Inline.js must use CHAPUBK_* (public key).
-                            if (!chapaPublicKey || (!chapaPublicKey.startsWith('CHAPUBK_TEST-') && !chapaPublicKey.startsWith('CHAPUBK_LIVE-'))) {
-                                console.error('Invalid Chapa PUBLIC key format. Inline.js requires CHAPUBK_TEST-* or CHAPUBK_LIVE-*');
+                            // Validate public key format: Inline.js must use a valid public key.
+                            const isTestKey = chapaPublicKey.startsWith('CHAPUBK_TEST-');
+                            const isLiveKey = chapaPublicKey.startsWith('CHAPUBK-') || chapaPublicKey.startsWith('CHAPUBK_LIVE-');
+
+                            if (!chapaPublicKey || (!isTestKey && !isLiveKey)) {
+                                console.error('Invalid Chapa PUBLIC key format. Expected CHAPUBK_TEST-* (test) or CHAPUBK-* / CHAPUBK_LIVE-* (live)');
                                 console.error('Current key prefix:', chapaPublicKey ? chapaPublicKey.slice(0, 12) : 'MISSING');
                                 showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                                 setLoading(false);
