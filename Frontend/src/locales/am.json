@@ -158,6 +158,8 @@
     "online": "ኦንላይን",
     "manual": "እጅ",
     "checkout": "ውጣ",
+    "confirmCheckoutPackage": "ውጣት አረጋግጥ። ይህ መኪና በጥቅል ላይ ነው — ክፍያ አያስፈልግም።",
+    "parkIn": "ግቢ ግባ",
     "status": "ሁኔታ",
     "parked": "ተፈርሟል",
     "checkedOut": "ወጥቷል",

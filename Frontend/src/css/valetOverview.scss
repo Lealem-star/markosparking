@@ -398,6 +398,74 @@
             font-size: 14px;
         }
 
+        .package-error-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            color: #c00;
+            font-size: 14px;
+
+            button {
+                background: none;
+                border: none;
+                font-size: 20px;
+                cursor: pointer;
+                color: #c00;
+                padding: 0 4px;
+                line-height: 1;
+            }
+        }
+
+        .package-status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+
+            &.parked {
+                background: #e8f5e9;
+                color: #2e7d32;
+            }
+
+            &.checked-out {
+                background: #e3f2fd;
+                color: #1565c0;
+            }
+        }
+
+        .btn-park-in {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+
+            &:hover:not(:disabled) {
+                transform: translateY(-1px);
+                opacity: 0.95;
+            }
+
+            &:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+        }
+
+        .package-expired-label {
+            font-size: 12px;
+            color: #999;
+        }
+
         @media (max-width: 768px) {
             padding: 15px;
             margin-top: 20px;

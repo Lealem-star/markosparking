@@ -156,6 +156,8 @@
     "registerFirstCar": "Register First Car",
     "checkOut": "Check Out",
     "changeStatus": "Change Status",
+    "confirmCheckoutPackage": "Confirm checkout. This car is on a package — no payment needed.",
+    "parkIn": "Park in",
     "paymentDetails": "Payment Details",
     "parkedOut": "Parked Out",
     "totalParked": "Total Parked",

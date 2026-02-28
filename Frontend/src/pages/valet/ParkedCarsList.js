@@ -152,13 +152,31 @@ const ParkedCarsList = () => {
 
     const handleStatusChange = (car, status) => {
         if (status === 'checked_out') {
-            // Show checkout modal with Pay Now / Flag Him options
+            // Package cars: no payment — checkout immediately, no modal
+            if (car.serviceType === 'package') {
+                setLoading(true);
+                updateParkedCar({
+                    id: car._id,
+                    body: { status: 'checked_out' },
+                    token: user.token,
+                    handleUpdateParkedCarSuccess: () => {
+                        loadCars();
+                        fetchDailyStats({ token: user.token, date: selectedDate, setDailyStats });
+                        setLoading(false);
+                    },
+                    handleUpdateParkedCarFailure: (err) => {
+                        showBanner(err || 'Failed to check out.', 'error');
+                        setLoading(false);
+                    }
+                });
+                return;
+            }
+            // Hourly: show checkout modal with Pay Now / Flag Him
             const fee = calculateFee(car);
             setSelectedCar(car);
             setFeeDetails(fee);
             setShowCheckoutModal(true);
         } else {
-            // Show confirmation modal for other status changes
             setSelectedCar(car);
             setNewStatus(status);
             setShowStatusModal(true);

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { fetchParkedCars } from '../../api/api';
+import { useTranslation } from 'react-i18next';
+import { fetchParkedCars, updateParkedCar } from '../../api/api';
 import { Car, CheckCircle, Calendar, Package } from 'lucide-react';
 import '../../css/valetOverview.scss';
 
@@ -28,6 +29,7 @@ import '../../css/valetOverview.scss';
     };
 
 const ValetOverview = () => {
+    const { t } = useTranslation();
     const user = useSelector((state) => state.user);
     const navigate = useNavigate();
     const [packageStats, setPackageStats] = useState({
@@ -37,6 +39,8 @@ const ValetOverview = () => {
         currentlyParked: 0
     });
     const [packageServices, setPackageServices] = useState([]);
+    const [parkInLoadingId, setParkInLoadingId] = useState(null); // subscription key being processed
+    const [error, setError] = useState(null);
 
     const loadPackageServices = useCallback(() => {
         if (user?.token) {
@@ -76,7 +80,20 @@ const ValetOverview = () => {
                         subscriptionMap[subKey].cars.push(car);
                     });
 
-                    const activeSubscriptions = Object.values(subscriptionMap);
+                    const activeSubscriptions = Object.values(subscriptionMap).map(sub => {
+                        const isCurrentlyParked = sub.cars.some(c => c.status === 'parked');
+                        const checkedOutCars = sub.cars.filter(c => c.status === 'checked_out');
+                        const lastCheckedOutRecord = checkedOutCars.length > 0
+                            ? checkedOutCars.sort((a, b) => new Date(b.checkedOutAt || 0) - new Date(a.checkedOutAt || 0))[0]
+                            : null;
+                        const licensePlate = (sub.cars[0] && (sub.cars[0].licensePlate || `${sub.cars[0].plateCode || ''}-${sub.cars[0].region || ''}-${sub.cars[0].licensePlateNumber || ''}`)) || 'N/A';
+                        return {
+                            ...sub,
+                            isCurrentlyParked,
+                            lastCheckedOutRecord,
+                            licensePlate
+                        };
+                    });
 
                     // Calculate stats from active subscriptions
                     const weekly = activeSubscriptions.filter(s => s.packageDuration === 'weekly').length;
@@ -109,6 +126,25 @@ const ValetOverview = () => {
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
+        });
+    };
+
+    const handleParkIn = (sub) => {
+        if (!sub.lastCheckedOutRecord || !user?.token) return;
+        setError(null);
+        setParkInLoadingId(sub.key);
+        updateParkedCar({
+            id: sub.lastCheckedOutRecord._id,
+            body: { status: 'parked' },
+            token: user.token,
+            handleUpdateParkedCarSuccess: () => {
+                setParkInLoadingId(null);
+                loadPackageServices();
+            },
+            handleUpdateParkedCarFailure: (err) => {
+                setParkInLoadingId(null);
+                setError(err || 'Failed to park in. Please try again.');
+            }
         });
     };
 
@@ -165,15 +201,24 @@ const ValetOverview = () => {
             {/* Package Services List */}
             <div className="historical-stats-section">
                 <h2>Package Service Registrations</h2>
+                {error && (
+                    <div className="package-error-banner" role="alert">
+                        {error}
+                        <button type="button" onClick={() => setError(null)} aria-label="Dismiss">×</button>
+                    </div>
+                )}
                 {packageServices.length > 0 ? (
                     <div className="stats-table-container">
                         <table className="stats-table">
                             <thead>
                                 <tr>
+                                    <th>License Plate</th>
                                     <th>Phone</th>
                                     <th>Package Type</th>
                                     <th>End Date</th>
                                     <th>Total Visits</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -182,13 +227,38 @@ const ValetOverview = () => {
                                         ? sub.packageDuration.charAt(0).toUpperCase() + sub.packageDuration.slice(1)
                                         : 'N/A';
                                     const visitsCount = sub.cars.length;
-                                    
+                                    const now = new Date();
+                                    const isExpired = sub.packageEndDate && sub.packageEndDate <= now;
+                                    const canParkIn = !sub.isCurrentlyParked && sub.lastCheckedOutRecord && !isExpired;
+                                    const loading = parkInLoadingId === sub.key;
+
                                     return (
                                         <tr key={sub.key}>
+                                            <td>{sub.licensePlate}</td>
                                             <td>{sub.phoneNumber || 'N/A'}</td>
                                             <td>{packageType}</td>
                                             <td>{sub.packageEndDate ? formatDateTime(sub.packageEndDate) : 'N/A'}</td>
                                             <td>{visitsCount}</td>
+                                            <td>
+                                                <span className={`package-status-badge ${sub.isCurrentlyParked ? 'parked' : 'checked-out'}`}>
+                                                    {sub.isCurrentlyParked ? t('valet.parked') : t('valet.checkedOut')}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {canParkIn && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-park-in"
+                                                        onClick={() => handleParkIn(sub)}
+                                                        disabled={loading}
+                                                    >
+                                                        {loading ? t('common.loading') : t('valet.parkIn')}
+                                                    </button>
+                                                )}
+                                                {isExpired && !sub.isCurrentlyParked && (
+                                                    <span className="package-expired-label">Expired</span>
+                                                )}
+                                            </td>
                                         </tr>
                                     );
                                 })}
