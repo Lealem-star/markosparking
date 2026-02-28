@@ -272,6 +272,12 @@ const RegisterCar = () => {
                 // eslint-disable-next-line no-await-in-loop
                 await new Promise((r) => setTimeout(r, delayMs));
             } catch (error) {
+                const errMsg = (error?.message || error?.response?.data?.error || '').toLowerCase();
+                const isAlreadyProcessed = errMsg.includes('already processed') || errMsg.includes('not found') || error?.response?.status === 404;
+                if (isAlreadyProcessed) {
+                    // Payment was already verified (e.g. by webhook) - stop retrying
+                    return { transaction: { status: 'successful' }, alreadyProcessed: true };
+                }
                 // If it's a network error or API error, continue retrying
                 if (attempt < maxAttempts) {
                     // eslint-disable-next-line no-await-in-loop

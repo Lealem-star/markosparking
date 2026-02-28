@@ -42,6 +42,20 @@ const ParkedCarsList = () => {
 
     const dismissBanner = useCallback(() => setBanner(null), []);
 
+    // Dedupe cars: same licensePlate + parkedAt (to minute) = duplicate (keep first by _id)
+    const dedupeCars = useCallback((list) => {
+        if (!list?.length) return list;
+        const seen = new Set();
+        return list.filter((car) => {
+            const plate = car.licensePlate || `${car.plateCode || ''}-${car.region || ''}-${car.licensePlateNumber || ''}`;
+            const parkedMin = car.parkedAt ? new Date(car.parkedAt).setSeconds(0, 0) : 0;
+            const key = `${plate}|${parkedMin}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, []);
+
     const loadCars = useCallback(() => {
         if (!user?.token) return;
         const status = filter !== 'all' ? filter : null;
@@ -49,9 +63,9 @@ const ParkedCarsList = () => {
             token: user.token, 
             status,
             date: selectedDate,
-            setParkedCars: setCars 
+            setParkedCars: (data) => setCars(dedupeCars(data || []))
         });
-    }, [user?.token, filter, selectedDate]);
+    }, [user?.token, filter, selectedDate, dedupeCars]);
 
     useEffect(() => {
         if (user?.token) {
@@ -152,8 +166,9 @@ const ParkedCarsList = () => {
 
     const handleStatusChange = (car, status) => {
         if (status === 'checked_out') {
-            // Package cars: no payment — checkout immediately, no modal
-            if (car.serviceType === 'package') {
+            // Package cars only: checkout immediately, no modal (must have package fields)
+            const isPackageCar = car.serviceType === 'package' && (car.packageDuration || car.packageSubscriptionId);
+            if (isPackageCar) {
                 setLoading(true);
                 updateParkedCar({
                     id: car._id,
@@ -171,7 +186,7 @@ const ParkedCarsList = () => {
                 });
                 return;
             }
-            // Hourly: show checkout modal with Pay Now / Flag Him
+            // Hourly (or any non-package): show checkout modal with Pay Now / Flag Him
             const fee = calculateFee(car);
             setSelectedCar(car);
             setFeeDetails(fee);
@@ -184,23 +199,23 @@ const ParkedCarsList = () => {
     };
 
     const handlePayNow = () => {
-        // Close checkout modal and proceed with payment
+        if (!selectedCar) return;
         setShowCheckoutModal(false);
-        if (selectedCar && feeDetails) {
-            handlePaymentMethod('online');
-        }
+        handlePaymentMethod('online');
     };
 
     const handleFlagHim = async () => {
-        if (!selectedCar || !feeDetails) return;
+        if (!selectedCar) return;
+        const details = feeDetails || calculateFee(selectedCar);
+        setFeeDetails(details);
 
         setLoading(true);
         try {
             await flagParkedCar({
                 id: selectedCar._id,
-                baseAmount: feeDetails.parkingFee,
-                vatAmount: feeDetails.vatAmount,
-                totalWithVat: feeDetails.totalWithVat,
+                baseAmount: details.parkingFee,
+                vatAmount: details.vatAmount,
+                totalWithVat: details.totalWithVat,
                 token: user?.token,
                 handleFlagSuccess: () => {
                     // Refresh cars list and stats
@@ -242,7 +257,9 @@ const ParkedCarsList = () => {
     };
 
     const handlePaymentMethod = async (paymentMethod) => {
-        if (!selectedCar || !feeDetails) return;
+        if (!selectedCar) return;
+        const feeToUse = feeDetails || calculateFee(selectedCar);
+        if (!feeToUse) return;
 
         setLoading(true);
         
@@ -267,7 +284,7 @@ const ParkedCarsList = () => {
 
                 await initializeChapaPayment({
                     carId: selectedCar._id,
-                    amount: feeDetails.totalWithVat,
+                    amount: feeToUse.totalWithVat,
                     customerName: customerName,
                     customerEmail: customerEmail,
                     customerPhone: customerPhone,
@@ -277,7 +294,7 @@ const ParkedCarsList = () => {
                         localStorage.setItem(`chapa_payment_${selectedCar._id}`, JSON.stringify({
                             txRef: data.txRef,
                             carId: selectedCar._id,
-                            feeDetails: feeDetails,
+                            feeDetails: feeToUse,
                             customerPhone: selectedCar.phoneNumber || customerPhone
                         }));
 
@@ -291,7 +308,7 @@ const ParkedCarsList = () => {
                             txRef: data.txRef,
                             txRefLength: data.txRef?.length,
                             txRefTimestamp: data.txRef ? new Date().toISOString() : null,
-                            amount: feeDetails.totalWithVat,
+                            amount: feeToUse.totalWithVat,
                             customerPhone: customerPhone
                         });
                         console.log('✅ Backend generated NEW txRef:', data.txRef);
@@ -382,9 +399,9 @@ const ParkedCarsList = () => {
                             }
 
                             // Validate and format amount
-                            const amountNum = parseFloat(feeDetails.totalWithVat);
+                            const amountNum = parseFloat(feeToUse.totalWithVat);
                             if (isNaN(amountNum) || amountNum <= 0) {
-                                throw new Error(`Invalid amount: ${feeDetails.totalWithVat}`);
+                                throw new Error(`Invalid amount: ${feeToUse.totalWithVat}`);
                             }
                             // Chapa Inline.js expects amount as a string with 2 decimal places
                             const formattedAmount = amountNum.toFixed(2);
@@ -496,7 +513,7 @@ const ParkedCarsList = () => {
                                             status: 'checked_out',
                                             checkedOutAt: new Date().toISOString(),
                                             paymentMethod: 'online',
-                                            totalPaidAmount: feeDetails.totalWithVat,
+                                            totalPaidAmount: feeToUse.totalWithVat,
                                         },
                                         token: user?.token,
                                         handleUpdateParkedCarSuccess: async () => {
@@ -519,11 +536,11 @@ const ParkedCarsList = () => {
                                                 smsMessage = `Thank you for using Tana Parking services!\nYour package car (${licenseDisplay}) has checked out.\nPackage type: ${selectedCar.packageDuration}.\n${remainingDaysText}`;
                                             } else {
                                                 // Hourly checkout SMS (existing behavior)
-                                            const totalMinutes = Math.round(feeDetails.hoursParked * 60);
+                                            const totalMinutes = Math.round(feeToUse.hoursParked * 60);
                                             const durationDisplay = totalMinutes >= 60 
                                                 ? `${Math.floor(totalMinutes / 60)} hour${Math.floor(totalMinutes / 60) > 1 ? 's' : ''} ${totalMinutes % 60 > 0 ? `${totalMinutes % 60} min` : ''}`.trim()
                                                 : `${totalMinutes} min`;
-                                                smsMessage = `Thank you for using Tana Parking services! Your car (${selectedCar.licensePlate || `${selectedCar.plateCode || ''}-${selectedCar.region || ''}-${selectedCar.licensePlateNumber || ''}`}) has been received.\nParking fee: ${feeDetails.parkingFee.toFixed(2)} ETB\nVAT (15%): ${feeDetails.vatAmount.toFixed(2)} ETB\nTotal: ${feeDetails.totalWithVat.toFixed(2)} ETB (${durationDisplay} × ${feeDetails.pricePerHour} ETB/hour).\nPayment method: Online Payment.`;
+                                                smsMessage = `Thank you for using Tana Parking services! Your car (${selectedCar.licensePlate || `${selectedCar.plateCode || ''}-${selectedCar.region || ''}-${selectedCar.licensePlateNumber || ''}`}) has been received.\nParking fee: ${feeToUse.parkingFee.toFixed(2)} ETB\nVAT (15%): ${feeToUse.vatAmount.toFixed(2)} ETB\nTotal: ${feeToUse.totalWithVat.toFixed(2)} ETB (${durationDisplay} × ${feeToUse.pricePerHour} ETB/hour).\nPayment method: Online Payment.`;
                                             }
                                             
                                             await sendSmsNotification({
@@ -1175,8 +1192,11 @@ const ParkedCarsList = () => {
                 </div>
             )}
 
-            {/* Checkout Modal - Pay Now / Flag Him */}
-            {showCheckoutModal && selectedCar && feeDetails && (
+            {/* Checkout Modal - Pay Now / Flag Him (hourly cars only) */}
+            {showCheckoutModal && selectedCar && (
+                (() => {
+                    const details = feeDetails || calculateFee(selectedCar);
+                    return (
                 <div className="checkout-modal-overlay" onClick={() => !loading && setShowCheckoutModal(false)}>
                     <div className="checkout-modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="checkout-modal-header">
@@ -1189,15 +1209,15 @@ const ParkedCarsList = () => {
                                 <h3>{t('valet.paymentDetails')}</h3>
                                 <div className="detail-row">
                                     <span className="label">{t('valet.parkingFee')}:</span>
-                                    <span className="value">{feeDetails.parkingFee.toFixed(2)} ETB</span>
+                                    <span className="value">{details.parkingFee.toFixed(2)} ETB</span>
                                 </div>
                                 <div className="detail-row">
                                     <span className="label">VAT:</span>
-                                    <span className="value">{feeDetails.vatAmount.toFixed(2)} ETB</span>
+                                    <span className="value">{details.vatAmount.toFixed(2)} ETB</span>
                                 </div>
                                 <div className="detail-row total-fee">
                                     <span className="label">{t('common.total')}:</span>
-                                    <span className="value">{feeDetails.totalWithVat.toFixed(2)} ETB</span>
+                                    <span className="value">{details.totalWithVat.toFixed(2)} ETB</span>
                                 </div>
                             </div>
 
@@ -1232,6 +1252,8 @@ const ParkedCarsList = () => {
                         </div>
                     </div>
                 </div>
+                    );
+                })()
             )}
 
             {/* Payment Modal */}
