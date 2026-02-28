@@ -47,8 +47,11 @@ const ValetOverview = () => {
             fetchParkedCars({ 
                 token: user.token, 
                 setParkedCars: (cars) => {
-                    // Filter package services
-                    const packageCars = cars.filter(car => car.serviceType === 'package');
+                    // Filter: only cars registered as package service (serviceType + packageDuration)
+                    const packageCars = cars.filter(car =>
+                        car.serviceType === 'package' &&
+                        ['weekly', 'monthly', 'yearly'].includes(car.packageDuration)
+                    );
 
                     // Group by subscription (packageSubscriptionId or fallback licensePlate)
                     const now = new Date();
