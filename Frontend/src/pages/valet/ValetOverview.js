@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchParkedCars, updateParkedCar } from '../../api/api';
-import { Car, CheckCircle, Calendar, Package } from 'lucide-react';
+import { Car, CheckCircle } from 'lucide-react';
 import '../../css/valetOverview.scss';
 
 // Helper to calculate package end date based on duration
@@ -170,33 +170,61 @@ const ValetOverview = () => {
                 </button>
             </div>
 
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-icon"><Calendar size={14} /></div>
-                    <div className="stat-content">
-                        <h3>{packageStats.weekly}</h3>
-                        <p>Weekly Registered</p>
+            <div className="stats-grid stats-grid-circular">
+                <div className="stat-circle-card stat-circle-weekly">
+                    <div className="stat-circle-wrapper">
+                        <svg viewBox="0 0 120 130" className="stat-circle-svg">
+                            <defs>
+                                <path id="arc-weekly" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
+                            </defs>
+                            <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#4facfe" strokeWidth="10" />
+                            <text>
+                                <textPath href="#arc-weekly" startOffset="50%" textAnchor="middle">Weekly Registered</textPath>
+                            </text>
+                            <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{packageStats.weekly}</text>
+                        </svg>
                     </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-icon"><Calendar size={14} /></div>
-                    <div className="stat-content">
-                        <h3>{packageStats.monthly}</h3>
-                        <p>Monthly Registered</p>
+                <div className="stat-circle-card stat-circle-monthly">
+                    <div className="stat-circle-wrapper">
+                        <svg viewBox="0 0 120 130" className="stat-circle-svg">
+                            <defs>
+                                <path id="arc-monthly" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
+                            </defs>
+                            <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#667eea" strokeWidth="10" />
+                            <text>
+                                <textPath href="#arc-monthly" startOffset="50%" textAnchor="middle">Monthly Registered</textPath>
+                            </text>
+                            <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{packageStats.monthly}</text>
+                        </svg>
                     </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-icon"><Calendar size={14} /></div>
-                    <div className="stat-content">
-                        <h3>{packageStats.yearly}</h3>
-                        <p>Yearly Registered</p>
+                <div className="stat-circle-card stat-circle-yearly">
+                    <div className="stat-circle-wrapper">
+                        <svg viewBox="0 0 120 130" className="stat-circle-svg">
+                            <defs>
+                                <path id="arc-yearly" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
+                            </defs>
+                            <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#f093fb" strokeWidth="10" />
+                            <text>
+                                <textPath href="#arc-yearly" startOffset="50%" textAnchor="middle">Yearly Registered</textPath>
+                            </text>
+                            <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{packageStats.yearly}</text>
+                        </svg>
                     </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-icon"><Package size={14} /></div>
-                    <div className="stat-content">
-                        <h3>{packageStats.currentlyParked}</h3>
-                        <p>Currently Parked (Package)</p>
+                <div className="stat-circle-card stat-circle-parked">
+                    <div className="stat-circle-wrapper">
+                        <svg viewBox="0 0 120 130" className="stat-circle-svg">
+                            <defs>
+                                <path id="arc-parked-overview" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
+                            </defs>
+                            <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#4facfe" strokeWidth="10" />
+                            <text>
+                                <textPath href="#arc-parked-overview" startOffset="50%" textAnchor="middle">Currently Parked</textPath>
+                            </text>
+                            <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{packageStats.currentlyParked}</text>
+                        </svg>
                     </div>
                 </div>
             </div>

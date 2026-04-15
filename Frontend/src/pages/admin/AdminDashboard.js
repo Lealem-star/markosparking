@@ -282,7 +282,7 @@ const AdminDashboard = () => {
                 <div className="sidebar-header">
                     <div className="logo">
                         <img src={TanaLogo} alt="Logo" className="logo-img" />
-                        <span className="logo-text">{user?.type === 'system_admin' ? 'System Admin' : (user?.type === 'admin' ? 'Admin' : 'Manager')}</span>
+                        <span className="logo-text">tana parking</span>
                     </div>
                     <button 
                         className="sidebar-toggle"

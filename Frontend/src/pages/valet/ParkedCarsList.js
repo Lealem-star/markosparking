@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, fetchDailyStats, fetchPricingSettings, flagParkedCar } from '../../api/api';
 import { EthiopianDatePicker } from '../../components';
-import { CheckCircle, Clock, X, Car } from 'lucide-react';
+import { CheckCircle, Clock, X } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 import '../../css/valetOverview.scss';
 
@@ -1088,26 +1088,49 @@ const ParkedCarsList = () => {
                 </div>
             </div>
 
-            <div className="stats-grid">
-                <div className="stat-card stat-total">
-                    <div className="stat-icon"><Car size={14} /></div>
-                    <div className="stat-content">
-                        <h3>{dailyStats.totalParked}</h3>
-                        <p>{t('valet.totalParked')}</p>
+            <div className="stats-grid-circular stats-grid-circular--combined">
+                <div className="stats-combined-card" role="group" aria-label="Daily stats">
+                    <div className="stat-circle-card stat-circle-total">
+                        <div className="stat-circle-wrapper">
+                            <svg viewBox="0 0 120 130" className="stat-circle-svg">
+                                <defs>
+                                    <path id="arc-total" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
+                                </defs>
+                                <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#4facfe" strokeWidth="10" />
+                                <text>
+                                    <textPath href="#arc-total" startOffset="50%" textAnchor="middle">{t('valet.totalParked')}</textPath>
+                                </text>
+                                <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{dailyStats.totalParked}</text>
+                            </svg>
+                        </div>
                     </div>
-                </div>
-                <div className="stat-card stat-parked">
-                    <div className="stat-icon"><Clock size={14} /></div>
-                    <div className="stat-content">
-                        <h3>{dailyStats.stillParked}</h3>
-                        <p>{t('valet.stillParked')}</p>
+                    <div className="stat-circle-card stat-circle-parked">
+                        <div className="stat-circle-wrapper">
+                            <svg viewBox="0 0 120 130" className="stat-circle-svg">
+                                <defs>
+                                    <path id="arc-still" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
+                                </defs>
+                                <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#4facfe" strokeWidth="10" />
+                                <text>
+                                    <textPath href="#arc-still" startOffset="50%" textAnchor="middle">{t('valet.stillParked')}</textPath>
+                                </text>
+                                <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{dailyStats.stillParked}</text>
+                            </svg>
+                        </div>
                     </div>
-                </div>
-                <div className="stat-card stat-checked">
-                    <div className="stat-icon"><CheckCircle size={14} /></div>
-                    <div className="stat-content">
-                        <h3>{dailyStats.checkedOut}</h3>
-                        <p>{t('valet.checkedOut')}</p>
+                    <div className="stat-circle-card stat-circle-checked">
+                        <div className="stat-circle-wrapper">
+                            <svg viewBox="0 0 120 130" className="stat-circle-svg">
+                                <defs>
+                                    <path id="arc-checked" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
+                                </defs>
+                                <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#11998e" strokeWidth="10" />
+                                <text>
+                                    <textPath href="#arc-checked" startOffset="50%" textAnchor="middle">{t('valet.checkedOut')}</textPath>
+                                </text>
+                                <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{dailyStats.checkedOut}</text>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>

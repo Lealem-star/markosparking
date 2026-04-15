@@ -1,7 +1,7 @@
 .valet-dashboard {
     display: flex;
     min-height: 100vh;
-    background-color: #f5f7fa;
+    background-color: #e0f2fe;
 
     .sidebar {
         width: 250px;
@@ -23,21 +23,26 @@
         .sidebar-header {
             padding: 20px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: flex-start;
+            align-items: flex-start;
+            position: relative;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
             .logo {
                 display: flex;
-                align-items: center;
-                gap: 10px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
                 font-weight: bold;
                 font-size: 18px;
+                text-align: left;
                 overflow: hidden;
 
                 .logo-img {
-                    height: 40px;
-                    width: auto;
+                    height: 48px;
+                    width: 48px;
+                    border-radius: 50%;
+                    object-fit: cover;
                     flex-shrink: 0;
                 }
 
@@ -45,6 +50,7 @@
                     white-space: nowrap;
                     flex-shrink: 0;
                     color: #e5e7eb;
+                    text-transform: lowercase;
                 }
             }
 
@@ -53,9 +59,14 @@
                 border: none;
                 cursor: pointer;
                 padding: 5px;
+                color: #ff0000;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                margin-left: auto;
+                align-self: flex-start;
+                position: relative;
+                z-index: 2;
             }
         }
 
@@ -152,7 +163,7 @@
                         flex: 1;
                         text-align: left;
                         font-weight: 500;
-                        color: #333;
+                        color: #fff;
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
@@ -349,7 +360,7 @@
 
                 .user-name {
                     font-weight: 500;
-                    color: #333;
+                    color: #fff;
                 }
             }
         }
@@ -362,10 +373,6 @@
         overflow-x: hidden;
         width: 100%;
         box-sizing: border-box;
-        background-image: url('../img/parkingentering.jpg');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
     }
 
     .mobile-overlay {
@@ -400,21 +407,26 @@
         .sidebar-header {
             padding: 20px;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
+            position: relative;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
             .logo {
                 display: flex;
-                align-items: center;
-                gap: 10px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
                 font-weight: bold;
                 font-size: 18px;
+                text-align: left;
                 overflow: hidden;
 
                 .logo-img {
                     height: 40px;
-                    width: auto;
+                    width: 40px;
+                    border-radius: 50%;
+                    object-fit: cover;
                     flex-shrink: 0;
                 }
 
@@ -422,6 +434,7 @@
                     white-space: nowrap;
                     flex-shrink: 0;
                     color: #e5e7eb;
+                    text-transform: lowercase;
                 }
             }
 
@@ -430,9 +443,14 @@
                 border: none;
                 cursor: pointer;
                 padding: 5px;
+                color: #ff0000;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                margin-left: auto;
+                align-self: flex-start;
+                position: relative;
+                z-index: 2;
             }
         }
 
@@ -557,6 +575,9 @@
 
                     .logo-img {
                         height: 35px;
+                        width: 35px;
+                        border-radius: 50%;
+                        object-fit: cover;
                     }
                 }
 
@@ -645,6 +666,9 @@
 
                     .logo-img {
                         height: 30px;
+                        width: 30px;
+                        border-radius: 50%;
+                        object-fit: cover;
                     }
                 }
             }

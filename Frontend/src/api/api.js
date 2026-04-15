@@ -139,8 +139,15 @@ export const createUser = async ({ body, token, handleCreateUserSuccess, handleC
     } catch (error) {
         console.error('createUser error:', error);
         console.error('createUser error response:', error?.response?.data);
+        const status = error?.response?.status;
+        if (status === 403) {
+            return handleCreateUserFailure('Access denied: you do not have permission to create users.');
+        }
+        if (status === 401) {
+            return handleCreateUserFailure('Session expired. Please log in again.');
+        }
         const errorMessage = error?.response?.data?.error || error?.message || 'Failed to create user';
-        handleCreateUserFailure(errorMessage)
+        handleCreateUserFailure(errorMessage);
     }
 }
 

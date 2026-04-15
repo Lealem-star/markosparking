@@ -88,6 +88,10 @@ const UserManagement = () => {
     };
 
     const handleCreateUserFailure = (error) => {
+        if (typeof error === 'string') {
+            setError(error);
+            return;
+        }
         setError(error?.message || error?.error || 'Failed to create user');
     };
 
