@@ -18,6 +18,94 @@ const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY || "CHASECK_TEST-xxxxxxxxx
 const CHAPA_PUBLIC_KEY = (process.env.CHAPA_PUBLIC_KEY || "").trim(); // Chapa public key for frontend (trim whitespace)
 const CHAPA_BASE_URL = "https://api.chapa.co/v1/transaction";
 
+const buildPackageEndDate = (packageStartDate, packageDuration) => {
+    const packageEndDate = new Date(packageStartDate);
+    switch (packageDuration) {
+        case 'weekly':
+            packageEndDate.setDate(packageStartDate.getDate() + 7);
+            break;
+        case 'monthly':
+            packageEndDate.setMonth(packageStartDate.getMonth() + 1);
+            break;
+        case 'yearly':
+            packageEndDate.setFullYear(packageStartDate.getFullYear() + 1);
+            break;
+        default:
+            break;
+    }
+    return packageEndDate;
+};
+
+const findPackageCarByTxRef = async (txRef) => {
+    return ParkedCar.findOne({
+        serviceType: 'package',
+        paymentReference: txRef
+    }).sort({ _id: -1 });
+};
+
+const createPackageCarFromPending = async ({ txRef, amountOverride }) => {
+    // Idempotency guard: if this txRef already produced a package row, reuse it.
+    const existingCar = await findPackageCarByTxRef(txRef);
+    if (existingCar) {
+        return { parkedCar: existingCar, wasExisting: true, missingPending: false };
+    }
+
+    // Consume pending atomically so concurrent callbacks cannot create duplicate rows.
+    const pending = await PendingPackagePayment.findOneAndDelete({ txRef });
+    if (!pending) {
+        const alreadyCreated = await findPackageCarByTxRef(txRef);
+        return { parkedCar: alreadyCreated, wasExisting: !!alreadyCreated, missingPending: !alreadyCreated };
+    }
+
+    const {
+        carData,
+        packageDuration,
+        amount: storedAmount,
+        valetId,
+        parkZoneCode
+    } = pending;
+
+    const packageStartDate = new Date();
+    const packageEndDate = buildPackageEndDate(packageStartDate, packageDuration);
+    const packageSubscriptionId = new Types.ObjectId();
+    const finalAmount = Number(amountOverride ?? storedAmount ?? 0);
+    const normalizedAmount = Number.isFinite(finalAmount) ? finalAmount : 0;
+
+    const parkedCar = await ParkedCar.create({
+        licensePlate: `${carData.plateCode}-${carData.region}-${carData.licensePlateNumber}`.toUpperCase(),
+        plateCode: carData.plateCode,
+        region: carData.region,
+        licensePlateNumber: carData.licensePlateNumber.toUpperCase(),
+        carType: carData.carType,
+        model: carData.model || '',
+        color: carData.color || '',
+        phoneNumber: carData.phoneNumber,
+        location: parkZoneCode || 'Unknown Zone',
+        notes: carData.notes || '',
+        serviceType: 'package',
+        packageDuration,
+        packageSubscriptionId,
+        packageStartDate,
+        packageEndDate,
+        valet_id: valetId,
+        status: 'parked',
+        paymentMethod: 'online',
+        paymentReference: txRef,
+        totalPaidAmount: normalizedAmount
+    });
+
+    if (normalizedAmount > 0) {
+        const vatRate = await getVATRate();
+        const vatBreakdown = reverseCalculateVAT(normalizedAmount, vatRate);
+        parkedCar.baseAmount = vatBreakdown.baseAmount;
+        parkedCar.vatAmount = vatBreakdown.vatAmount;
+        parkedCar.vatRate = vatRate;
+        await parkedCar.save();
+    }
+
+    return { parkedCar, wasExisting: false, missingPending: false };
+};
+
 // Validate Chapa configuration
 if (!CHAPA_PUBLIC_KEY || CHAPA_PUBLIC_KEY === "") {
     console.warn("⚠️  WARNING: CHAPA_PUBLIC_KEY is not set in environment variables!");
@@ -546,12 +634,6 @@ paymentRouter.get("/chapa/verify-package/:txRef", async (req, res) => {
             return res.status(400).json({ error: "Transaction reference is required" });
         }
 
-        // Find pending payment in MongoDB
-        const pending = await PendingPackagePayment.findOne({ txRef });
-        if (!pending) {
-            return res.status(404).json({ error: "Pending package payment not found or already processed" });
-        }
-
         // Verify payment with Chapa
         let chapaResponse;
         try {
@@ -622,74 +704,13 @@ paymentRouter.get("/chapa/verify-package/:txRef", async (req, res) => {
             }
 
             if (normalizedStatus === 'successful') {
-                // Create the initial package subscription + first parked record
-                const {
-                    carData,
-                    packageDuration,
-                    amount,
-                    valetId,
-                    parkZoneCode
-                } = pending;
-
-                // Construct licensePlate
-                const licensePlate = `${carData.plateCode}-${carData.region}-${carData.licensePlateNumber}`.toUpperCase();
-
-                // Compute package start/end dates
-                const packageStartDate = new Date();
-                const packageEndDate = new Date(packageStartDate);
-                switch (packageDuration) {
-                    case 'weekly':
-                        packageEndDate.setDate(packageStartDate.getDate() + 7);
-                        break;
-                    case 'monthly':
-                        packageEndDate.setMonth(packageStartDate.getMonth() + 1);
-                        break;
-                    case 'yearly':
-                        packageEndDate.setFullYear(packageStartDate.getFullYear() + 1);
-                        break;
-                    default:
-                        break;
-                }
-
-                // Create a subscription id to link all future records
-                const packageSubscriptionId = new Types.ObjectId();
-
-                const parkedCar = await ParkedCar.create({
-                    licensePlate: licensePlate,
-                    plateCode: carData.plateCode,
-                    region: carData.region,
-                    licensePlateNumber: carData.licensePlateNumber.toUpperCase(),
-                    carType: carData.carType,
-                    model: carData.model || '',
-                    color: carData.color || '',
-                    phoneNumber: carData.phoneNumber,
-                    location: parkZoneCode || 'Unknown Zone',
-                    notes: carData.notes || '',
-                    serviceType: 'package',
-                    packageDuration: packageDuration,
-                    packageSubscriptionId,
-                    packageStartDate,
-                    packageEndDate,
-                    valet_id: valetId,
-                    status: 'parked',
-                    paymentMethod: 'online',
-                    paymentReference: txRef,
-                    totalPaidAmount: transaction.amount || amount || 0
+                const { parkedCar, missingPending } = await createPackageCarFromPending({
+                    txRef,
+                    amountOverride: transaction.amount
                 });
-
-                // Calculate and store VAT breakdown
-                const finalAmount = transaction.amount || amount || 0;
-                if (finalAmount > 0) {
-                    const vatRate = await getVATRate();
-                    const vatBreakdown = reverseCalculateVAT(finalAmount, vatRate);
-                    parkedCar.baseAmount = vatBreakdown.baseAmount;
-                    parkedCar.vatAmount = vatBreakdown.vatAmount;
-                    parkedCar.vatRate = vatRate;
-                    await parkedCar.save();
+                if (!parkedCar && missingPending) {
+                    return res.status(404).json({ error: "Pending package payment not found or already processed" });
                 }
-
-                // Clean up pending payment from MongoDB
-                await PendingPackagePayment.deleteOne({ txRef });
 
                 res.json({
                     success: true,
@@ -709,7 +730,7 @@ paymentRouter.get("/chapa/verify-package/:txRef", async (req, res) => {
                         packageEndDate: parkedCar.packageEndDate,
                         phoneNumber: parkedCar.phoneNumber,
                     },
-                    message: "Payment verified and car created successfully"
+                    message: "Payment verified and package registration processed successfully"
                 });
             } else {
                 // Chapa can take a moment to finalize; treat non-success as "pending" rather than a hard error.
@@ -834,78 +855,15 @@ paymentRouter.post("/chapa/callback", async (req, res) => {
             } else if (txRef) {
                 // Package payment path (payment-first, no carId)
                 try {
-                    const pending = await PendingPackagePayment.findOne({ txRef });
-                    if (!pending) {
-                        console.log(`Pending package payment not found for txRef: ${txRef}`);
-                        return res.status(200).json({ received: true, message: "Callback processed" });
-                    }
-                    
-                    const {
-                        carData,
-                        packageDuration,
-                        amount: storedAmount,
-                        valetId,
-                        parkZoneCode
-                    } = pending;
-
-                    const licensePlate = `${carData.plateCode}-${carData.region}-${carData.licensePlateNumber}`.toUpperCase();
-
-                    // Compute package start/end dates
-                    const packageStartDate = new Date();
-                    const packageEndDate = new Date(packageStartDate);
-                    switch (packageDuration) {
-                        case 'weekly':
-                            packageEndDate.setDate(packageStartDate.getDate() + 7);
-                            break;
-                        case 'monthly':
-                            packageEndDate.setMonth(packageStartDate.getMonth() + 1);
-                            break;
-                        case 'yearly':
-                            packageEndDate.setFullYear(packageStartDate.getFullYear() + 1);
-                            break;
-                        default:
-                            break;
-                    }
-
-                    const packageSubscriptionId = new Types.ObjectId();
-
-                    const parkedCar = await ParkedCar.create({
-                        licensePlate: licensePlate,
-                        plateCode: carData.plateCode,
-                        region: carData.region,
-                        licensePlateNumber: carData.licensePlateNumber.toUpperCase(),
-                        carType: carData.carType,
-                        model: carData.model || '',
-                        color: carData.color || '',
-                        phoneNumber: carData.phoneNumber,
-                        location: parkZoneCode || 'Unknown Zone',
-                        notes: carData.notes || '',
-                        serviceType: 'package',
-                        packageDuration: packageDuration,
-                        packageSubscriptionId,
-                        packageStartDate,
-                        packageEndDate,
-                        valet_id: valetId,
-                        status: 'parked',
-                        paymentMethod: 'online',
-                        paymentReference: txRef,
-                        totalPaidAmount: amount ? parseFloat(amount) : (storedAmount || 0)
+                    const { parkedCar, wasExisting, missingPending } = await createPackageCarFromPending({
+                        txRef,
+                        amountOverride: amount
                     });
-
-                    // Calculate and store VAT breakdown
-                    const finalAmount = amount ? parseFloat(amount) : (storedAmount || 0);
-                    if (finalAmount > 0) {
-                        const vatRate = await getVATRate();
-                        const vatBreakdown = reverseCalculateVAT(finalAmount, vatRate);
-                        parkedCar.baseAmount = vatBreakdown.baseAmount;
-                        parkedCar.vatAmount = vatBreakdown.vatAmount;
-                        parkedCar.vatRate = vatRate;
-                        await parkedCar.save();
+                    if (parkedCar) {
+                        console.log(`Package payment processed via callback (POST), car id ${parkedCar._id}${wasExisting ? ' (existing)' : ''}`);
+                    } else if (missingPending) {
+                        console.log(`Pending package payment not found for txRef: ${txRef}`);
                     }
-
-                    // Clean up pending payment from MongoDB
-                    await PendingPackagePayment.deleteOne({ txRef });
-                    console.log(`Package payment successful, car created with id ${parkedCar._id}`);
                 } catch (err) {
                     console.error("Failed to create car from package payment callback:", err);
                 }
@@ -967,67 +925,15 @@ paymentRouter.get("/chapa/callback", async (req, res) => {
                     } else if (transaction.tx_ref) {
                         // Package payment path (payment-first)
                         try {
-                            const pending = await PendingPackagePayment.findOne({ txRef: transaction.tx_ref });
-                            if (!pending) {
-                                console.log(`Pending package payment not found for txRef: ${transaction.tx_ref}`);
-                                return res.status(200).json({ received: true, message: "Callback processed" });
-                            }
-                            
-                            const {
-                                carData,
-                                packageDuration,
-                                amount: storedAmount,
-                                valetId,
-                                parkZoneCode
-                            } = pending;
-
-                            const licensePlate = `${carData.plateCode}-${carData.region}-${carData.licensePlateNumber}`.toUpperCase();
-
-                            // Compute package start/end dates
-                            const packageStartDate = new Date();
-                            const packageEndDate = new Date(packageStartDate);
-                            switch (packageDuration) {
-                                case 'weekly':
-                                    packageEndDate.setDate(packageStartDate.getDate() + 7);
-                                    break;
-                                case 'monthly':
-                                    packageEndDate.setMonth(packageStartDate.getMonth() + 1);
-                                    break;
-                                case 'yearly':
-                                    packageEndDate.setFullYear(packageStartDate.getFullYear() + 1);
-                                    break;
-                                default:
-                                    break;
-                            }
-
-                            const packageSubscriptionId = new Types.ObjectId();
-
-                            const parkedCar = await ParkedCar.create({
-                                licensePlate: licensePlate,
-                                plateCode: carData.plateCode,
-                                region: carData.region,
-                                licensePlateNumber: carData.licensePlateNumber.toUpperCase(),
-                                carType: carData.carType,
-                                model: carData.model || '',
-                                color: carData.color || '',
-                                phoneNumber: carData.phoneNumber,
-                                location: parkZoneCode || 'Unknown Zone',
-                                notes: carData.notes || '',
-                                serviceType: 'package',
-                                packageDuration: packageDuration,
-                                packageSubscriptionId,
-                                packageStartDate,
-                                packageEndDate,
-                                valet_id: valetId,
-                                status: 'parked',
-                                paymentMethod: 'online',
-                                paymentReference: transaction.tx_ref,
-                                totalPaidAmount: transaction.amount || storedAmount || 0
+                            const { parkedCar, wasExisting, missingPending } = await createPackageCarFromPending({
+                                txRef: transaction.tx_ref,
+                                amountOverride: transaction.amount
                             });
-
-                            // Clean up pending payment from MongoDB
-                            await PendingPackagePayment.deleteOne({ txRef: transaction.tx_ref });
-                            console.log(`Package payment successful, car created with id ${parkedCar._id} (GET callback)`);
+                            if (parkedCar) {
+                                console.log(`Package payment processed via callback (GET), car id ${parkedCar._id}${wasExisting ? ' (existing)' : ''}`);
+                            } else if (missingPending) {
+                                console.log(`Pending package payment not found for txRef: ${transaction.tx_ref}`);
+                            }
                         } catch (err) {
                             console.error("Failed to create car from package payment callback (GET):", err);
                         }

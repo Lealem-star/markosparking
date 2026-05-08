@@ -26,6 +26,7 @@
             justify-content: flex-start;
             align-items: flex-start;
             position: relative;
+            background-color: #FFD700;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
             .logo {
@@ -39,14 +40,15 @@
                 overflow: hidden;
 
                 .logo-img {
-                    height: 48px;
-                    width: 48px;
+                    height: 56px;
+                    width: 56px;
                     border-radius: 50%;
                     object-fit: cover;
                     flex-shrink: 0;
                 }
 
                 .logo-text {
+                    font-size: 13px;
                     white-space: nowrap;
                     flex-shrink: 0;
                     color: #e5e7eb;
@@ -408,8 +410,9 @@
             padding: 20px;
             display: flex;
             justify-content: flex-start;
-            align-items: center;
+            align-items: flex-start;
             position: relative;
+            background-color: #FFD700;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
             .logo {
@@ -431,6 +434,7 @@
                 }
 
                 .logo-text {
+                    font-size: 13px;
                     white-space: nowrap;
                     flex-shrink: 0;
                     color: #e5e7eb;
