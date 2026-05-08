@@ -326,6 +326,43 @@
             margin: 0 0 20px 0;
         }
 
+        .package-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: nowrap;
+            margin-bottom: 16px;
+
+            h2 {
+                margin: 0;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .phone-filter-input {
+                margin-left: auto;
+                width: clamp(220px, 32%, 340px);
+                min-width: 200px;
+                max-width: 45%;
+                padding: 10px 14px;
+                border: 1px solid #d8dbe2;
+                border-radius: 999px;
+                font-size: 14px;
+                color: #333;
+                outline: none;
+                background: linear-gradient(#fff, #fff) padding-box,
+                    linear-gradient(135deg, rgba(102, 126, 234, 0.28), rgba(79, 172, 254, 0.18)) border-box;
+                transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+
+                &:focus {
+                    border-color: #667eea;
+                    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.14);
+                    transform: translateY(-1px);
+                }
+            }
+        }
+
         .stats-table-container {
             overflow-x: auto;
             border-radius: 8px;
@@ -476,6 +513,27 @@
                 margin: 0 0 15px 0;
             }
 
+            .package-section-header {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 15px;
+                align-items: center;
+                flex-wrap: nowrap;
+
+                h2 {
+                    margin: 0;
+                    font-size: 15px;
+                    white-space: nowrap;
+                }
+
+                .phone-filter-input {
+                    width: min(48vw, 230px);
+                    min-width: 150px;
+                    font-size: 13px;
+                    padding: 8px 12px;
+                }
+            }
+
             .stats-table-container {
                 overflow-x: auto;
             }
@@ -508,6 +566,21 @@
             h2 {
                 font-size: 14px;
                 margin: 0 0 12px 0;
+            }
+
+            .package-section-header {
+                display: flex;
+                margin-bottom: 12px;
+                gap: 6px;
+                align-items: center;
+                flex-wrap: nowrap;
+
+                .phone-filter-input {
+                    width: min(50vw, 190px);
+                    min-width: 130px;
+                    font-size: 12px;
+                    padding: 8px 11px;
+                }
             }
 
             .stats-table {

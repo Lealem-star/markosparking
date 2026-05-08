@@ -41,6 +41,7 @@ const ValetOverview = () => {
     const [packageServices, setPackageServices] = useState([]);
     const [parkInLoadingId, setParkInLoadingId] = useState(null); // subscription key being processed
     const [error, setError] = useState(null);
+    const [phoneFilter, setPhoneFilter] = useState('');
 
     const loadPackageServices = useCallback(() => {
         if (user?.token) {
@@ -151,6 +152,12 @@ const ValetOverview = () => {
         });
     };
 
+    const normalizedPhoneFilter = phoneFilter.trim().toLowerCase();
+    const filteredPackageServices = packageServices.filter((sub) =>
+        !normalizedPhoneFilter ||
+        (sub.phoneNumber || '').toLowerCase().includes(normalizedPhoneFilter)
+    );
+
     return (
         <div className="valet-overview">
             <div className="quick-actions">
@@ -231,14 +238,24 @@ const ValetOverview = () => {
 
             {/* Package Services List */}
             <div className="historical-stats-section">
-                <h2>Package Service Registrations</h2>
+                <div className="package-section-header">
+                    <h2>Package subscriber</h2>
+                    <input
+                        type="text"
+                        className="phone-filter-input"
+                        placeholder="Filter by phone number"
+                        value={phoneFilter}
+                        onChange={(e) => setPhoneFilter(e.target.value)}
+                        aria-label="Filter package services by phone number"
+                    />
+                </div>
                 {error && (
                     <div className="package-error-banner" role="alert">
                         {error}
                         <button type="button" onClick={() => setError(null)} aria-label="Dismiss">×</button>
                     </div>
                 )}
-                {packageServices.length > 0 ? (
+                {filteredPackageServices.length > 0 ? (
                     <div className="stats-table-container">
                         <table className="stats-table">
                             <thead>
@@ -253,7 +270,7 @@ const ValetOverview = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {packageServices.map((sub) => {
+                                {filteredPackageServices.map((sub) => {
                                     const packageType = sub.packageDuration
                                         ? sub.packageDuration.charAt(0).toUpperCase() + sub.packageDuration.slice(1)
                                         : 'N/A';
@@ -298,7 +315,11 @@ const ValetOverview = () => {
                     </div>
                 ) : (
                     <div className="no-stats-message">
-                        <p>No package service registrations available.</p>
+                        <p>
+                            {packageServices.length > 0 && normalizedPhoneFilter
+                                ? 'No package service registrations found for this phone number.'
+                                : 'No package service registrations available.'}
+                        </p>
                     </div>
                 )}
             </div>
