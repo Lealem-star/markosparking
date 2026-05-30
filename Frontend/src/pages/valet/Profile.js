@@ -29,7 +29,7 @@ const Profile = () => {
 
     useEffect(() => {
         if (!user) {
-            navigate('/login');
+            navigate('/');
             return;
         }
 

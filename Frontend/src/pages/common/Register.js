@@ -62,7 +62,7 @@ const Register = () => {
                     </select>
                 </div>
                 <div className='d-flex justify-content-between'>
-                    {t('auth.existingUser')}<Link to='/login'>{t('auth.signIn')}</Link>
+                    {t('auth.existingUser')}<Link to='/'>{t('auth.signIn')}</Link>
                 </div>
                 <button type="submit" className="btn btn-outline-primary mt-3" onClick={() => handleRegister()}>{t('common.submit')}</button>
             </div>

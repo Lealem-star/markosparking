@@ -49,7 +49,7 @@ const AdminDashboard = () => {
     // Protect route - system admin and manager can access
     useEffect(() => {
         if (!user) {
-            navigate('/login');
+            navigate('/');
         } else if (user.type !== 'system_admin' && user.type !== 'manager') {
             navigate('/');
         }
@@ -96,7 +96,7 @@ const AdminDashboard = () => {
 
     const handleLogout = () => {
         dispatch(clearUser());
-        navigate('/login');
+        navigate('/');
         setProfileDropdownOpen(false);
     };
 

@@ -2,7 +2,7 @@ import './App.css';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useEffect } from 'react';
-import { Layout, Home, NoPage, Users, About, Login, Register, AdminDashboard, DashboardOverview, UserManagement, Settings, Reports, GroupChat, ValetDashboard, ValetOverview, RegisterCar, ParkedCarsList, FlaggedCustomers } from './pages/common';
+import { Layout, Home, NoPage, Users, Register, AdminDashboard, DashboardOverview, UserManagement, Settings, Reports, GroupChat, ValetDashboard, ValetOverview, RegisterCar, ParkedCarsList, FlaggedCustomers } from './pages/common';
 import Profile from './pages/valet/Profile';
 import PaymentCallback from './pages/valet/PaymentCallback';
 import { syncLanguageWithUser } from './utils/languageSync';
@@ -56,7 +56,6 @@ function App() {
           <Route index element={<RootRedirect />} />
           <Route path="profile" element={<Profile />} />
           <Route path="users" element={<Users />} />
-          <Route path="about" element={<About />} />
         </Route>
         <Route path="/admin" element={<AdminDashboard />}>
           <Route index element={<DashboardOverview />} />
@@ -77,11 +76,7 @@ function App() {
           <Route path="chat" element={<GroupChat />} />
           <Route path="flagged-customers" element={<FlaggedCustomers />} />
         </Route>
-        <Route path="login" element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        } />
+        <Route path="login" element={<Navigate to="/" replace />} />
         <Route path="register" element={
           <PublicRoute>
             <Register />

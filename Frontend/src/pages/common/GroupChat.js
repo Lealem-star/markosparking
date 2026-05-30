@@ -27,7 +27,7 @@ const GroupChat = () => {
     // Redirect unauthenticated users
     useEffect(() => {
         if (!user || !user.token) {
-            navigate('/login');
+            navigate('/');
         }
     }, [user, navigate]);
 

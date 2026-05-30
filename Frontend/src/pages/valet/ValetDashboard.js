@@ -32,7 +32,7 @@ const ValetDashboard = () => {
     // Protect route - only valets can access
     useEffect(() => {
         if (!user) {
-            navigate('/login');
+            navigate('/');
         } else if (user.type !== 'valet') {
             navigate('/');
         }
@@ -40,7 +40,7 @@ const ValetDashboard = () => {
 
     const handleLogout = () => {
         dispatch(clearUser());
-        navigate('/login');
+        navigate('/');
     };
 
     const handleProfileUpdate = () => {

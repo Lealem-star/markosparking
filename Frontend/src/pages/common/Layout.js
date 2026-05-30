@@ -3,7 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { clearUser } from "../../reducers/userReducer";
-import {Instagram, Github, LinkedinIcon, Mail} from "lucide-react";
+import { Mail } from "lucide-react";
+import tanaLogo from '../../img/Tana.png';
+import partnerLogo from '../../img/image.png';
 import '../../css/layout.scss';
 
 const Layout = () => {
@@ -12,107 +14,84 @@ const Layout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
+    const isHome = location.pathname === '/';
 
     const handleLogout = () => {
-        dispatch(clearUser()); //Clear User from Redux Store
+        dispatch(clearUser());
+        navigate('/');
     };
 
-    //Protected Path Logic
     useEffect(() => {
-        console.log('user ', user);
-        if (!user && location.pathname !== '/' && location.pathname !== '/about') {
-            navigate('/login')
+        if (!user && location.pathname !== '/') {
+            navigate('/');
         }
-    }, [user, location, navigate])
+    }, [user, location, navigate]);
 
     return (
         <div className="main-container">
-            {/* Navbar */}
-            <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-                <div className="container">
-                    <Link className="navbar-brand" to="/">TanaPark</Link>
-                    <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-                        <span className="navbar-toggler-icon"></span>
-                    </button>
-                    <div className="collapse navbar-collapse" id="navbarNavDropdown">
-                        <ul className="navbar-nav ms-auto align-items-center">
-                            <li className="nav-item">
-                                <Link className="nav-link" to='/'>{t('navigation.home')}</Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link className="nav-link" to='/about'>{t('navigation.about')}</Link>
-                            </li>
-                            {(user?.type === "system_admin" || user?.type === "manager") &&
-                                <>
-                                    <li className="nav-item">
-                                        <Link className="nav-link" to='/admin/dashboard'>{t('navigation.adminDashboard')}</Link>
-                                    </li>
-                                </>
-                            }
-                            {user?.type === "valet" &&
-                                <>
-                                    <li className="nav-item">
-                                        <Link className="nav-link" to='/valet/dashboard'>{t('navigation.valetDashboard')}</Link>
-                                    </li>
-                                </>
-                            }
-                            {user?.type === "admin" &&
-                                <>
-                                    <li className="nav-item">
-                                        <Link className="nav-link" to='/users'>{t('navigation.users')}</Link>
-                                    </li>
-                                </>
-                            }
-                            {user ?
-                                <>
-                                    <li className="nav-item ms-2">
-                                        <Link className="nav-link" to='/profile'><div className="bg-dark px-3 py-2 pointer">{user?.name && user?.name[0]}</div></Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <button className="btn btn-outline-info " onClick={handleLogout}>{t('common.logout')}</button>
-                                    </li>
-                                </>
-                                :
-                                <li className="nav-item ms-4">
-                                    <Link className="btn btn-outline-info " to='/login'>{t('common.login')}</Link>
+            <nav className="tanapark-nav">
+                <div className="nav-inner">
+                    <Link className="nav-brand" to="/">
+                        <img src={tanaLogo} alt="" className="nav-brand-icon" />
+                        <span className="nav-brand-name">TanaPark</span>
+                    </Link>
+
+                    {user && (
+                        <ul className="nav-links">
+                            {(user.type === 'system_admin' || user.type === 'manager') && (
+                                <li>
+                                    <Link to="/admin/dashboard">{t('navigation.adminDashboard')}</Link>
                                 </li>
-                            }
+                            )}
+                            {user.type === 'valet' && (
+                                <li>
+                                    <Link to="/valet/dashboard">{t('navigation.valetDashboard')}</Link>
+                                </li>
+                            )}
+                            {user.type === 'admin' && (
+                                <li>
+                                    <Link to="/users">{t('navigation.users')}</Link>
+                                </li>
+                            )}
+                            <li>
+                                <Link to="/profile" className="nav-profile">
+                                    {user?.name?.[0]?.toUpperCase() || '?'}
+                                </Link>
+                            </li>
+                            <li>
+                                <button type="button" className="nav-logout-btn" onClick={handleLogout}>
+                                    {t('common.logout')}
+                                </button>
+                            </li>
                         </ul>
-                    </div>
+                    )}
+
+                    {!user && (
+                        <div className="nav-partner">
+                            <img
+                                src={partnerLogo}
+                                alt="Bahir Dar City Administration"
+                                className="nav-partner-logo"
+                            />
+                        </div>
+                    )}
                 </div>
             </nav>
 
-            {/* Main Content + Speacial React Router Outlet */}
             <main>
                 <Outlet />
             </main>
 
-            {/* Footer */}  
-            <footer className="container-fluid  mt-5">
-                <div className="row">
-                    <div className="col-md-4">
-                        <p>Copyright &copy; 2026 by Enqopa Technologies Plc</p>
-                    </div>
-                    <div className="col-md-4">
-                    </div>
-                    <div className="col-md-4 d-flex justify-content-end">
-                        <button type="button" className="btn-link hover:text-blue" aria-label="Instagram">
-                        <Instagram />
-                        </button>
-                        <button type="button" className="btn-link" aria-label="Github">
-                        <Github />
-                        </button>
-                        <button type="button" className="btn-link" aria-label="LinkedIn">
-                        <LinkedinIcon />
-                        </button>
-                        <a href="mailto:enqopatechplc@gmail.com" aria-label="Email">
-                        <Mail />
-                        </a>
-                    </div>
-                </div>
-            </footer>
+            {!isHome && (
+                <footer className="tanapark-footer">
+                    <p>Copyright &copy; 2026 by Enqopa Technologies Plc</p>
+                    <a href="mailto:enqopatechplc@gmail.com" aria-label="Email">
+                        <Mail size={18} />
+                    </a>
+                </footer>
+            )}
         </div>
-    )
+    );
 };
 
 export default Layout;

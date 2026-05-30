@@ -47,7 +47,6 @@
   },
   "navigation": {
     "home": "Home",
-    "about": "About",
     "dashboard": "Dashboard",
     "adminDashboard": "Admin Dashboard",
     "valetDashboard": "Valet Dashboard",
@@ -288,6 +287,10 @@
     "networkError": "Network error. Please check your connection."
   },
   "splash": {
+    "welcomeTitle": "Welcome to Tanapark",
+    "tagline": "Smart Parking Management System",
+    "signInToAccount": "Sign in to your account",
+    "rememberMe": "Remember me",
     "poweredBy": "Powered by Bahir Dar city Administration",
     "developedBy": "Developed by Enqopa Technologies PLC"
   }

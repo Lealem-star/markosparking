@@ -1,8 +1,6 @@
 import Home from "./Home";
 import Layout from "./Layout";
 import NoPage from "./NoPage";
-import About from "./About";
-import Login from "./Login";
 import Register from "./Register";
 
 import Profile from "../valet/Profile";
@@ -24,8 +22,6 @@ export {
     Layout,
     Home,
     NoPage,
-    About,
-    Login,
     Register,
     Profile,
     ValetDashboard,
