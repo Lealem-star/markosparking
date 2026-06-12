@@ -551,11 +551,6 @@ const RegisterCar = () => {
 
     return (
         <div className="register-car">
-            <div className="page-header">
-                <h1>Register Parked Car</h1>
-                <p>Record a new parked vehicle</p>
-            </div>
-
             <div className="form-container">
                 {success && <div className="alert alert-success">{success}</div>}
                 {error && <div className="alert alert-danger">{error}</div>}

@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, fetchDailyStats, fetchPricingSettings, flagParkedCar } from '../../api/api';
 import { EthiopianDatePicker } from '../../components';
-import { CheckCircle, Clock, X } from 'lucide-react';
+import { Car, Clock, Package, X, Search, RefreshCw, Plus, LogOut } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 import '../../css/valetOverview.scss';
 
@@ -14,6 +14,8 @@ const ParkedCarsList = () => {
     const navigate = useNavigate();
     const [cars, setCars] = useState([]);
     const [filter, setFilter] = useState('all'); // all, parked, checked_out
+    const [serviceFilter, setServiceFilter] = useState('all'); // all, hourly, package
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
     const [selectedCar, setSelectedCar] = useState(null);
     const [showStatusModal, setShowStatusModal] = useState(false);
@@ -58,14 +60,47 @@ const ParkedCarsList = () => {
 
     const loadCars = useCallback(() => {
         if (!user?.token) return;
+        setLoading(true);
         const status = filter !== 'all' ? filter : null;
-        fetchParkedCars({ 
-            token: user.token, 
+        fetchParkedCars({
+            token: user.token,
             status,
             date: selectedDate,
-            setParkedCars: (data) => setCars(dedupeCars(data || []))
+            setParkedCars: (data) => {
+                setCars(dedupeCars(data || []));
+                setLoading(false);
+            },
+            handleError: () => setLoading(false),
         });
     }, [user?.token, filter, selectedDate, dedupeCars]);
+
+    const handleRefresh = useCallback(() => {
+        if (!user?.token) return;
+        loadCars();
+        fetchDailyStats({ token: user.token, date: selectedDate, setDailyStats });
+    }, [user?.token, loadCars, selectedDate]);
+
+    const filteredCars = useMemo(() => {
+        let result = cars;
+
+        if (serviceFilter === 'hourly') {
+            result = result.filter((car) => car.serviceType !== 'package');
+        } else if (serviceFilter === 'package') {
+            result = result.filter((car) => car.serviceType === 'package');
+        }
+
+        const query = searchQuery.trim().toLowerCase();
+        if (query) {
+            result = result.filter((car) => {
+                const plate = (car.licensePlate || `${car.plateCode || ''}-${car.region || ''}-${car.licensePlateNumber || ''}`).toLowerCase();
+                const phone = (car.phoneNumber || '').toLowerCase();
+                const model = (car.model || '').toLowerCase();
+                return plate.includes(query) || phone.includes(query) || model.includes(query);
+            });
+        }
+
+        return result;
+    }, [cars, serviceFilter, searchQuery]);
 
     useEffect(() => {
         if (user?.token) {
@@ -1023,18 +1058,21 @@ const ParkedCarsList = () => {
         });
     };
 
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'checked_out':
-                return <CheckCircle size={18} />;
-            default:
-                return <Clock size={18} />;
-        }
-    };
-
+    const StatSparkline = ({ color }) => (
+        <svg className="stat-sparkline" viewBox="0 0 80 24" aria-hidden="true">
+            <polyline
+                points="0,18 10,15 20,16 30,11 40,13 50,9 60,10 70,7 80,5"
+                fill="none"
+                stroke={color}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
 
     return (
-        <div className="parked-cars-list">
+        <div className="parked-cars-list parked-cars-list--v2">
             {/* Alert banner - fixed at top */}
             {banner && (
                 <div className={`alert-banner alert-banner-${banner.type}`} role="alert">
@@ -1049,154 +1087,180 @@ const ParkedCarsList = () => {
                     </button>
                 </div>
             )}
-            <div className="page-header">
-                <h1>{t('valet.parkedCars')}</h1>
-                <button 
-                    className="btn-primary"
-                    onClick={() => navigate('/valet/register-car')}
-                >
-                    {t('valet.registerNewCar')}
-                </button>
-            </div>
-
-            <div className="filters">
-                <div className="filter-buttons">
-                    <button 
-                        className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                        onClick={() => setFilter('all')}
-                    >
-                        {t('valet.all')}
-                    </button>
-                    <button 
-                        className={`filter-btn ${filter === 'parked' ? 'active' : ''}`}
-                        onClick={() => setFilter('parked')}
-                    >
-                        {t('valet.parked')}
-                    </button>
-                    <button 
-                        className={`filter-btn ${filter === 'checked_out' ? 'active' : ''}`}
-                        onClick={() => setFilter('checked_out')}
-                    >
-                        {t('valet.checkedOut')}
-                    </button>
+            <div className="stats-summary-grid">
+                <div className="stat-summary-card stat-summary-card--total">
+                    <div className="stat-summary-icon">P</div>
+                    <div className="stat-summary-body">
+                        <span className="stat-summary-label">{t('valet.totalParked')}</span>
+                        <span className="stat-summary-value">{dailyStats.totalParked}</span>
+                        <span className="stat-summary-hint">{t('valet.statAllTimeEntries')}</span>
+                    </div>
+                    <StatSparkline color="#3b82f6" />
                 </div>
-                <div className="date-selector">
-                    {/* <label>Select Date:</label> */}
-                    <EthiopianDatePicker
-                        value={selectedDate}
-                        onChange={(date) => setSelectedDate(date)}
-                        label="Select Date"
-                    />
+                <div className="stat-summary-card stat-summary-card--parked">
+                    <div className="stat-summary-icon"><Car size={22} /></div>
+                    <div className="stat-summary-body">
+                        <span className="stat-summary-label">{t('valet.stillParked')}</span>
+                        <span className="stat-summary-value">{dailyStats.stillParked}</span>
+                        <span className="stat-summary-hint">{t('valet.statCurrentlyInPark')}</span>
+                    </div>
+                    <StatSparkline color="#22c55e" />
+                </div>
+                <div className="stat-summary-card stat-summary-card--checked">
+                    <div className="stat-summary-icon"><LogOut size={22} /></div>
+                    <div className="stat-summary-body">
+                        <span className="stat-summary-label">{t('valet.checkedOut')}</span>
+                        <span className="stat-summary-value">{dailyStats.checkedOut}</span>
+                        <span className="stat-summary-hint">{t('valet.statToday')}</span>
+                    </div>
+                    <StatSparkline color="#8b5cf6" />
                 </div>
             </div>
 
-            <div className="stats-grid-circular stats-grid-circular--combined">
-                <div className="stats-combined-card" role="group" aria-label="Daily stats">
-                    <div className="stat-circle-card stat-circle-total">
-                        <div className="stat-circle-wrapper">
-                            <svg viewBox="0 0 120 130" className="stat-circle-svg">
-                                <defs>
-                                    <path id="arc-total" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
-                                </defs>
-                                <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#4facfe" strokeWidth="10" />
-                                <text>
-                                    <textPath href="#arc-total" startOffset="50%" textAnchor="middle">{t('valet.totalParked')}</textPath>
-                                </text>
-                                <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{dailyStats.totalParked}</text>
-                            </svg>
+            <div className="control-panel">
+                <div className="control-panel-top">
+                    <div className="segment-filters">
+                        <div className="segment-group">
+                            <span className="segment-label">{t('valet.status')}</span>
+                            <div className="segment-buttons">
+                                <button type="button" className={`segment-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>{t('valet.all')}</button>
+                                <button type="button" className={`segment-btn ${filter === 'parked' ? 'active' : ''}`} onClick={() => setFilter('parked')}>
+                                    <span className="status-dot status-dot--parked" />{t('valet.parked')}
+                                </button>
+                                <button type="button" className={`segment-btn ${filter === 'checked_out' ? 'active' : ''}`} onClick={() => setFilter('checked_out')}>
+                                    <span className="status-dot status-dot--checked" />{t('valet.checkedOut')}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="segment-group">
+                            <span className="segment-label">{t('valet.serviceType')}</span>
+                            <div className="segment-buttons">
+                                <button type="button" className={`segment-btn ${serviceFilter === 'all' ? 'active' : ''}`} onClick={() => setServiceFilter('all')}>{t('valet.all')}</button>
+                                <button type="button" className={`segment-btn ${serviceFilter === 'hourly' ? 'active' : ''}`} onClick={() => setServiceFilter('hourly')}>
+                                    <Clock size={14} />{t('valet.hourly')}
+                                </button>
+                                <button type="button" className={`segment-btn ${serviceFilter === 'package' ? 'active' : ''}`} onClick={() => setServiceFilter('package')}>
+                                    <Package size={14} />{t('valet.package')}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div className="stat-circle-card stat-circle-parked">
-                        <div className="stat-circle-wrapper">
-                            <svg viewBox="0 0 120 130" className="stat-circle-svg">
-                                <defs>
-                                    <path id="arc-still" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
-                                </defs>
-                                <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#4facfe" strokeWidth="10" />
-                                <text>
-                                    <textPath href="#arc-still" startOffset="50%" textAnchor="middle">{t('valet.stillParked')}</textPath>
-                                </text>
-                                <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{dailyStats.stillParked}</text>
-                            </svg>
-                        </div>
-                    </div>
-                    <div className="stat-circle-card stat-circle-checked">
-                        <div className="stat-circle-wrapper">
-                            <svg viewBox="0 0 120 130" className="stat-circle-svg">
-                                <defs>
-                                    <path id="arc-checked" d="M 15,65 A 45,45 0 0,1 105,65" fill="none" />
-                                </defs>
-                                <circle cx="60" cy="65" r="45" className="stat-circle-ring-svg" fill="none" stroke="#11998e" strokeWidth="10" />
-                                <text>
-                                    <textPath href="#arc-checked" startOffset="50%" textAnchor="middle">{t('valet.checkedOut')}</textPath>
-                                </text>
-                                <text x="60" y="72" textAnchor="middle" className="stat-circle-value-svg">{dailyStats.checkedOut}</text>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="cars-table-container">
-                {cars.length > 0 ? (
-                    <table className="cars-table">
-                        <thead>
-                            <tr>
-                                <th>{t('valet.licensePlate')}</th>
-                                <th>{t('valet.vehicle')}</th>
-                                <th>{t('valet.parkedAt')}</th>
-                                <th>{t('valet.checkedOutAt')}</th>
-                                <th>{t('valet.parkingFee')}</th>
-                                <th>{t('valet.status')}</th>
-                                <th>{t('valet.actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {cars.map((car) => (
-                                <tr key={car._id}>
-                                    <td className="license-plate">{car.licensePlate}</td>
-                                    <td>
-                                        <div className="vehicle-info">
-                                            <strong>{car.model}</strong>
-                                            <span className="color">{car.color}</span>
-                                        </div>
-                                    </td>
-                                    <td>{formatDateTime(car.parkedAt)}</td>
-                                    <td>{car.checkedOutAt ? formatDateTime(car.checkedOutAt) : '-'}</td>
-                                    <td>{car.status === 'checked_out' ? `${car.totalPaidAmount?.toFixed(2) || '0.00'} ETB` : `${calculateFee(car).totalWithVat.toFixed(2)} ETB`}</td>
-                                    <td>
-                                        <span className={`badge badge-${car.status}`}>
-                                            {getStatusIcon(car.status)}
-                                            {car.status.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="actions">
-                                            {car.status === 'parked' && (
-                                                <button
-                                                    className="btn-action btn-checkout"
-                                                    onClick={() => handleStatusChange(car, 'checked_out')}
-                                                >
-                                                    {t('valet.checkOut')}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : (
-                    <div className="no-data">
-                        <p>{t('valet.noParkedCars')}</p>
-                        <button 
-                            className="btn-primary"
-                            onClick={() => navigate('/valet/register-car')}
-                        >
-                            {t('valet.registerFirstCar')}
+                    <div className="control-panel-actions">
+                        <button type="button" className="btn-refresh" onClick={handleRefresh} disabled={loading}>
+                            <RefreshCw size={16} />
+                            {t('common.refresh')}
+                        </button>
+                        <button type="button" className="btn-primary" onClick={() => navigate('/valet/register-car')}>
+                            <Plus size={18} />
+                            {t('valet.registerNewCar')}
                         </button>
                     </div>
+                </div>
+                <div className="control-panel-bottom">
+                    <div className="search-filter">
+                        <Search size={18} className="search-filter-icon" />
+                        <input
+                            type="text"
+                            className="search-filter-input"
+                            placeholder={t('valet.searchPlaceholder')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button type="button" className="search-filter-clear" onClick={() => setSearchQuery('')} aria-label={t('common.cancel')}>
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+                    <div className="date-selector">
+                        <EthiopianDatePicker value={selectedDate} onChange={(date) => setSelectedDate(date)} label="Select Date" />
+                    </div>
+                </div>
+                {(serviceFilter !== 'all' || searchQuery) && (
+                    <p className="filters-result-count">{t('valet.showingResults', { count: filteredCars.length, total: cars.length })}</p>
                 )}
+            </div>
+
+            {loading && (
+                <div className="loading-indicator">
+                    <p>{t('common.loading')}</p>
+                </div>
+            )}
+
+            <div className="table-card">
+                <div className="table-card-header">
+                    <Car size={20} />
+                    <h2>{t('valet.parkedCars')}</h2>
+                </div>
+                <div className="table-card-body">
+                    {!loading && filteredCars.length > 0 ? (
+                        <table className="cars-table cars-table--v2">
+                            <thead>
+                                <tr>
+                                    <th>{t('valet.licensePlate')}</th>
+                                    <th>{t('valet.vehicle')}</th>
+                                    <th>{t('valet.parkedAt')}</th>
+                                    <th>{t('valet.checkedOutAt')}</th>
+                                    <th>{t('valet.parkingFee')}</th>
+                                    <th>{t('valet.status')}</th>
+                                    <th>{t('valet.actions')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredCars.map((car) => (
+                                    <tr key={car._id}>
+                                        <td>
+                                            <span className="plate-badge">{car.licensePlate}</span>
+                                        </td>
+                                        <td>
+                                            <div className="vehicle-info">
+                                                <strong>{car.model || '-'}</strong>
+                                                {car.color && <span className="color">{car.color}</span>}
+                                            </div>
+                                        </td>
+                                        <td>{formatDateTime(car.parkedAt)}</td>
+                                        <td>{car.checkedOutAt ? formatDateTime(car.checkedOutAt) : '-'}</td>
+                                        <td className="fee-cell">
+                                            {car.status === 'checked_out'
+                                                ? `${car.totalPaidAmount?.toFixed(2) || '0.00'} ETB`
+                                                : `${calculateFee(car).totalWithVat.toFixed(2)} ETB`}
+                                        </td>
+                                        <td>
+                                            <span className={`status-pill status-pill--${car.status}`}>
+                                                <span className="status-dot" />
+                                                {car.status === 'checked_out' ? t('valet.checkedOut') : t('valet.parked')}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="actions">
+                                                {car.status === 'parked' ? (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-action btn-checkout"
+                                                        onClick={() => handleStatusChange(car, 'checked_out')}
+                                                    >
+                                                        {t('valet.checkOut')}
+                                                    </button>
+                                                ) : (
+                                                    <button type="button" className="btn-action btn-checkout-done" disabled>
+                                                        {t('valet.checkedOut')}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : !loading ? (
+                        <div className="no-data">
+                            <p>{searchQuery || serviceFilter !== 'all' ? t('valet.noFilterResults') : t('valet.noParkedCars')}</p>
+                            <button type="button" className="btn-primary" onClick={() => navigate('/valet/register-car')}>
+                                {t('valet.registerFirstCar')}
+                            </button>
+                        </div>
+                    ) : null}
+                </div>
             </div>
 
             {/* Status Change Modal */}

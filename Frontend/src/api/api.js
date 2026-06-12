@@ -172,7 +172,7 @@ export const createParkedCar = async ({ body, token, handleCreateParkedCarSucces
     }
 }
 
-export const fetchParkedCars = async ({ token, status, date, setParkedCars }) => {
+export const fetchParkedCars = async ({ token, status, date, setParkedCars, handleError }) => {
     try {
         let query = '';
         const params = [];
@@ -191,6 +191,7 @@ export const fetchParkedCars = async ({ token, status, date, setParkedCars }) =>
         console.log('fetchParkedCars ', result);
     } catch (error) {
         console.error('fetchParkedCars ', error);
+        handleError?.(error?.response?.data?.error || 'Failed to fetch parked cars');
     }
 }
 

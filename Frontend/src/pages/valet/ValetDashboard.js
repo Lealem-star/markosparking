@@ -4,11 +4,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { clearUser } from '../../reducers/userReducer';
 import TanaLogo from '../../img/Tana.png';
-import { 
-    LayoutDashboard, 
-    Car, 
-    List, 
-    LogOut, 
+import {
+    LayoutDashboard,
+    Car,
+    List,
+    LogOut,
     Menu,
     X,
     Bell,
@@ -48,7 +48,7 @@ const ValetDashboard = () => {
     };
 
     useEffect(() => {
-        const handleNewMessage = (msg) => {
+        const handleNewMessage = () => {
             if (location.pathname === '/valet/chat') return;
             setUnreadCount((prev) => prev + 1);
         };
@@ -85,7 +85,7 @@ const ValetDashboard = () => {
                 <div className="sidebar-header">
                     <div className="logo">
                         <img src={TanaLogo} alt="Logo" className="logo-img" />
-                        <span className="logo-text">tana parking</span>
+                        <span className="logo-text">TANA PARKING</span>
                     </div>
                     <button 
                         className="sidebar-toggle"
@@ -165,24 +165,23 @@ const ValetDashboard = () => {
             <div className="main-content">
                 {/* Header */}
                 <header className="dashboard-header">
-                <div className="header-left">
-                        <button 
+                    <div className="header-left">
+                        <button
+                            type="button"
                             className="mobile-menu-btn"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             <Menu size={24} />
                         </button>
                         <div className="welcome-message">
-                            <span>Welcome, {user?.name || 'Valet'}</span>
+                            <h1>{t('valet.welcomeBack', { name: user?.name || 'Valet' })}</h1>
                         </div>
                     </div>
-                    
+
                     <div className="header-right">
-                        <button className="icon-btn" onClick={handleBellClick}>
+                        <button type="button" className="icon-btn" onClick={handleBellClick} aria-label={t('navigation.chat')}>
                             <Bell size={20} />
-                            {unreadCount > 0 && (
-                                <span className="badge">{unreadCount}</span>
-                            )}
+                            {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
                         </button>
                     </div>
                 </header>
@@ -255,6 +254,10 @@ const ValetDashboard = () => {
                 <div className="content-area">
                     <Outlet />
                 </div>
+
+                <footer className="valet-footer">
+                    {t('valet.footerCopyright')}
+                </footer>
             </div>
         </div>
     );
