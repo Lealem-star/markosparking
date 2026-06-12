@@ -17,7 +17,9 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { socket } from '../../utils/chatSocket';
+import { useValetTheme } from '../../hooks/useValetTheme';
 import '../../css/valetDashboard.scss';
+import '../../css/valetTheme.scss';
 
 const ValetDashboard = () => {
     const { t } = useTranslation();
@@ -30,6 +32,7 @@ const ValetDashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
+    const { lightMode, toggleLightMode } = useValetTheme();
 
     useEffect(() => {
         if (!user) {
@@ -108,12 +111,28 @@ const ValetDashboard = () => {
         );
     };
 
+    const renderThemeToggle = (className = '') => (
+        <button
+            type="button"
+            className={`valet-theme-toggle ${className}`.trim()}
+            onClick={toggleLightMode}
+            aria-pressed={lightMode}
+            aria-label={t('valet.lightMode')}
+        >
+            <Sun size={18} />
+            <span>{t('valet.lightMode')}</span>
+            <div className={`theme-switch ${lightMode ? 'theme-switch--on' : ''}`} aria-hidden="true">
+                <span className="theme-switch-knob" />
+            </div>
+        </button>
+    );
+
     if (!user || user.type !== 'valet') {
         return null;
     }
 
     return (
-        <div className="valet-dashboard">
+        <div className={`valet-dashboard ${lightMode ? '' : 'valet-dashboard--dark'}`}>
             <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
                     <div className="logo">
@@ -148,6 +167,7 @@ const ValetDashboard = () => {
                 </nav>
 
                 <div className="sidebar-footer">
+                    {sidebarOpen && renderThemeToggle('sidebar-theme-toggle')}
                     <div className="user-profile-dropdown">
                         <button
                             className="nav-item user-profile-btn"
@@ -281,13 +301,7 @@ const ValetDashboard = () => {
                                     )}
                                 </div>
 
-                                <div className="mobile-theme-toggle" aria-hidden="true">
-                                    <Sun size={18} />
-                                    <span>{t('valet.lightMode')}</span>
-                                    <div className="theme-switch theme-switch--on">
-                                        <span className="theme-switch-knob" />
-                                    </div>
-                                </div>
+                                {renderThemeToggle()}
                             </div>
                         </aside>
                     </div>

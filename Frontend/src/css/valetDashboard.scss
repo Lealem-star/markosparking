@@ -824,43 +824,6 @@
                     }
                 }
             }
-
-            .mobile-theme-toggle {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 10px 4px;
-                color: #cbd5e1;
-                font-size: 0.875rem;
-
-                span {
-                    flex: 1;
-                }
-
-                .theme-switch {
-                    width: 44px;
-                    height: 24px;
-                    border-radius: 999px;
-                    background: #334155;
-                    position: relative;
-                    flex-shrink: 0;
-
-                    &--on {
-                        background: #2563eb;
-                    }
-
-                    .theme-switch-knob {
-                        position: absolute;
-                        top: 3px;
-                        right: 3px;
-                        width: 18px;
-                        height: 18px;
-                        border-radius: 50%;
-                        background: #fff;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-                    }
-                }
-            }
         }
     }
 

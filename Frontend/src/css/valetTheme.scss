@@ -1,0 +1,482 @@
+// Valet dark theme — scoped under .valet-dashboard--dark (light mode is default)
+.valet-dashboard--dark {
+    --vd-bg: #0f172a;
+    --vd-surface: #1e293b;
+    --vd-surface-muted: #334155;
+    --vd-border: #334155;
+    --vd-text: #f1f5f9;
+    --vd-text-muted: #94a3b8;
+    --vd-input-bg: #1e293b;
+    --vd-input-border: #475569;
+
+    .main-content {
+        background: var(--vd-bg);
+        color: var(--vd-text);
+    }
+
+    .dashboard-header {
+        background: var(--vd-bg);
+        color: var(--vd-text);
+
+        .header-left .welcome-message h1 {
+            color: #fff;
+        }
+
+        > .mobile-header-logo {
+            color: var(--vd-text);
+        }
+
+        > .mobile-menu-btn {
+            color: var(--vd-text);
+        }
+
+        .icon-btn {
+            background: var(--vd-surface);
+            border-color: var(--vd-border);
+            color: var(--vd-text-muted);
+
+            &:hover {
+                color: #60a5fa;
+                border-color: #3b82f6;
+            }
+        }
+    }
+
+    .valet-footer {
+        color: var(--vd-text-muted);
+    }
+
+    .valet-bottom-nav {
+        background: var(--vd-surface);
+        border-top-color: var(--vd-border);
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+
+        .valet-bottom-nav-item {
+            color: var(--vd-text-muted);
+
+            &.active {
+                color: #60a5fa;
+            }
+        }
+    }
+
+    .sidebar-theme-toggle {
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-header {
+            background: var(--vd-surface);
+            border-bottom-color: var(--vd-border);
+        }
+    }
+
+    // Dashboard (v2)
+    .parked-cars-list--v2 {
+        .stat-summary-card {
+            background: var(--vd-surface);
+            border-color: var(--vd-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+
+            .stat-summary-label {
+                color: var(--vd-text-muted);
+            }
+
+            .stat-summary-value {
+                color: var(--vd-text);
+            }
+
+            .stat-summary-hint {
+                color: #64748b;
+            }
+        }
+
+        .control-panel {
+            background: var(--vd-surface);
+            border-color: var(--vd-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .segment-label {
+            color: var(--vd-text-muted);
+        }
+
+        .segment-buttons {
+            background: var(--vd-surface-muted);
+        }
+
+        .segment-btn {
+            color: var(--vd-text-muted);
+
+            &.active {
+                background: var(--vd-bg);
+                color: var(--vd-text);
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+            }
+        }
+
+        .control-panel-bottom {
+            .search-filter-input {
+                background: var(--vd-input-bg);
+                border-color: var(--vd-input-border);
+                color: var(--vd-text);
+
+                &::placeholder {
+                    color: #64748b;
+                }
+            }
+        }
+
+        .filters-result-count {
+            color: #60a5fa;
+        }
+
+        .loading-indicator {
+            color: var(--vd-text-muted);
+        }
+
+        .table-card {
+            background: var(--vd-surface);
+            border-color: var(--vd-border);
+        }
+
+        .table-card-header {
+            border-bottom-color: var(--vd-border);
+            color: var(--vd-text);
+        }
+
+        .cars-table--v2 {
+            thead th {
+                background: var(--vd-surface-muted);
+                color: var(--vd-text-muted);
+                border-bottom-color: var(--vd-border);
+            }
+
+            tbody td {
+                color: #93c5fd;
+                border-bottom-color: var(--vd-border);
+            }
+
+            .vehicle-info strong {
+                color: #93c5fd;
+            }
+
+            .fee-cell {
+                color: var(--vd-text);
+            }
+        }
+
+        .mobile-car-card {
+            background: var(--vd-surface);
+            border-color: var(--vd-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+
+            .mobile-car-card-body strong {
+                color: var(--vd-text);
+            }
+
+            .mobile-car-card-body .mobile-car-meta {
+                color: var(--vd-text-muted);
+            }
+
+            .mobile-car-card-top .plate-badge {
+                background: var(--vd-surface-muted);
+                color: var(--vd-text);
+            }
+
+            .mobile-car-menu {
+                color: var(--vd-text-muted);
+            }
+        }
+
+        .no-data {
+            background: var(--vd-surface);
+            border-color: var(--vd-border);
+            color: var(--vd-text-muted);
+        }
+    }
+
+    // Legacy parked-cars-list (flagged customers, etc.)
+    .parked-cars-list:not(.parked-cars-list--v2) {
+        .page-header h1,
+        .filters-toolbar,
+        .cars-table-container {
+            color: var(--vd-text);
+        }
+
+        .filters-toolbar,
+        .cars-table-container {
+            background: var(--vd-surface);
+            border-color: var(--vd-border);
+        }
+
+        .cars-table {
+            thead th {
+                background: var(--vd-surface-muted);
+                color: var(--vd-text-muted);
+            }
+
+            tbody td {
+                color: var(--vd-text);
+            }
+        }
+    }
+
+    .register-car {
+        .page-header h1,
+        .page-header p {
+            color: var(--vd-text);
+        }
+
+        .form-container {
+            background: var(--vd-surface);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+            .form-group label {
+                color: var(--vd-text);
+            }
+
+            input,
+            select,
+            textarea {
+                background: var(--vd-input-bg);
+                border-color: var(--vd-input-border);
+                color: var(--vd-text);
+            }
+        }
+    }
+
+    .valet-overview {
+        color: var(--vd-text);
+
+        .overview-header h1 {
+            color: var(--vd-text);
+        }
+
+        .overview-header p {
+            color: var(--vd-text-muted);
+        }
+
+        .quick-actions .action-btn.secondary {
+            background: var(--vd-surface);
+            color: #60a5fa;
+            border-color: #3b82f6;
+        }
+
+        .stats-grid .stat-card {
+            background: var(--vd-surface);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+            .stat-content h3 {
+                color: var(--vd-text);
+            }
+
+            .stat-content p {
+                color: var(--vd-text-muted);
+            }
+        }
+
+        .stats-grid-circular .stat-circle-card {
+            background: var(--vd-surface);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+            .stat-circle-svg text {
+                fill: var(--vd-text-muted);
+            }
+
+            .stat-circle-value-svg {
+                fill: var(--vd-text);
+            }
+        }
+
+        .recent-cars {
+            background: var(--vd-surface);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+            h2 {
+                color: var(--vd-text);
+            }
+
+            .car-card {
+                background: var(--vd-surface-muted);
+
+                .car-info h4 {
+                    color: var(--vd-text);
+                }
+
+                .car-info p,
+                .car-info .location {
+                    color: var(--vd-text-muted);
+                }
+
+                .car-status .time {
+                    color: var(--vd-text-muted);
+                }
+            }
+
+            .no-data {
+                color: var(--vd-text-muted);
+            }
+        }
+
+        .historical-stats-section {
+            background: var(--vd-surface);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+            h2,
+            .package-section-header h2 {
+                color: var(--vd-text);
+            }
+
+            .phone-filter-input {
+                background: var(--vd-input-bg);
+                border-color: var(--vd-input-border);
+                color: var(--vd-text);
+
+                &::placeholder {
+                    color: #64748b;
+                }
+            }
+
+            .stats-table-container {
+                border-color: var(--vd-border);
+            }
+
+            .stats-table {
+                thead {
+                    background: var(--vd-surface-muted);
+                    color: var(--vd-text);
+
+                    tr th {
+                        color: var(--vd-text);
+                    }
+                }
+
+                tbody tr {
+                    border-bottom-color: var(--vd-border);
+
+                    &:hover {
+                        background-color: rgba(51, 65, 85, 0.5);
+                    }
+
+                    td {
+                        color: var(--vd-text);
+
+                        &:first-child {
+                            color: #93c5fd;
+                        }
+                    }
+                }
+            }
+
+            .no-stats-message {
+                color: var(--vd-text-muted);
+            }
+
+            .package-error-banner {
+                background: rgba(127, 29, 29, 0.35);
+                border-color: #991b1b;
+                color: #fecaca;
+
+                button {
+                    color: #fecaca;
+                }
+            }
+
+            .package-status-badge {
+                &.parked {
+                    background: rgba(22, 101, 52, 0.35);
+                    color: #86efac;
+                }
+
+                &.checked-out {
+                    background: rgba(30, 64, 175, 0.35);
+                    color: #93c5fd;
+                }
+            }
+
+            .package-expired-label {
+                color: var(--vd-text-muted);
+            }
+        }
+    }
+}
+
+// Shared theme toggle (mobile drawer + desktop sidebar)
+.valet-dashboard {
+    &:not(.valet-dashboard--dark) .main-content {
+        color: #0f172a;
+    }
+
+    .valet-theme-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 12px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        text-align: left;
+        font-size: 0.875rem;
+        color: inherit;
+        border-radius: 10px;
+        transition: background 0.15s;
+
+        &:hover {
+            background: rgba(148, 163, 184, 0.1);
+        }
+
+        span {
+            flex: 1;
+        }
+
+        .theme-switch {
+            width: 44px;
+            height: 24px;
+            border-radius: 999px;
+            background: #334155;
+            position: relative;
+            flex-shrink: 0;
+            transition: background 0.2s;
+
+            &--on {
+                background: #2563eb;
+            }
+
+            .theme-switch-knob {
+                position: absolute;
+                top: 3px;
+                left: 3px;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+                transition: transform 0.2s;
+            }
+
+            &--on .theme-switch-knob {
+                transform: translateX(20px);
+            }
+        }
+    }
+
+    .sidebar-theme-toggle {
+        margin-bottom: 8px;
+        color: #cbd5e1;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+    }
+
+    .mobile-sidebar .valet-theme-toggle {
+        padding: 10px 4px;
+        color: #cbd5e1;
+
+        &:hover {
+            background: transparent;
+        }
+    }
+}
