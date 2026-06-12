@@ -1311,17 +1311,40 @@
     }
 }
 
+@media (max-width: 768px) {
+    .alert-banner {
+        padding: 8px 10px;
+        padding-right: 8px;
+
+        .alert-banner-message {
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+
+        .alert-banner-dismiss {
+            margin-left: 8px;
+            padding: 2px;
+
+            svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+    }
+}
+
 // V2 dashboard layout (matches redesigned valet UI)
 .parked-cars-list--v2 {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+
     .stats-summary-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
         margin-bottom: 20px;
-
-        @media (max-width: 900px) {
-            grid-template-columns: 1fr;
-        }
     }
 
     .stat-summary-card {
@@ -1353,6 +1376,7 @@
             display: flex;
             flex-direction: column;
             gap: 2px;
+            min-width: 0;
         }
 
         .stat-summary-label {
@@ -1539,10 +1563,63 @@
         flex-wrap: wrap;
 
         .search-filter {
+            position: relative;
             flex: 1;
             min-width: 240px;
             max-width: none;
+
+            .search-filter-icon {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #94a3b8;
+                pointer-events: none;
+            }
+
+            .search-filter-input {
+                width: 100%;
+                padding: 10px 36px 10px 40px;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 0.875rem;
+                box-sizing: border-box;
+
+                &:focus {
+                    outline: none;
+                    border-color: #2563eb;
+                    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+                }
+            }
+
+            .search-filter-clear {
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                padding: 4px;
+                color: #94a3b8;
+                cursor: pointer;
+                display: inline-flex;
+
+                &:hover {
+                    color: #475569;
+                }
+            }
         }
+
+        .date-selector {
+            flex-shrink: 0;
+        }
+    }
+
+    .filters-result-count {
+        margin: 8px 0 0;
+        font-size: 0.8125rem;
+        color: #2563eb;
+        font-weight: 500;
     }
 
     .table-card {
@@ -1693,6 +1770,411 @@
     .no-data {
         padding: 48px 24px;
         text-align: center;
+    }
+
+    .mobile-car-list {
+        display: none;
+    }
+
+    .desktop-table-view {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .stats-summary-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat-summary-card {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-rows: auto auto auto;
+            align-items: center;
+            text-align: left;
+            padding: 14px 16px;
+            gap: 2px 12px;
+            border-radius: 12px;
+
+            .stat-summary-icon {
+                grid-row: 1 / span 3;
+                width: 44px;
+                height: 44px;
+                border-radius: 12px;
+                font-size: 1rem;
+                margin: 0;
+
+                svg {
+                    width: 22px;
+                    height: 22px;
+                }
+            }
+
+            .stat-summary-body {
+                align-items: flex-start;
+                grid-column: 2;
+            }
+
+            .stat-summary-label {
+                font-size: 0.8125rem;
+                line-height: 1.3;
+            }
+
+            .stat-summary-value {
+                font-size: 1.5rem;
+            }
+
+            .stat-summary-hint {
+                display: block;
+                font-size: 0.75rem;
+            }
+
+            .stat-sparkline {
+                display: block;
+                grid-column: 3;
+                grid-row: 1 / span 3;
+                width: 72px;
+                height: 36px;
+                margin: 0;
+                align-self: center;
+            }
+        }
+
+        .control-panel {
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .control-panel-top {
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+
+        .segment-filters {
+            gap: 14px;
+            width: 100%;
+        }
+
+        .segment-group {
+            gap: 8px;
+        }
+
+        .segment-label {
+            font-size: 0.75rem;
+        }
+
+        .segment-buttons {
+            width: 100%;
+            flex-wrap: wrap;
+            padding: 4px;
+        }
+
+        .segment-btn {
+            padding: 8px 12px;
+            font-size: 0.8125rem;
+        }
+
+        .control-panel-actions {
+            width: 100%;
+            gap: 10px;
+
+            .btn-refresh,
+            .btn-primary {
+                flex: 1;
+                justify-content: center;
+                padding: 10px 14px;
+                font-size: 0.8125rem;
+
+                .btn-text {
+                    display: inline;
+                }
+            }
+        }
+
+        .control-panel-bottom {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+
+            .search-filter {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .search-filter-input {
+                padding: 10px 36px 10px 40px;
+                font-size: 0.875rem;
+            }
+
+            .date-selector {
+                width: 100%;
+                min-width: 0;
+
+                .ethiopian-date-picker-wrapper {
+                    min-width: 0;
+                    width: 100%;
+                }
+            }
+        }
+
+        .table-card {
+            border-radius: 12px;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        .table-card-header {
+            padding: 0 0 12px;
+            border-bottom: none;
+            background: transparent;
+
+            h2 {
+                font-size: 1rem;
+            }
+        }
+
+        .table-card-body {
+            overflow: visible;
+        }
+
+        .desktop-table-view {
+            display: none;
+        }
+
+        .mobile-car-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mobile-car-card {
+            background: #fff;
+            border: 1px solid #e8ecf1;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        }
+
+        .mobile-car-card-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+
+            .plate-badge {
+                display: inline-block;
+                padding: 6px 12px;
+                background: #f1f5f9;
+                color: #334155;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 0.8125rem;
+                letter-spacing: 0.02em;
+                flex-shrink: 0;
+            }
+
+            .status-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 5px 12px;
+                border-radius: 999px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                margin-left: auto;
+
+                .status-dot {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                }
+
+                &--parked {
+                    background: #eff6ff;
+                    color: #1d4ed8;
+
+                    .status-dot {
+                        background: #3b82f6;
+                    }
+                }
+
+                &--checked_out {
+                    background: #f0fdf4;
+                    color: #15803d;
+
+                    .status-dot {
+                        background: #22c55e;
+                    }
+                }
+            }
+
+            .mobile-car-menu {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: none;
+                border: none;
+                padding: 4px;
+                color: #64748b;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+        }
+
+        .mobile-car-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 12px;
+
+            strong {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #0f172a;
+            }
+
+            .mobile-car-meta {
+                font-size: 0.8125rem;
+                color: #64748b;
+            }
+        }
+
+        .mobile-car-card-actions {
+            display: flex;
+            justify-content: flex-end;
+
+            .btn-checkout {
+                background: #2563eb;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .btn-checkout-done {
+                background: #f1f5f9;
+                color: #94a3b8;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 0.8125rem;
+                font-weight: 500;
+                cursor: not-allowed;
+            }
+        }
+
+        .no-data {
+            padding: 32px 16px;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e8ecf1;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stat-summary-card {
+            padding: 12px 14px;
+
+            .stat-summary-value {
+                font-size: 1.375rem;
+            }
+
+            .stat-sparkline {
+                width: 56px;
+                height: 28px;
+            }
+        }
+
+        .segment-btn {
+            padding: 7px 10px;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (min-width: 769px) {
+        .mobile-car-list {
+            display: none !important;
+        }
+
+        .desktop-table-view {
+            display: block !important;
+        }
+
+        .stats-summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-summary-card {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto;
+            text-align: left;
+            padding: 18px 20px;
+            gap: 4px 14px;
+            border-radius: 14px;
+
+            .stat-summary-icon {
+                grid-row: 1 / span 2;
+                width: 44px;
+                height: 44px;
+                margin: 0;
+
+                svg {
+                    width: 22px;
+                    height: 22px;
+                }
+            }
+
+            .stat-summary-body {
+                align-items: flex-start;
+            }
+
+            .stat-summary-label {
+                font-size: 0.8125rem;
+            }
+
+            .stat-summary-value {
+                font-size: 1.75rem;
+            }
+
+            .stat-summary-hint {
+                display: block;
+                font-size: 0.75rem;
+            }
+
+            .stat-sparkline {
+                display: block;
+                grid-column: 1 / -1;
+                width: 100%;
+                height: 28px;
+                margin-top: 4px;
+            }
+        }
+
+        .table-card {
+            background: #fff;
+            border: 1px solid #e8ecf1;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        }
+
+        .table-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .table-card-body {
+            overflow-x: auto;
+        }
     }
 }
 

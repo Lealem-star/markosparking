@@ -12,8 +12,9 @@ import {
     Menu,
     X,
     Bell,
-    User,
-    AlertTriangle
+    AlertTriangle,
+    Sun,
+    ChevronDown
 } from 'lucide-react';
 import { socket } from '../../utils/chatSocket';
 import '../../css/valetDashboard.scss';
@@ -23,13 +24,13 @@ const ValetDashboard = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const user = useSelector((state) => state.user);
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
 
-    // Protect route - only valets can access
     useEffect(() => {
         if (!user) {
             navigate('/');
@@ -44,7 +45,9 @@ const ValetDashboard = () => {
     };
 
     const handleProfileUpdate = () => {
-        navigate('/valet/profile'); // Assuming 'profile' is the existing route for profile management
+        navigate('/valet/profile');
+        setMobileMenuOpen(false);
+        setMobileProfileOpen(false);
     };
 
     useEffect(() => {
@@ -58,6 +61,13 @@ const ValetDashboard = () => {
         };
     }, [location.pathname]);
 
+    useEffect(() => {
+        document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [mobileMenuOpen]);
+
     const handleBellClick = () => {
         navigate('/valet/chat');
         setUnreadCount(0);
@@ -70,8 +80,32 @@ const ValetDashboard = () => {
         { icon: AlertTriangle, label: t('valet.flaggedCustomers'), path: '/valet/flagged-customers' },
     ];
 
-    const isActive = (path) => {
-        return location.pathname === path;
+    const bottomNavItems = [
+        { icon: LayoutDashboard, label: t('navigation.dashboard'), path: '/valet/dashboard' },
+        { icon: Car, label: t('valet.mobileNavRegister'), path: '/valet/register-car' },
+        { icon: List, label: t('valet.mobileNavService'), path: '/valet/cars' },
+        { icon: AlertTriangle, label: t('valet.mobileNavFlagged'), path: '/valet/flagged-customers' },
+    ];
+
+    const isActive = (path) => location.pathname === path;
+
+    const renderUserAvatar = (className = 'user-avatar') => {
+        if (user?.profilePhoto) {
+            return (
+                <img
+                    src={user.profilePhoto.startsWith('http')
+                        ? user.profilePhoto
+                        : `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000/'}${user.profilePhoto.startsWith('/') ? user.profilePhoto.substring(1) : user.profilePhoto}`}
+                    alt="Profile"
+                    className="user-avatar-img"
+                />
+            );
+        }
+        return (
+            <div className={className}>
+                {user?.name?.[0]?.toUpperCase()}
+            </div>
+        );
     };
 
     if (!user || user.type !== 'valet') {
@@ -80,21 +114,20 @@ const ValetDashboard = () => {
 
     return (
         <div className="valet-dashboard">
-            {/* Sidebar */}
             <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
                     <div className="logo">
                         <img src={TanaLogo} alt="Logo" className="logo-img" />
                         <span className="logo-text">TANA PARKING</span>
                     </div>
-                    <button 
+                    <button
                         className="sidebar-toggle"
                         onClick={() => setSidebarOpen(!sidebarOpen)}
                     >
                         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
                     </button>
                 </div>
-                
+
                 <nav className="sidebar-nav">
                     {menuItems.map((item, index) => {
                         const Icon = item.icon;
@@ -116,23 +149,11 @@ const ValetDashboard = () => {
 
                 <div className="sidebar-footer">
                     <div className="user-profile-dropdown">
-                        <button 
+                        <button
                             className="nav-item user-profile-btn"
                             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                         >
-                            {user?.profilePhoto ? (
-                                <img 
-                                    src={user.profilePhoto.startsWith('http') 
-                                        ? user.profilePhoto 
-                                        : `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000/'}${user.profilePhoto.startsWith('/') ? user.profilePhoto.substring(1) : user.profilePhoto}`}
-                                    alt="Profile" 
-                                    className="user-avatar-img"
-                                />
-                            ) : (
-                                <div className="user-avatar">
-                                    {user?.name?.[0]?.toUpperCase()}
-                                </div>
-                            )}
+                            {renderUserAvatar()}
                             {sidebarOpen && (
                                 <>
                                     <span className="user-name">{user?.name || 'Admin'}</span>
@@ -142,13 +163,13 @@ const ValetDashboard = () => {
                         </button>
                         {profileDropdownOpen && sidebarOpen && (
                             <div className="profile-dropdown-menu">
-                                <button 
+                                <button
                                     className="dropdown-item"
                                     onClick={handleProfileUpdate}
                                 >
                                     <span>{t('profile.profileUpdate')}</span>
                                 </button>
-                                <button 
+                                <button
                                     className="dropdown-item logout-item"
                                     onClick={handleLogout}
                                 >
@@ -161,18 +182,23 @@ const ValetDashboard = () => {
                 </div>
             </aside>
 
-            {/* Main Content */}
             <div className="main-content">
-                {/* Header */}
                 <header className="dashboard-header">
+                    <button
+                        type="button"
+                        className="mobile-menu-btn"
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        aria-label="Menu"
+                    >
+                        <Menu size={22} />
+                    </button>
+
+                    <div className="mobile-header-logo">
+                        <img src={TanaLogo} alt="Tana Parking" className="mobile-header-logo-img" />
+                        <span>TANA PARKING</span>
+                    </div>
+
                     <div className="header-left">
-                        <button
-                            type="button"
-                            className="mobile-menu-btn"
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        >
-                            <Menu size={24} />
-                        </button>
                         <div className="welcome-message">
                             <h1>{t('valet.welcomeBack', { name: user?.name || 'Valet' })}</h1>
                         </div>
@@ -186,28 +212,30 @@ const ValetDashboard = () => {
                     </div>
                 </header>
 
-                {/* Mobile Sidebar Overlay */}
                 {mobileMenuOpen && (
-                    <div 
+                    <div
                         className="mobile-overlay"
                         onClick={() => setMobileMenuOpen(false)}
                     >
-                        <aside 
+                        <aside
                             className={`mobile-sidebar ${mobileMenuOpen ? 'open' : ''}`}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="sidebar-header">
                                 <div className="logo">
                                     <img src={TanaLogo} alt="Logo" className="logo-img" />
-                                    <span className="logo-text">{user?.type === 'valet' ? 'Valet' : (user?.type === 'admin' ? 'Admin' : 'Manager')}</span>
+                                    <span className="logo-text">tana parking</span>
                                 </div>
                                 <button
+                                    type="button"
                                     className="sidebar-toggle"
                                     onClick={() => setMobileMenuOpen(false)}
+                                    aria-label="Close menu"
                                 >
-                                    <X size={20} />
+                                    <X size={22} />
                                 </button>
                             </div>
+
                             <nav className="sidebar-nav">
                                 {menuItems.map((item, index) => {
                                     const Icon = item.icon;
@@ -225,32 +253,46 @@ const ValetDashboard = () => {
                                         </button>
                                     );
                                 })}
-                                <button
-                                    className={`nav-item ${isActive('/valet/profile') ? 'active' : ''}`}
-                                    onClick={() => {
-                                        navigate('/valet/profile');
-                                        setMobileMenuOpen(false);
-                                    }}
-                                >
-                                    <User size={20} />
-                                    <span>{t('navigation.profile')}</span>
-                                </button>
-                                <button
-                                    className="nav-item logout-item"
-                                    onClick={() => {
-                                        handleLogout();
-                                        setMobileMenuOpen(false);
-                                    }}
-                                >
-                                    <LogOut size={20} />
-                                    <span>{t('common.logout')}</span>
-                                </button>
                             </nav>
+
+                            <div className="mobile-sidebar-footer">
+                                <div className="mobile-user-card-wrap">
+                                    <button
+                                        type="button"
+                                        className="mobile-user-card"
+                                        onClick={() => setMobileProfileOpen(!mobileProfileOpen)}
+                                    >
+                                        {renderUserAvatar('mobile-user-avatar')}
+                                        <div className="mobile-user-info">
+                                            <span className="mobile-user-name">{user?.name || 'Valet'}</span>
+                                            <span className="mobile-user-role">{t('valet.valetRole')}</span>
+                                        </div>
+                                        <ChevronDown size={18} className={`mobile-user-chevron ${mobileProfileOpen ? 'open' : ''}`} />
+                                    </button>
+                                    {mobileProfileOpen && (
+                                        <div className="mobile-profile-menu">
+                                            <button type="button" onClick={handleProfileUpdate}>
+                                                {t('profile.profileUpdate')}
+                                            </button>
+                                            <button type="button" className="logout-item" onClick={handleLogout}>
+                                                {t('common.logout')}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mobile-theme-toggle" aria-hidden="true">
+                                    <Sun size={18} />
+                                    <span>{t('valet.lightMode')}</span>
+                                    <div className="theme-switch theme-switch--on">
+                                        <span className="theme-switch-knob" />
+                                    </div>
+                                </div>
+                            </div>
                         </aside>
                     </div>
                 )}
 
-                {/* Page Content */}
                 <div className="content-area">
                     <Outlet />
                 </div>
@@ -258,10 +300,27 @@ const ValetDashboard = () => {
                 <footer className="valet-footer">
                     {t('valet.footerCopyright')}
                 </footer>
+
+                <nav className="valet-bottom-nav" aria-label="Valet navigation">
+                    {bottomNavItems.map((item, index) => {
+                        const Icon = item.icon;
+                        const active = isActive(item.path);
+                        return (
+                            <button
+                                key={index}
+                                type="button"
+                                className={`valet-bottom-nav-item ${active ? 'active' : ''}`}
+                                onClick={() => navigate(item.path)}
+                            >
+                                <Icon size={22} />
+                                <span>{item.label}</span>
+                            </button>
+                        );
+                    })}
+                </nav>
             </div>
         </div>
     );
 };
 
 export default ValetDashboard;
-

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, fetchDailyStats, fetchPricingSettings, flagParkedCar } from '../../api/api';
 import { EthiopianDatePicker } from '../../components';
-import { Car, Clock, Package, X, Search, RefreshCw, Plus, LogOut } from 'lucide-react';
+import { Car, Clock, Package, X, Search, LogOut, MoreVertical } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 import '../../css/valetOverview.scss';
 
@@ -73,12 +73,6 @@ const ParkedCarsList = () => {
             handleError: () => setLoading(false),
         });
     }, [user?.token, filter, selectedDate, dedupeCars]);
-
-    const handleRefresh = useCallback(() => {
-        if (!user?.token) return;
-        loadCars();
-        fetchDailyStats({ token: user.token, date: selectedDate, setDailyStats });
-    }, [user?.token, loadCars, selectedDate]);
 
     const filteredCars = useMemo(() => {
         let result = cars;
@@ -1145,16 +1139,6 @@ const ParkedCarsList = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="control-panel-actions">
-                        <button type="button" className="btn-refresh" onClick={handleRefresh} disabled={loading}>
-                            <RefreshCw size={16} />
-                            {t('common.refresh')}
-                        </button>
-                        <button type="button" className="btn-primary" onClick={() => navigate('/valet/register-car')}>
-                            <Plus size={18} />
-                            {t('valet.registerNewCar')}
-                        </button>
-                    </div>
                 </div>
                 <div className="control-panel-bottom">
                     <div className="search-filter">
@@ -1194,45 +1178,31 @@ const ParkedCarsList = () => {
                 </div>
                 <div className="table-card-body">
                     {!loading && filteredCars.length > 0 ? (
-                        <table className="cars-table cars-table--v2">
-                            <thead>
-                                <tr>
-                                    <th>{t('valet.licensePlate')}</th>
-                                    <th>{t('valet.vehicle')}</th>
-                                    <th>{t('valet.parkedAt')}</th>
-                                    <th>{t('valet.checkedOutAt')}</th>
-                                    <th>{t('valet.parkingFee')}</th>
-                                    <th>{t('valet.status')}</th>
-                                    <th>{t('valet.actions')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCars.map((car) => (
-                                    <tr key={car._id}>
-                                        <td>
-                                            <span className="plate-badge">{car.licensePlate}</span>
-                                        </td>
-                                        <td>
-                                            <div className="vehicle-info">
-                                                <strong>{car.model || '-'}</strong>
-                                                {car.color && <span className="color">{car.color}</span>}
+                        <>
+                            <div className="mobile-car-list">
+                                {filteredCars.map((car) => {
+                                    const fee = car.status === 'checked_out'
+                                        ? `${car.totalPaidAmount?.toFixed(2) || '0.00'} ETB`
+                                        : `${calculateFee(car).totalWithVat.toFixed(2)} ETB`;
+                                    return (
+                                        <article key={car._id} className="mobile-car-card">
+                                            <div className="mobile-car-card-top">
+                                                <span className="plate-badge">{car.licensePlate}</span>
+                                                <span className={`status-pill status-pill--${car.status}`}>
+                                                    <span className="status-dot" />
+                                                    {car.status === 'checked_out' ? t('valet.checkedOut') : t('valet.parked')}
+                                                </span>
+                                                <button type="button" className="mobile-car-menu" aria-label={t('valet.actions')}>
+                                                    <MoreVertical size={18} />
+                                                </button>
                                             </div>
-                                        </td>
-                                        <td>{formatDateTime(car.parkedAt)}</td>
-                                        <td>{car.checkedOutAt ? formatDateTime(car.checkedOutAt) : '-'}</td>
-                                        <td className="fee-cell">
-                                            {car.status === 'checked_out'
-                                                ? `${car.totalPaidAmount?.toFixed(2) || '0.00'} ETB`
-                                                : `${calculateFee(car).totalWithVat.toFixed(2)} ETB`}
-                                        </td>
-                                        <td>
-                                            <span className={`status-pill status-pill--${car.status}`}>
-                                                <span className="status-dot" />
-                                                {car.status === 'checked_out' ? t('valet.checkedOut') : t('valet.parked')}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="actions">
+                                            <div className="mobile-car-card-body">
+                                                <strong>{car.model || '-'}</strong>
+                                                <span className="mobile-car-meta">
+                                                    {formatDateTime(car.parkedAt)} · {fee}
+                                                </span>
+                                            </div>
+                                            <div className="mobile-car-card-actions">
                                                 {car.status === 'parked' ? (
                                                     <button
                                                         type="button"
@@ -1247,11 +1217,71 @@ const ParkedCarsList = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                            <div className="desktop-table-view">
+                                <table className="cars-table cars-table--v2">
+                                    <thead>
+                                        <tr>
+                                            <th>{t('valet.licensePlate')}</th>
+                                            <th>{t('valet.vehicle')}</th>
+                                            <th>{t('valet.parkedAt')}</th>
+                                            <th>{t('valet.checkedOutAt')}</th>
+                                            <th>{t('valet.parkingFee')}</th>
+                                            <th>{t('valet.status')}</th>
+                                            <th>{t('valet.actions')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredCars.map((car) => (
+                                            <tr key={car._id}>
+                                                <td>
+                                                    <span className="plate-badge">{car.licensePlate}</span>
+                                                </td>
+                                                <td>
+                                                    <div className="vehicle-info">
+                                                        <strong>{car.model || '-'}</strong>
+                                                        {car.color && <span className="color">{car.color}</span>}
+                                                    </div>
+                                                </td>
+                                                <td>{formatDateTime(car.parkedAt)}</td>
+                                                <td>{car.checkedOutAt ? formatDateTime(car.checkedOutAt) : '-'}</td>
+                                                <td className="fee-cell">
+                                                    {car.status === 'checked_out'
+                                                        ? `${car.totalPaidAmount?.toFixed(2) || '0.00'} ETB`
+                                                        : `${calculateFee(car).totalWithVat.toFixed(2)} ETB`}
+                                                </td>
+                                                <td>
+                                                    <span className={`status-pill status-pill--${car.status}`}>
+                                                        <span className="status-dot" />
+                                                        {car.status === 'checked_out' ? t('valet.checkedOut') : t('valet.parked')}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="actions">
+                                                        {car.status === 'parked' ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn-action btn-checkout"
+                                                                onClick={() => handleStatusChange(car, 'checked_out')}
+                                                            >
+                                                                {t('valet.checkOut')}
+                                                            </button>
+                                                        ) : (
+                                                            <button type="button" className="btn-action btn-checkout-done" disabled>
+                                                                {t('valet.checkedOut')}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
                     ) : !loading ? (
                         <div className="no-data">
                             <p>{searchQuery || serviceFilter !== 'all' ? t('valet.noFilterResults') : t('valet.noParkedCars')}</p>
