@@ -4,8 +4,14 @@ import { useSelector } from 'react-redux';
 import { useEffect } from 'react';
 import { Layout, Home, NoPage, Users, Register, AdminDashboard, DashboardOverview, UserManagement, Settings, Reports, GroupChat, ValetDashboard, ValetOverview, RegisterCar, ParkedCarsList, FlaggedCustomers } from './pages/common';
 import Profile from './pages/valet/Profile';
-import PaymentCallback from './pages/valet/PaymentCallback';
 import { syncLanguageWithUser } from './utils/languageSync';
+
+function LegacyPaymentRedirect() {
+  const user = useSelector((state) => state.user);
+  if (!user?.token) return <Navigate to="/" replace />;
+  if (user.type === 'valet') return <Navigate to="/valet/dashboard" replace />;
+  return <Navigate to="/admin/dashboard" replace />;
+}
 
 // Protected route wrapper - redirects logged-in users away from login/register
 function PublicRoute({ children }) {
@@ -82,8 +88,8 @@ function App() {
             <Register />
           </PublicRoute>
         } />
-        <Route path="payment/success" element={<PaymentCallback />} />
-        <Route path="payment/callback" element={<PaymentCallback />} />
+        <Route path="payment/success" element={<LegacyPaymentRedirect />} />
+        <Route path="payment/callback" element={<LegacyPaymentRedirect />} />
         <Route path="*" element={<NoPage />} />
       </Routes>
     </BrowserRouter>

@@ -1,12 +1,14 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { fetchFlaggedCars, notifyFlaggedCustomer, initializeChapaPayment, updateParkedCar } from '../../api/api';
+import { useLocation } from 'react-router-dom';
+import { fetchFlaggedCars, notifyFlaggedCustomer, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, updateParkedCar } from '../../api/api';
 import { AlertTriangle, Bell, CreditCard, X } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 
 const FlaggedCustomers = () => {
     const { t } = useTranslation();
+    const location = useLocation();
     const user = useSelector((state) => state.user);
     const [flaggedCars, setFlaggedCars] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -224,8 +226,10 @@ const FlaggedCustomers = () => {
                                 description: `Unpaid parking fee payment for ${carToUse.licensePlate || 'your vehicle'}`,
                                 buttonText: 'Pay Now',
                             },
-                            callbackUrl: `${window.location.origin}/payment/callback`,
-                            returnUrl: `${window.location.origin}/payment/success?carId=${carToUse._id}`,
+                            callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
+                            callback_url: CHAPA_BACKEND_CALLBACK_URL,
+                            returnUrl: `${window.location.origin}${location.pathname}`,
+                            return_url: `${window.location.origin}${location.pathname}`,
                             showFlag: true,
                             showPaymentMethodsNames: true,
                             onSuccessfulPayment: async () => {
@@ -367,6 +371,80 @@ const FlaggedCustomers = () => {
         });
     };
 
+    const isAdminView = location.pathname.startsWith('/admin');
+
+    const getCarZone = useCallback((car) => {
+        const zone = car.location || car.valet_id?.parkZoneCode;
+        return zone?.trim() || t('admin.unknownZone');
+    }, [t]);
+
+    const flaggedCarsByZone = useMemo(() => {
+        if (!isAdminView) return null;
+
+        const grouped = flaggedCars.reduce((acc, car) => {
+            const zone = getCarZone(car);
+            if (!acc[zone]) acc[zone] = [];
+            acc[zone].push(car);
+            return acc;
+        }, {});
+
+        const unknownZone = t('admin.unknownZone');
+        return Object.keys(grouped).sort((a, b) => {
+            if (a === unknownZone) return 1;
+            if (b === unknownZone) return -1;
+            return a.localeCompare(b);
+        }).map((zoneCode) => ({ zoneCode, cars: grouped[zoneCode] }));
+    }, [flaggedCars, getCarZone, isAdminView, t]);
+
+    const renderFlaggedTable = (cars) => (
+        <table className="cars-table">
+            <thead>
+                <tr>
+                    <th>{t('valet.licensePlate')}</th>
+                    <th>{t('valet.phoneNumber')}</th>
+                    <th>{t('valet.parkedAt')}</th>
+                    <th>{t('valet.checkedOutAt')}</th>
+                    <th>{t('valet.parkingFee')}</th>
+                    <th>{t('valet.actions')}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {cars.map((car) => {
+                    const fee = calculateFee(car);
+                    return (
+                        <tr key={car._id}>
+                            <td className="license-plate">{car.licensePlate || `${car.plateCode || ''}-${car.region || ''}-${car.licensePlateNumber || ''}`}</td>
+                            <td>{car.phoneNumber || 'N/A'}</td>
+                            <td>{formatDateTime(car.parkedAt)}</td>
+                            <td>{formatDateTime(car.checkedOutAt)}</td>
+                            <td>{fee.totalWithVat.toFixed(2)} ETB</td>
+                            <td>
+                                <div className="actions actions-flagged">
+                                    <button
+                                        className="btn-action btn-pay"
+                                        onClick={() => handlePayNow(car)}
+                                        disabled={loading}
+                                    >
+                                        <CreditCard size={16} />
+                                        {t('valet.payNow')}
+                                    </button>
+                                    <button
+                                        className="btn-action btn-notify"
+                                        onClick={() => handleNotify(car)}
+                                        disabled={loading || car.notificationSent}
+                                    >
+                                        <Bell size={16} />
+                                        {car.notificationSent ? t('valet.notified') : t('valet.notify')}
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
+    );
+
     return (
         <div className="parked-cars-list">
             {/* Alert banner - fixed at top */}
@@ -414,52 +492,21 @@ const FlaggedCustomers = () => {
 
             <div className="cars-table-container">
                 {!loading && flaggedCars.length > 0 ? (
-                    <table className="cars-table">
-                        <thead>
-                            <tr>
-                                <th>{t('valet.licensePlate')}</th>
-                                <th>{t('valet.phoneNumber')}</th>
-                                <th>{t('valet.parkedAt')}</th>
-                                <th>{t('valet.checkedOutAt')}</th>
-                                <th>{t('valet.parkingFee')}</th>
-                                <th>{t('valet.actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {flaggedCars.map((car) => {
-                                const fee = calculateFee(car);
-                                return (
-                                    <tr key={car._id}>
-                                        <td className="license-plate">{car.licensePlate || `${car.plateCode || ''}-${car.region || ''}-${car.licensePlateNumber || ''}`}</td>
-                                        <td>{car.phoneNumber || 'N/A'}</td>
-                                        <td>{formatDateTime(car.parkedAt)}</td>
-                                        <td>{formatDateTime(car.checkedOutAt)}</td>
-                                        <td>{fee.totalWithVat.toFixed(2)} ETB</td>
-                                        <td>
-                                            <div className="actions actions-flagged">
-                                                <button
-                                                    className="btn-action btn-pay"
-                                                    onClick={() => handlePayNow(car)}
-                                                    disabled={loading}
-                                                >
-                                                    <CreditCard size={16} />
-                                                    {t('valet.payNow')}
-                                                </button>
-                                                <button
-                                                    className="btn-action btn-notify"
-                                                    onClick={() => handleNotify(car)}
-                                                    disabled={loading || car.notificationSent}
-                                                >
-                                                    <Bell size={16} />
-                                                    {car.notificationSent ? t('valet.notified') : t('valet.notify')}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                    isAdminView ? (
+                        <div className="flagged-zone-groups">
+                            {flaggedCarsByZone.map(({ zoneCode, cars }) => (
+                                <div key={zoneCode} className="flagged-zone-group">
+                                    <h3 className="flagged-zone-header">
+                                        {t('admin.flaggedInZone')}: <span className="zone-code">{zoneCode}</span>
+                                        <span className="zone-count">({cars.length})</span>
+                                    </h3>
+                                    {renderFlaggedTable(cars)}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        renderFlaggedTable(flaggedCars)
+                    )
                 ) : !loading ? (
                     <div className="no-data">
                         <AlertTriangle size={48} style={{ color: '#9ca3af', marginBottom: '16px' }} />

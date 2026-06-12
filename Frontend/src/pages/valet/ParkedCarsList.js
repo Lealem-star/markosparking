@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, fetchDailyStats, fetchPricingSettings, flagParkedCar } from '../../api/api';
+import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, fetchDailyStats, fetchPricingSettings, flagParkedCar } from '../../api/api';
 import { EthiopianDatePicker } from '../../components';
 import { CheckCircle, Clock, X } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
@@ -495,9 +495,11 @@ const ParkedCarsList = () => {
                                     `
                                 },
                                 
-                                // Callback URLs (optional but recommended)
-                                callbackUrl: `${window.location.origin}/payment/callback`,
-                                returnUrl: `${window.location.origin}/payment/success?carId=${selectedCar._id}`,
+                                // Backend callback for Chapa; returnUrl goes to dashboard (inline JS handles checkout + SMS)
+                                callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
+                                callback_url: CHAPA_BACKEND_CALLBACK_URL,
+                                returnUrl: `${window.location.origin}/valet/dashboard`,
+                                return_url: `${window.location.origin}/valet/dashboard`,
                                 
                                 // UI options (optional)
                                 showFlag: true,

@@ -216,6 +216,8 @@
     "noManagerialStaff": "የአስተዳደር ሰራተኞች አልተገኙም",
     "noValetStaff": "የቫሌት ሰራተኞች አልተገኙም",
     "valetsInZone": "በዞን ውስጥ ያሉ ቫሌቶች",
+    "flaggedInZone": "በዞን ውስጥ የተመዘገቡ ደንበኞች",
+    "unknownZone": "ያልታወቀ ዞን",
     "cash": "ጥሬ ገንዘብ",
     "interac": "Interac",
     "users": "ሰራተኞች",

@@ -1,6 +1,9 @@
 import axios from 'axios'
 const BASE_URL_RAW = process.env.REACT_APP_BASE_URL || "http://localhost:4000/";
-const BASE_URL = BASE_URL_RAW.endsWith('/') ? BASE_URL_RAW : `${BASE_URL_RAW}/`;
+export const BASE_URL = BASE_URL_RAW.endsWith('/') ? BASE_URL_RAW : `${BASE_URL_RAW}/`;
+
+/** Chapa server callback — creates/updates payment records; no frontend redirect needed. */
+export const CHAPA_BACKEND_CALLBACK_URL = `${BASE_URL}payment/chapa/callback`;
 
 export const login = async ({ phoneNumber, password, handleLoginSuccess, handleLoginFailure }) => {
     try {

@@ -230,6 +230,8 @@
     "noManagerialStaff": "No managerial staff found",
     "noValetStaff": "No valet staff found",
     "valetsInZone": "Valets in Zone",
+    "flaggedInZone": "Flagged Customers in Zone",
+    "unknownZone": "Unknown Zone",
     "cash": "Cash",
     "interac": "Interac",
     "users": "Users",

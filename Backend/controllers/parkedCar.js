@@ -192,7 +192,7 @@ parkedCarRouter.get("/flagged", isLoggedIn, async (req, res) => {
         };
 
         const cars = await ParkedCar.find(query)
-            .populate('valet_id', 'name phoneNumber priceLevel')
+            .populate('valet_id', 'name phoneNumber priceLevel parkZoneCode')
             .populate('flaggedBy', 'name phoneNumber')
             .populate('checkedOutBy', 'name phoneNumber')
             .sort({ flaggedAt: -1, checkedOutAt: -1 }); // Most recently flagged/checked out first

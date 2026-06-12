@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { createParkedCar, sendSmsNotification, fetchPricingSettings, initializePackagePayment, verifyChapaPackagePayment } from '../../api/api';
+import { createParkedCar, sendSmsNotification, CHAPA_BACKEND_CALLBACK_URL, fetchPricingSettings, initializePackagePayment, verifyChapaPackagePayment } from '../../api/api';
 import '../../css/registerCar.scss';
 
 // Default plate codes fallback (used if database is empty)
@@ -430,43 +430,40 @@ const RegisterCar = () => {
                                 customizations: {
                                     buttonText: 'Pay Now',
                                 },
-                                // Chapa Inline.js requires callback_url and return_url even when using JS callbacks.
-                                // For test mode, these can be localhost URLs. In production, use publicly accessible URLs.
-                                callbackUrl: `${window.location.origin}/payment/callback`,
-                                callback_url: `${window.location.origin}/payment/callback`,
-                                returnUrl: `${window.location.origin}/payment/success?txRef=${txRef}`,
-                                return_url: `${window.location.origin}/payment/success?txRef=${txRef}`,
+                                // Backend callback for Chapa; returnUrl sends user to dashboard after pay.
+                                callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
+                                callback_url: CHAPA_BACKEND_CALLBACK_URL,
+                                returnUrl: `${window.location.origin}/valet/dashboard`,
+                                return_url: `${window.location.origin}/valet/dashboard`,
                                 showFlag: true,
                                 showPaymentMethodsNames: true,
                                 onSuccessfulPayment: async () => {
                                     try {
                                         const verifyResult = await verifyPackageWithRetry(txRef);
 
-                                        // Send SMS notification for package activation
+                                        // SMS sent here after inline payment success
                                         try {
                                             const carInfo = verifyResult?.car;
-                                            const packageEndDateStr = carInfo?.packageEndDate;
                                             const packageDurationLabel = carInfo?.packageDuration || validatedDuration;
+                                            const licenseDisplay = `${formData.plateCode}-${formData.region}-${formData.licensePlateNumber}`;
 
                                             let remainingDaysText = '';
-                                            if (packageEndDateStr) {
+                                            if (carInfo?.packageEndDate) {
                                                 const now = new Date();
-                                                const end = new Date(packageEndDateStr);
+                                                const end = new Date(carInfo.packageEndDate);
                                                 const diffMs = end.getTime() - now.getTime();
                                                 const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-                                                const endDisplay = end.toLocaleDateString();
-                                                remainingDaysText = `Package expires on ${endDisplay} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining).`;
+                                                remainingDaysText = `Package expires on ${end.toLocaleDateString()} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining).`;
                                             }
 
-                                            const licenseDisplay = `${formData.plateCode}-${formData.region}-${formData.licensePlateNumber}`;
-                                            const smsMessage = `Dear customer,\nYour ${packageDurationLabel} parking package at Tana Parking is now active for car (Plate: ${licenseDisplay}, Model: ${formData.model}).\n${remainingDaysText}\nThank you!`;
+                                            const smsMessage = `Dear customer,\nYour ${packageDurationLabel} parking package at Tana Parking is now active for car (Plate: ${licenseDisplay}, Model: ${formData.model}).\n${remainingDaysText}\nTotal paid: ${feeInfo.totalWithVat.toFixed(2)} ETB.\nThank you!`;
 
                                             await sendSmsNotification({
                                                 phoneNumber: formData.phoneNumber,
                                                 message: smsMessage,
                                                 token: user?.token,
                                                 handleSendSmsSuccess: () => console.log('Package SMS sent successfully'),
-                                                handleSendSmsFailure: (smsError) => console.error('Failed to send package SMS:', smsError)
+                                                handleSendSmsFailure: (smsError) => console.error('Failed to send package SMS:', smsError),
                                             });
                                         } catch (smsErr) {
                                             console.error('Error sending package activation SMS:', smsErr);
