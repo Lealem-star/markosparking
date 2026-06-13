@@ -3,6 +3,7 @@ const ParkedCar = require("../models/parkedCarSchema");
 const Joi = require('joi');
 const { Types } = require("mongoose");
 const { isLoggedIn } = require("./middleware");
+const { reverseCalculateVAT, getVATRate } = require('../utils/vatCalculator');
 
 const parkedCarRouter = Router();
 

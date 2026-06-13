@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, fetchDailyStats, fetchPricingSettings, flagParkedCar } from '../../api/api';
+import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, fetchDailyStats, fetchPricingSettings, flagParkedCar, verifyChapaPayment } from '../../api/api';
 import { EthiopianDatePicker, PaymentSuccessModal } from '../../components';
 import { Car, Clock, Package, X, Search, LogOut, MoreVertical } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
@@ -541,8 +541,8 @@ const ParkedCarsList = () => {
                                 },
                                 
                                 // Backend callback for Chapa; returnUrl goes to dashboard (inline JS handles checkout + SMS)
-                                callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
-                                callback_url: CHAPA_BACKEND_CALLBACK_URL,
+                                callbackUrl: `${CHAPA_BACKEND_CALLBACK_URL}?carId=${selectedCar._id}`,
+                                callback_url: `${CHAPA_BACKEND_CALLBACK_URL}?carId=${selectedCar._id}`,
                                 returnUrl: `${window.location.origin}/valet/dashboard`,
                                 return_url: `${window.location.origin}/valet/dashboard`,
                                 
@@ -553,82 +553,92 @@ const ParkedCarsList = () => {
                                 // JavaScript callbacks (Chapa Inline.js supports these)
                                 onSuccessfulPayment: async (response) => {
                                     console.log('✅ Payment successful (onSuccessfulPayment):', response);
-                                    // Update car status after successful payment
-                                    await updateParkedCar({
-                                        id: selectedCar._id,
-                                        body: {
-                                            status: 'checked_out',
-                                            checkedOutAt: new Date().toISOString(),
-                                            paymentMethod: 'online',
-                                            totalPaidAmount: feeToUse.totalWithVat,
-                                        },
-                                        token: user?.token,
-                                        handleUpdateParkedCarSuccess: async () => {
-                                            // Send SMS to customer
-                                            let smsMessage = '';
+                                    const chapaTxRef = response?.tx_ref || response?.txRef || data.txRef;
 
-                                            if (selectedCar.serviceType === 'package' && selectedCar.packageDuration) {
-                                                // Package checkout SMS with remaining days
-                                                let remainingDaysText = '';
-                                                if (selectedCar.packageEndDate) {
-                                                    const now = new Date();
-                                                    const end = new Date(selectedCar.packageEndDate);
-                                                    const diffMs = end.getTime() - now.getTime();
-                                                    const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-                                                    const endDisplay = end.toLocaleDateString();
-                                                    remainingDaysText = `Package expires on ${endDisplay} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining).`;
-                                                }
+                                    const finishCheckout = async () => {
+                                        let smsMessage = '';
 
-                                                const licenseDisplay = selectedCar.licensePlate || `${selectedCar.plateCode || ''}-${selectedCar.region || ''}-${selectedCar.licensePlateNumber || ''}`;
-                                                smsMessage = `Thank you for using Tana Parking services!\nYour package car (${licenseDisplay}) has checked out.\nPackage type: ${selectedCar.packageDuration}.\n${remainingDaysText}`;
-                                            } else {
-                                                // Hourly checkout SMS (existing behavior)
+                                        if (selectedCar.serviceType === 'package' && selectedCar.packageDuration) {
+                                            let remainingDaysText = '';
+                                            if (selectedCar.packageEndDate) {
+                                                const now = new Date();
+                                                const end = new Date(selectedCar.packageEndDate);
+                                                const diffMs = end.getTime() - now.getTime();
+                                                const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+                                                const endDisplay = end.toLocaleDateString();
+                                                remainingDaysText = `Package expires on ${endDisplay} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining).`;
+                                            }
+
+                                            const licenseDisplay = selectedCar.licensePlate || `${selectedCar.plateCode || ''}-${selectedCar.region || ''}-${selectedCar.licensePlateNumber || ''}`;
+                                            smsMessage = `Thank you for using Tana Parking services!\nYour package car (${licenseDisplay}) has checked out.\nPackage type: ${selectedCar.packageDuration}.\n${remainingDaysText}`;
+                                        } else {
                                             const totalMinutes = Math.round(feeToUse.hoursParked * 60);
                                             const durationDisplay = totalMinutes >= 60 
                                                 ? `${Math.floor(totalMinutes / 60)} hour${Math.floor(totalMinutes / 60) > 1 ? 's' : ''} ${totalMinutes % 60 > 0 ? `${totalMinutes % 60} min` : ''}`.trim()
                                                 : `${totalMinutes} min`;
-                                                smsMessage = `Thank you for using Tana Parking services! Your car (${selectedCar.licensePlate || `${selectedCar.plateCode || ''}-${selectedCar.region || ''}-${selectedCar.licensePlateNumber || ''}`}) has been received.\nParking fee: ${feeToUse.parkingFee.toFixed(2)} ETB\nVAT (15%): ${feeToUse.vatAmount.toFixed(2)} ETB\nTotal: ${feeToUse.totalWithVat.toFixed(2)} ETB (${durationDisplay} × ${feeToUse.pricePerHour} ETB/hour).\nPayment method: Online Payment.`;
+                                            smsMessage = `Thank you for using Tana Parking services! Your car (${selectedCar.licensePlate || `${selectedCar.plateCode || ''}-${selectedCar.region || ''}-${selectedCar.licensePlateNumber || ''}`}) has been received.\nParking fee: ${feeToUse.parkingFee.toFixed(2)} ETB\nVAT (15%): ${feeToUse.vatAmount.toFixed(2)} ETB\nTotal: ${feeToUse.totalWithVat.toFixed(2)} ETB (${durationDisplay} × ${feeToUse.pricePerHour} ETB/hour).\nPayment method: Online Payment.`;
+                                        }
+                                        
+                                        await sendSmsNotification({
+                                            phoneNumber: selectedCar.phoneNumber,
+                                            message: smsMessage,
+                                            token: user?.token,
+                                            handleSendSmsSuccess: () => {
+                                                console.log('SMS sent successfully');
+                                            },
+                                            handleSendSmsFailure: (error) => {
+                                                console.error('Failed to send SMS:', error);
                                             }
-                                            
-                                            await sendSmsNotification({
-                                                phoneNumber: selectedCar.phoneNumber,
-                                                message: smsMessage,
-                                                token: user?.token,
-                                                handleSendSmsSuccess: () => {
-                                                    console.log('SMS sent successfully');
-                                                },
-                                                handleSendSmsFailure: (error) => {
-                                                    console.error('Failed to send SMS:', error);
-                                                }
-                                            });
+                                        });
 
-                                            // Refresh cars list and stats
-                                            loadCars();
-                                            fetchDailyStats({ token: user.token, date: selectedDate, setDailyStats });
+                                        loadCars();
+                                        fetchDailyStats({ token: user.token, date: selectedDate, setDailyStats });
 
-                                            setShowPaymentFormModal(false);
-                                            if (chapaInstanceRef.current) {
-                                                const container = document.getElementById('chapa-inline-form');
-                                                if (container) container.innerHTML = '';
-                                                chapaInstanceRef.current = null;
+                                        setShowPaymentFormModal(false);
+                                        if (chapaInstanceRef.current) {
+                                            const container = document.getElementById('chapa-inline-form');
+                                            if (container) container.innerHTML = '';
+                                            chapaInstanceRef.current = null;
+                                        }
+
+                                        showPaymentSuccess(
+                                            t('valet.paymentSuccessful'),
+                                            feeToUse.totalWithVat,
+                                            () => {
+                                                setSelectedCar(null);
+                                                setFeeDetails(null);
+                                                setLoading(false);
                                             }
+                                        );
+                                    };
 
-                                            showPaymentSuccess(
-                                                t('valet.paymentSuccessful'),
-                                                feeToUse.totalWithVat,
-                                                () => {
-                                                    setSelectedCar(null);
-                                                    setFeeDetails(null);
-                                                    setLoading(false);
-                                                }
-                                            );
+                                    const fallbackUpdate = () => updateParkedCar({
+                                        id: selectedCar._id,
+                                        body: {
+                                            status: 'checked_out',
+                                            paymentMethod: 'online',
+                                            totalPaidAmount: feeToUse.totalWithVat,
                                         },
+                                        token: user?.token,
+                                        handleUpdateParkedCarSuccess: finishCheckout,
                                         handleUpdateParkedCarFailure: (error) => {
                                             console.error('Failed to update car:', error);
                                             showBanner('Payment successful but failed to update car status. Please contact support.', 'error');
                                             setLoading(false);
                                         }
                                     });
+
+                                    if (chapaTxRef) {
+                                        await verifyChapaPayment({
+                                            txRef: chapaTxRef,
+                                            carId: selectedCar._id,
+                                            token: user?.token,
+                                            handleVerifySuccess: finishCheckout,
+                                            handleVerifyFailure: () => fallbackUpdate()
+                                        });
+                                    } else {
+                                        await fallbackUpdate();
+                                    }
                                 },
                                 onPaymentFailure: (error) => {
                                     console.error('❌ Payment failed - error received:', error);

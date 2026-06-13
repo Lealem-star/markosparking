@@ -836,6 +836,21 @@ paymentRouter.post("/chapa/callback", async (req, res) => {
                 console.warn(`[Chapa Callback] Could not verify payment for tx_ref ${tx_ref}`);
             }
 
+            if (!carId && paymentVerified) {
+                const pendingCar = await ParkedCar.findOne({
+                    pendingPaymentTxRef: { $ne: null },
+                    $or: [
+                        { status: 'parked' },
+                        { status: 'checked_out', isFlagged: true }
+                    ]
+                }).sort({ updatedAt: -1 });
+
+                if (pendingCar) {
+                    carId = pendingCar._id.toString();
+                    console.log(`[Chapa Callback] Resolved car ${carId} from pendingPaymentTxRef`);
+                }
+            }
+
             if (carId && Types.ObjectId.isValid(carId)) {
                 const car = await ParkedCar.findById(carId);
 
@@ -851,8 +866,8 @@ paymentRouter.post("/chapa/callback", async (req, res) => {
                 // Package payment path (payment-first, no carId)
                 try {
                     const { parkedCar, wasExisting, missingPending } = await createPackageCarFromPending({
-                        txRef,
-                        amountOverride: amount
+                        txRef: tx_ref,
+                        amountOverride: verifiedAmount || amount
                     });
                     if (parkedCar) {
                         console.log(`Package payment processed via callback (POST), car id ${parkedCar._id}${wasExisting ? ' (existing)' : ''}`);
