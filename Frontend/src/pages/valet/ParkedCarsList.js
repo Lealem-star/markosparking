@@ -25,6 +25,7 @@ const ParkedCarsList = () => {
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
     const [showCheckoutModal, setShowCheckoutModal] = useState(false); // New modal for Pay Now / Flag Him
     const [feeDetails, setFeeDetails] = useState(null);
+    const [loading, setLoading] = useState(false);
     const [parkInLoadingId, setParkInLoadingId] = useState(null);
     const chapaInstanceRef = useRef(null);
     const lastChapaErrorRef = useRef(null); // Store last Chapa API error response
