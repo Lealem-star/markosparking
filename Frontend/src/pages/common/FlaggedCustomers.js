@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { fetchFlaggedCars, notifyFlaggedCustomer, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, updateParkedCar, verifyChapaPayment } from '../../api/api';
-import { PaymentSuccessModal } from '../../components';
+import { queuePaymentSuccess } from '../../utils/paymentSuccessQueue';
 import { AlertTriangle, Bell, CreditCard, X } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 
@@ -18,9 +18,6 @@ const FlaggedCustomers = () => {
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
     const [banner, setBanner] = useState(null); // { message, type: 'error'|'success' }
     const chapaInstanceRef = useRef(null);
-    const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
-    const [paymentSuccessDetails, setPaymentSuccessDetails] = useState({ message: '', amount: null });
-    const paymentSuccessOnCloseRef = useRef(null);
 
     const showBanner = useCallback((message, type = 'error') => {
         setBanner({ message, type });
@@ -29,19 +26,6 @@ const FlaggedCustomers = () => {
     }, []);
 
     const dismissBanner = useCallback(() => setBanner(null), []);
-
-    const handlePaymentSuccessClose = useCallback(() => {
-        setShowPaymentSuccessModal(false);
-        const onDone = paymentSuccessOnCloseRef.current;
-        paymentSuccessOnCloseRef.current = null;
-        onDone?.();
-    }, []);
-
-    const showPaymentSuccess = useCallback((message, amount, onDone) => {
-        paymentSuccessOnCloseRef.current = onDone;
-        setPaymentSuccessDetails({ message, amount });
-        setShowPaymentSuccessModal(true);
-    }, []);
 
     const loadFlaggedCars = useCallback(() => {
         if (!user?.token) return;
@@ -153,7 +137,8 @@ const FlaggedCustomers = () => {
                         carId: carToUse._id,
                         feeDetails: feeToUse,
                         customerPhone: customerPhone,
-                        isFlagged: true
+                        isFlagged: true,
+                        initiatedAt: Date.now(),
                     }));
 
                     const chapaPublicKey = data.publicKey || process.env.REACT_APP_CHAPA_PUBLIC_KEY;
@@ -257,15 +242,13 @@ const FlaggedCustomers = () => {
                                     localStorage.removeItem(`chapa_payment_${carToUse._id}`);
                                     loadFlaggedCars();
                                     setShowPaymentFormModal(false);
-                                    showPaymentSuccess(
-                                        t('valet.paymentSuccessful'),
-                                        feeToUse.totalWithVat,
-                                        () => {
-                                            setSelectedCar(null);
-                                            setFeeDetails(null);
-                                            setLoading(false);
-                                        }
-                                    );
+                                    setSelectedCar(null);
+                                    setFeeDetails(null);
+                                    setLoading(false);
+                                    queuePaymentSuccess({
+                                        message: t('valet.paymentSuccessful'),
+                                        amount: feeToUse.totalWithVat,
+                                    });
                                 };
 
                                 const fallbackUpdate = () => updateParkedCar({
@@ -593,13 +576,6 @@ const FlaggedCustomers = () => {
                     </div>
                 </div>
             )}
-
-            <PaymentSuccessModal
-                show={showPaymentSuccessModal}
-                message={paymentSuccessDetails.message}
-                amount={paymentSuccessDetails.amount}
-                onClose={handlePaymentSuccessClose}
-            />
         </div>
     );
 };

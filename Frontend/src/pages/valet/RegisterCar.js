@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createParkedCar, sendSmsNotification, CHAPA_BACKEND_CALLBACK_URL, fetchPricingSettings, initializePackagePayment, verifyChapaPackagePayment } from '../../api/api';
-import { PaymentSuccessModal } from '../../components';
+import { queuePaymentSuccess } from '../../utils/paymentSuccessQueue';
 import '../../css/registerCar.scss';
 
 // Default plate codes fallback (used if database is empty)
@@ -44,9 +44,6 @@ const RegisterCar = () => {
     const [packagePaymentAmount, setPackagePaymentAmount] = useState(0);
     const [packageTxRef, setPackageTxRef] = useState('');
     const chapaInstanceRef = useRef(null);
-    const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
-    const [paymentSuccessDetails, setPaymentSuccessDetails] = useState({ message: '', amount: null });
-    const paymentSuccessOnCloseRef = useRef(null);
 
     // Fetch plate codes and pricing settings from database on component mount
     useEffect(() => {
@@ -242,19 +239,6 @@ const RegisterCar = () => {
         setPackagePaymentAmount(0);
     };
 
-    const handlePaymentSuccessClose = () => {
-        setShowPaymentSuccessModal(false);
-        const onDone = paymentSuccessOnCloseRef.current;
-        paymentSuccessOnCloseRef.current = null;
-        onDone?.();
-    };
-
-    const showPaymentSuccess = (message, amount, onDone) => {
-        paymentSuccessOnCloseRef.current = onDone;
-        setPaymentSuccessDetails({ message, amount });
-        setShowPaymentSuccessModal(true);
-    };
-
     const verifyPackageWithRetry = async (txRef, maxAttempts = 10, delayMs = 1200) => {
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
@@ -373,7 +357,8 @@ const RegisterCar = () => {
                         txRef,
                         packageDuration: validatedDuration,
                         amount: feeInfo.totalWithVat,
-                        carData: carDataPayload
+                        carData: carDataPayload,
+                        initiatedAt: Date.now(),
                     }));
 
                     setPackageTxRef(txRef);
@@ -450,8 +435,8 @@ const RegisterCar = () => {
                                 // Backend callback for Chapa; returnUrl sends user to dashboard after pay.
                                 callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
                                 callback_url: CHAPA_BACKEND_CALLBACK_URL,
-                                returnUrl: `${window.location.origin}/valet/dashboard`,
-                                return_url: `${window.location.origin}/valet/dashboard`,
+                                returnUrl: `${window.location.origin}/valet/register-car`,
+                                return_url: `${window.location.origin}/valet/register-car`,
                                 showFlag: true,
                                 showPaymentMethodsNames: true,
                                 onSuccessfulPayment: async () => {
@@ -488,15 +473,13 @@ const RegisterCar = () => {
 
                                         localStorage.removeItem(`chapa_payment_pkg_${txRef}`);
                                         closePackagePaymentModal(true);
-                                        showPaymentSuccess(
-                                            t('valet.packagePaymentSuccessful'),
-                                            feeInfo.totalWithVat,
-                                            () => {
-                                                resetForm();
-                                                setLoading(false);
-                                                navigate('/valet/dashboard');
-                                            }
-                                        );
+                                        resetForm();
+                                        setLoading(false);
+                                        queuePaymentSuccess({
+                                            message: t('valet.packagePaymentSuccessful'),
+                                            amount: feeInfo.totalWithVat,
+                                            navigateTo: '/valet/dashboard',
+                                        });
                                     } catch (verifyErr) {
                                         setError(verifyErr?.message || 'Payment succeeded but verification is still pending. Please wait and refresh.');
                                         setLoading(false);
@@ -1034,13 +1017,6 @@ const RegisterCar = () => {
                     </div>
                 </div>
             )}
-
-            <PaymentSuccessModal
-                show={showPaymentSuccessModal}
-                message={paymentSuccessDetails.message}
-                amount={paymentSuccessDetails.amount}
-                onClose={handlePaymentSuccessClose}
-            />
         </div>
     );
 };

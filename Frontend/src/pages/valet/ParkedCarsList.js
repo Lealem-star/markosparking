@@ -3,7 +3,8 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, fetchDailyStats, fetchPricingSettings, flagParkedCar, verifyChapaPayment } from '../../api/api';
-import { EthiopianDatePicker, PaymentSuccessModal } from '../../components';
+import { EthiopianDatePicker } from '../../components';
+import { queuePaymentSuccess } from '../../utils/paymentSuccessQueue';
 import { Car, Clock, Package, X, Search, LogOut, MoreVertical } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 import '../../css/valetOverview.scss';
@@ -36,9 +37,6 @@ const ParkedCarsList = () => {
 
     const [pricingSettings, setPricingSettings] = useState({});
     const [banner, setBanner] = useState(null); // { message, type: 'error'|'success' }
-    const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
-    const [paymentSuccessDetails, setPaymentSuccessDetails] = useState({ message: '', amount: null });
-    const paymentSuccessOnCloseRef = useRef(null);
 
     const showBanner = useCallback((message, type = 'error') => {
         setBanner({ message, type });
@@ -46,19 +44,6 @@ const ParkedCarsList = () => {
     }, []);
 
     const dismissBanner = useCallback(() => setBanner(null), []);
-
-    const handlePaymentSuccessClose = useCallback(() => {
-        setShowPaymentSuccessModal(false);
-        const onDone = paymentSuccessOnCloseRef.current;
-        paymentSuccessOnCloseRef.current = null;
-        onDone?.();
-    }, []);
-
-    const showPaymentSuccess = useCallback((message, amount, onDone) => {
-        paymentSuccessOnCloseRef.current = onDone;
-        setPaymentSuccessDetails({ message, amount });
-        setShowPaymentSuccessModal(true);
-    }, []);
 
     // Dedupe cars: same licensePlate + parkedAt (to minute) = duplicate (keep first by _id)
     const dedupeCars = useCallback((list) => {
@@ -340,7 +325,8 @@ const ParkedCarsList = () => {
                             txRef: data.txRef,
                             carId: selectedCar._id,
                             feeDetails: feeToUse,
-                            customerPhone: selectedCar.phoneNumber || customerPhone
+                            customerPhone: selectedCar.phoneNumber || customerPhone,
+                            initiatedAt: Date.now(),
                         }));
 
                         // Get Chapa public key from API response or environment variables
@@ -543,8 +529,8 @@ const ParkedCarsList = () => {
                                 // Backend callback for Chapa; returnUrl goes to dashboard (inline JS handles checkout + SMS)
                                 callbackUrl: `${CHAPA_BACKEND_CALLBACK_URL}?carId=${selectedCar._id}`,
                                 callback_url: `${CHAPA_BACKEND_CALLBACK_URL}?carId=${selectedCar._id}`,
-                                returnUrl: `${window.location.origin}/valet/dashboard`,
-                                return_url: `${window.location.origin}/valet/dashboard`,
+                                returnUrl: `${window.location.origin}${window.location.pathname}`,
+                                return_url: `${window.location.origin}${window.location.pathname}`,
                                 
                                 // UI options (optional)
                                 showFlag: true,
@@ -601,15 +587,15 @@ const ParkedCarsList = () => {
                                             chapaInstanceRef.current = null;
                                         }
 
-                                        showPaymentSuccess(
-                                            t('valet.paymentSuccessful'),
-                                            feeToUse.totalWithVat,
-                                            () => {
-                                                setSelectedCar(null);
-                                                setFeeDetails(null);
-                                                setLoading(false);
-                                            }
-                                        );
+                                        localStorage.removeItem(`chapa_payment_${selectedCar._id}`);
+                                        setSelectedCar(null);
+                                        setFeeDetails(null);
+                                        setLoading(false);
+
+                                        queuePaymentSuccess({
+                                            message: t('valet.paymentSuccessful'),
+                                            amount: feeToUse.totalWithVat,
+                                        });
                                     };
 
                                     const fallbackUpdate = () => updateParkedCar({
@@ -1518,13 +1504,6 @@ const ParkedCarsList = () => {
                     </div>
                 </div>
             )}
-
-            <PaymentSuccessModal
-                show={showPaymentSuccessModal}
-                message={paymentSuccessDetails.message}
-                amount={paymentSuccessDetails.amount}
-                onClose={handlePaymentSuccessClose}
-            />
 
         </div>
     );
