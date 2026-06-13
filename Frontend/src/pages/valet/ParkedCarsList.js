@@ -25,7 +25,7 @@ const ParkedCarsList = () => {
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
     const [showCheckoutModal, setShowCheckoutModal] = useState(false); // New modal for Pay Now / Flag Him
     const [feeDetails, setFeeDetails] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [parkInLoadingId, setParkInLoadingId] = useState(null);
     const chapaInstanceRef = useRef(null);
     const lastChapaErrorRef = useRef(null); // Store last Chapa API error response
     const [dailyStats, setDailyStats] = useState({
@@ -196,7 +196,6 @@ const ParkedCarsList = () => {
 
     const handleStatusChange = (car, status) => {
         if (status === 'checked_out') {
-            // Package cars only: checkout immediately, no modal (must have package fields)
             const isPackageCar = car.serviceType === 'package' && (car.packageDuration || car.packageSubscriptionId);
             if (isPackageCar) {
                 setLoading(true);
@@ -226,6 +225,33 @@ const ParkedCarsList = () => {
             setNewStatus(status);
             setShowStatusModal(true);
         }
+    };
+
+    const canParkIn = (car) => {
+        if (car.status !== 'checked_out') return false;
+        if (car.serviceType === 'package' && car.packageEndDate) {
+            return new Date(car.packageEndDate) > new Date();
+        }
+        return true;
+    };
+
+    const handleParkIn = (car) => {
+        if (!car?._id || !user?.token || !canParkIn(car)) return;
+        setParkInLoadingId(car._id);
+        updateParkedCar({
+            id: car._id,
+            body: { status: 'parked' },
+            token: user.token,
+            handleUpdateParkedCarSuccess: () => {
+                setParkInLoadingId(null);
+                loadCars();
+                fetchDailyStats({ token: user.token, date: selectedDate, setDailyStats });
+            },
+            handleUpdateParkedCarFailure: (err) => {
+                setParkInLoadingId(null);
+                showBanner(err || t('messages.operationFailed'), 'error');
+            }
+        });
     };
 
     const handlePayNow = () => {
@@ -1235,11 +1261,16 @@ const ParkedCarsList = () => {
                                                     >
                                                         {t('valet.checkOut')}
                                                     </button>
-                                                ) : (
-                                                    <button type="button" className="btn-action btn-checkout-done" disabled>
-                                                        {t('valet.checkedOut')}
+                                                ) : canParkIn(car) ? (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-action btn-park-in"
+                                                        onClick={() => handleParkIn(car)}
+                                                        disabled={parkInLoadingId === car._id}
+                                                    >
+                                                        {parkInLoadingId === car._id ? t('common.loading') : t('valet.parkIn')}
                                                     </button>
-                                                )}
+                                                ) : null}
                                             </div>
                                         </article>
                                     );
@@ -1293,10 +1324,17 @@ const ParkedCarsList = () => {
                                                             >
                                                                 {t('valet.checkOut')}
                                                             </button>
-                                                        ) : (
-                                                            <button type="button" className="btn-action btn-checkout-done" disabled>
-                                                                {t('valet.checkedOut')}
+                                                        ) : canParkIn(car) ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn-action btn-park-in"
+                                                                onClick={() => handleParkIn(car)}
+                                                                disabled={parkInLoadingId === car._id}
+                                                            >
+                                                                {parkInLoadingId === car._id ? t('common.loading') : t('valet.parkIn')}
                                                             </button>
+                                                        ) : (
+                                                            <span className="action-muted">—</span>
                                                         )}
                                                     </div>
                                                 </td>
