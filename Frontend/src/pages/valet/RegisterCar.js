@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createParkedCar, sendSmsNotification, CHAPA_BACKEND_CALLBACK_URL, fetchPricingSettings, initializePackagePayment, verifyChapaPackagePayment } from '../../api/api';
+import { PaymentSuccessModal } from '../../components';
 import '../../css/registerCar.scss';
 
 // Default plate codes fallback (used if database is empty)
@@ -43,6 +44,9 @@ const RegisterCar = () => {
     const [packagePaymentAmount, setPackagePaymentAmount] = useState(0);
     const [packageTxRef, setPackageTxRef] = useState('');
     const chapaInstanceRef = useRef(null);
+    const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
+    const [paymentSuccessDetails, setPaymentSuccessDetails] = useState({ message: '', amount: null });
+    const paymentSuccessOnCloseRef = useRef(null);
 
     // Fetch plate codes and pricing settings from database on component mount
     useEffect(() => {
@@ -226,8 +230,8 @@ const RegisterCar = () => {
         }, 1500);
     };
 
-    const closePackagePaymentModal = () => {
-        if (loading) return;
+    const closePackagePaymentModal = (force = false) => {
+        if (!force && loading) return;
         if (chapaInstanceRef.current) {
             const container = document.getElementById('chapa-inline-form');
             if (container) container.innerHTML = '';
@@ -236,6 +240,19 @@ const RegisterCar = () => {
         setShowPaymentFormModal(false);
         setPackageTxRef('');
         setPackagePaymentAmount(0);
+    };
+
+    const handlePaymentSuccessClose = () => {
+        setShowPaymentSuccessModal(false);
+        const onDone = paymentSuccessOnCloseRef.current;
+        paymentSuccessOnCloseRef.current = null;
+        onDone?.();
+    };
+
+    const showPaymentSuccess = (message, amount, onDone) => {
+        paymentSuccessOnCloseRef.current = onDone;
+        setPaymentSuccessDetails({ message, amount });
+        setShowPaymentSuccessModal(true);
     };
 
     const verifyPackageWithRetry = async (txRef, maxAttempts = 10, delayMs = 1200) => {
@@ -470,11 +487,16 @@ const RegisterCar = () => {
                                         }
 
                                         localStorage.removeItem(`chapa_payment_pkg_${txRef}`);
-                                        setSuccess('Package payment successful! Car registered.');
-                                        closePackagePaymentModal();
-                                        resetForm();
-                                        setLoading(false);
-                                        setTimeout(() => navigate('/valet/dashboard'), 800);
+                                        closePackagePaymentModal(true);
+                                        showPaymentSuccess(
+                                            t('valet.packagePaymentSuccessful'),
+                                            feeInfo.totalWithVat,
+                                            () => {
+                                                resetForm();
+                                                setLoading(false);
+                                                navigate('/valet/dashboard');
+                                            }
+                                        );
                                     } catch (verifyErr) {
                                         setError(verifyErr?.message || 'Payment succeeded but verification is still pending. Please wait and refresh.');
                                         setLoading(false);
@@ -1012,6 +1034,13 @@ const RegisterCar = () => {
                     </div>
                 </div>
             )}
+
+            <PaymentSuccessModal
+                show={showPaymentSuccessModal}
+                message={paymentSuccessDetails.message}
+                amount={paymentSuccessDetails.amount}
+                onClose={handlePaymentSuccessClose}
+            />
         </div>
     );
 };

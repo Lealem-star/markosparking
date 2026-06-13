@@ -36,6 +36,47 @@ const buildPackageEndDate = (packageStartDate, packageDuration) => {
     return packageEndDate;
 };
 
+const normalizeChapaStatus = (status) => {
+    if (status === 'success' || status === 'successful') {
+        return 'successful';
+    }
+    return status;
+};
+
+const canProcessCarPayment = (car) => {
+    return car && (car.status === 'parked' || (car.status === 'checked_out' && car.isFlagged));
+};
+
+const applySuccessfulOnlinePayment = async (car, txRef, amount) => {
+    if (car.status !== 'checked_out') {
+        car.status = 'checked_out';
+    }
+    if (!car.checkedOutAt) {
+        car.checkedOutAt = new Date();
+    }
+    car.paymentMethod = 'online';
+    car.paymentReference = txRef;
+    if (car.isFlagged) {
+        car.isFlagged = false;
+        car.flaggedAt = null;
+        car.flaggedBy = null;
+        car.notificationSent = false;
+        car.lastNotificationSentAt = null;
+    }
+    if (amount) {
+        const vatRate = await getVATRate();
+        const vatBreakdown = reverseCalculateVAT(parseFloat(amount), vatRate);
+        car.totalPaidAmount = vatBreakdown.totalWithVat;
+        car.baseAmount = vatBreakdown.baseAmount;
+        car.vatAmount = vatBreakdown.vatAmount;
+        car.vatRate = vatRate;
+    } else if ((car.baseAmount || 0) + (car.vatAmount || 0) > 0) {
+        car.totalPaidAmount = (car.baseAmount || 0) + (car.vatAmount || 0);
+    }
+    car.pendingPaymentTxRef = null;
+    await car.save();
+};
+
 const findPackageCarByTxRef = async (txRef) => {
     return ParkedCar.findOne({
         serviceType: 'package',
@@ -528,45 +569,14 @@ paymentRouter.get("/chapa/verify/:txRef", async (req, res) => {
                 const car = await ParkedCar.findById(carId);
                 console.log(`[Payment Verify] Car found: ${car ? 'YES' : 'NO'}, Car status: ${car?.status}, Payment status: ${normalizedStatus}`);
 
-                // Ensure the txRef we are verifying matches the one we generated for this car.
-                // This prevents using an old or foreign txRef with the wrong carId.
+                // Chapa Inline.js may issue its own tx_ref; trust Chapa verify when carId is supplied.
                 if (car && car.pendingPaymentTxRef && car.pendingPaymentTxRef !== txRef) {
-                    console.warn(`[Payment Verify] txRef mismatch for car ${carId}. Expected ${car.pendingPaymentTxRef}, got ${txRef}`);
-                    return res.status(400).json({
-                        error: "Invalid transaction reference for this car"
-                    });
+                    console.warn(`[Payment Verify] txRef mismatch for car ${carId}. Expected ${car.pendingPaymentTxRef}, got ${txRef} (continuing after Chapa verify)`);
                 }
                 
                 // Check if payment is successful (normalized status)
                 if (car && normalizedStatus === 'successful') {
-                    // Update car status to checked_out (if not already)
-                    if (car.status !== 'checked_out') {
-                        car.status = 'checked_out';
-                    }
-                    // Only set checkedOutAt if it doesn't exist (preserve original checkout time for flagged cars)
-                    if (!car.checkedOutAt) {
-                        car.checkedOutAt = new Date();
-                    }
-                    car.paymentMethod = 'online';
-                    car.paymentReference = txRef;
-                    // Unflag the car if it was flagged (payment successful)
-                    if (car.isFlagged) {
-                        car.isFlagged = false;
-                        car.flaggedAt = null;
-                        car.flaggedBy = null;
-                    }
-                    // Save the transaction amount as totalPaidAmount and calculate VAT
-                    if (transaction.amount) {
-                        const vatRate = await getVATRate();
-                        const vatBreakdown = reverseCalculateVAT(transaction.amount, vatRate);
-                        car.totalPaidAmount = vatBreakdown.totalWithVat;
-                        car.baseAmount = vatBreakdown.baseAmount;
-                        car.vatAmount = vatBreakdown.vatAmount;
-                        car.vatRate = vatRate;
-                    }
-                    // Clear pending txRef since this payment has been fully processed
-                    car.pendingPaymentTxRef = null;
-                    await car.save();
+                    await applySuccessfulOnlinePayment(car, txRef, transaction.amount);
 
                     res.json({
                         success: true,
@@ -783,74 +793,59 @@ paymentRouter.post("/chapa/callback", async (req, res) => {
             meta = req.body.meta;
         }
 
-        console.log("Chapa callback extracted:", { tx_ref, status, amount, meta });
+        console.log("Chapa callback extracted:", { tx_ref, status, amount, meta, carId: req.query.carId });
 
-        if (status === 'successful' && tx_ref) {
-            // Extract carId from meta (preferred) or verify payment to get meta
-            let carId = null;
-                let txRef = tx_ref;
-            
-            if (meta && meta.carId) {
-                carId = meta.carId;
-            } else {
-                // Verify payment with Chapa to get full transaction details including meta and amount
-                try {
-                    const verifyResponse = await axios.get(
-                        `${CHAPA_BASE_URL}/verify/${tx_ref}`,
-                        {
-                            headers: {
-                                'Authorization': `Bearer ${CHAPA_SECRET_KEY}`,
-                            }
-                        }
-                    );
+        const normalizedCallbackStatus = normalizeChapaStatus(status);
 
-                    if (verifyResponse.data.status === 'success' && verifyResponse.data.data) {
-                        const transaction = verifyResponse.data.data;
-                        
-                        // Extract amount if not already present
-                        if (!amount && transaction.amount) {
-                            amount = transaction.amount;
+        if (normalizedCallbackStatus === 'successful' && tx_ref) {
+            let carId = req.query.carId || (meta && meta.carId) || null;
+            let txRef = tx_ref;
+            let verifiedAmount = amount;
+            let paymentVerified = false;
+
+            try {
+                const verifyResponse = await axios.get(
+                    `${CHAPA_BASE_URL}/verify/${tx_ref}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${CHAPA_SECRET_KEY}`,
                         }
-                        
-                        // Extract meta if not already present
-                        if (!meta && transaction.meta) {
-                            meta = transaction.meta;
-                        }
-                        
-                        if (transaction.meta && transaction.meta.carId) {
-                            carId = transaction.meta.carId;
-                        }
+                    }
+                );
+
+                if (verifyResponse.data.status === 'success' && verifyResponse.data.data) {
+                    const transaction = verifyResponse.data.data;
+                    const txStatus = normalizeChapaStatus(transaction.status);
+
+                    if (txStatus === 'successful') {
+                        paymentVerified = true;
+                        verifiedAmount = verifiedAmount || transaction.amount;
+                        carId = carId || transaction.meta?.carId || null;
                         if (transaction.tx_ref) {
                             txRef = transaction.tx_ref;
                         }
+                    } else {
+                        console.log(`[Chapa Callback] Payment verify status: ${txStatus}`);
                     }
-                } catch (verifyError) {
-                    console.error("Error verifying payment in callback:", verifyError);
                 }
+            } catch (verifyError) {
+                console.error("Error verifying payment in callback:", verifyError);
+            }
+
+            if (!paymentVerified) {
+                console.warn(`[Chapa Callback] Could not verify payment for tx_ref ${tx_ref}`);
             }
 
             if (carId && Types.ObjectId.isValid(carId)) {
                 const car = await ParkedCar.findById(carId);
-                
-                if (car && car.status === 'parked') {
-                    car.status = 'checked_out';
-                    car.checkedOutAt = new Date();
-                    car.paymentMethod = 'online';
-                    car.paymentReference = txRef || tx_ref;
-                    // Unflag the car if it was flagged (payment successful)
-                    if (car.isFlagged) {
-                        car.isFlagged = false;
-                    }
-                    if (amount) {
-                        const vatRate = await getVATRate();
-                        const vatBreakdown = reverseCalculateVAT(parseFloat(amount), vatRate);
-                        car.totalPaidAmount = vatBreakdown.totalWithVat;
-                        car.baseAmount = vatBreakdown.baseAmount;
-                        car.vatAmount = vatBreakdown.vatAmount;
-                        car.vatRate = vatRate;
-                    }
-                    await car.save();
+
+                if (canProcessCarPayment(car) && paymentVerified) {
+                    await applySuccessfulOnlinePayment(car, txRef || tx_ref, verifiedAmount);
                     console.log(`Car ${carId} checked out successfully via Chapa callback`);
+                } else if (!car) {
+                    console.warn(`[Chapa Callback] Car not found for id ${carId}`);
+                } else if (!paymentVerified) {
+                    console.warn(`[Chapa Callback] Skipping car ${carId} — payment not verified`);
                 }
             } else if (txRef) {
                 // Package payment path (payment-first, no carId)
@@ -883,7 +878,10 @@ paymentRouter.get("/chapa/callback", async (req, res) => {
     try {
         const { tx_ref, status } = req.query;
 
-        if (status === 'successful' && tx_ref) {
+        const normalizedCallbackStatus = normalizeChapaStatus(status);
+
+        if (normalizedCallbackStatus === 'successful' && tx_ref) {
+            const carIdFromQuery = req.query.carId;
             // Verify payment to get meta data
             try {
                 const verifyResponse = await axios.get(
@@ -897,29 +895,14 @@ paymentRouter.get("/chapa/callback", async (req, res) => {
 
                 if (verifyResponse.data.status === 'success' && verifyResponse.data.data) {
                     const transaction = verifyResponse.data.data;
-                    const carId = transaction.meta?.carId;
+                    const txStatus = normalizeChapaStatus(transaction.status);
+                    const carId = carIdFromQuery || transaction.meta?.carId;
 
                     if (carId && Types.ObjectId.isValid(carId)) {
                         const car = await ParkedCar.findById(carId);
                         
-                        if (car && car.status === 'parked' && transaction.status === 'successful') {
-                            car.status = 'checked_out';
-                            car.checkedOutAt = new Date();
-                            car.paymentMethod = 'online';
-                            car.paymentReference = tx_ref;
-                            // Unflag the car if it was flagged (payment successful)
-                            if (car.isFlagged) {
-                                car.isFlagged = false;
-                            }
-                            if (transaction.amount) {
-                                const vatRate = await getVATRate();
-                                const vatBreakdown = reverseCalculateVAT(transaction.amount, vatRate);
-                                car.totalPaidAmount = vatBreakdown.totalWithVat;
-                                car.baseAmount = vatBreakdown.baseAmount;
-                                car.vatAmount = vatBreakdown.vatAmount;
-                                car.vatRate = vatRate;
-                            }
-                            await car.save();
+                        if (canProcessCarPayment(car) && txStatus === 'successful') {
+                            await applySuccessfulOnlinePayment(car, tx_ref, transaction.amount);
                             console.log(`Car ${carId} checked out successfully via Chapa callback (GET)`);
                         }
                     } else if (transaction.tx_ref) {
@@ -957,7 +940,9 @@ paymentRouter.post("/chapa/webhook", async (req, res) => {
     try {
         const { tx_ref, status } = req.body;
 
-        if (status === 'successful' && tx_ref) {
+        const normalizedWebhookStatus = normalizeChapaStatus(status);
+
+        if (normalizedWebhookStatus === 'successful' && tx_ref) {
             // Extract carId from tx_ref
             const carIdMatch = tx_ref.match(/tana-([a-f0-9]{10,24})/);
             const carId = carIdMatch ? carIdMatch[1] : null;
@@ -965,16 +950,8 @@ paymentRouter.post("/chapa/webhook", async (req, res) => {
             if (carId && Types.ObjectId.isValid(carId)) {
                 const car = await ParkedCar.findById(carId);
                 
-                if (car && car.status === 'parked') {
-                    car.status = 'checked_out';
-                    car.checkedOutAt = new Date();
-                    car.paymentMethod = 'online';
-                    car.paymentReference = tx_ref;
-                    // Unflag the car if it was flagged (payment successful)
-                    if (car.isFlagged) {
-                        car.isFlagged = false;
-                    }
-                    await car.save();
+                if (canProcessCarPayment(car)) {
+                    await applySuccessfulOnlinePayment(car, tx_ref, null);
                 }
             }
         }

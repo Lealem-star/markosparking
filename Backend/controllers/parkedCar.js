@@ -178,16 +178,13 @@ parkedCarRouter.get("/", isLoggedIn, async (req, res) => {
 // IMPORTANT: This route must come BEFORE /:id to avoid route conflicts
 parkedCarRouter.get("/flagged", isLoggedIn, async (req, res) => {
     try {
-        // Get all cars that are checked_out and either flagged OR have unpaid amounts
-        // This ensures we show all flagged customers until they pay
+        // Show checked-out cars that still owe payment (flagged or otherwise unpaid)
         const query = {
             status: 'checked_out',
             $or: [
-                { isFlagged: true },
-                // Include checked_out cars with no payment (they should be flagged)
                 { totalPaidAmount: { $exists: false } },
-                { totalPaidAmount: 0 },
-                { totalPaidAmount: null }
+                { totalPaidAmount: null },
+                { totalPaidAmount: { $lte: 0 } }
             ]
         };
 
@@ -234,7 +231,19 @@ parkedCarRouter.get("/:id", isLoggedIn, async (req, res) => {
 parkedCarRouter.put("/:id", isLoggedIn, async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, notes, totalPaidAmount, paymentMethod } = req.body;
+        const {
+            status,
+            notes,
+            totalPaidAmount,
+            paymentMethod,
+            isFlagged,
+            flaggedAt,
+            flaggedBy,
+            baseAmount,
+            vatAmount,
+            notificationSent,
+            lastNotificationSentAt
+        } = req.body;
 
         if (!Types.ObjectId.isValid(id)) {
             return res.status(400).json({ error: "Invalid car id" });
@@ -249,8 +258,14 @@ parkedCarRouter.put("/:id", isLoggedIn, async (req, res) => {
             return res.status(404).json({ error: "Parked car not found" });
         }
 
-        // Only the valet who registered or admin/manager can update
-        if (currentUser.type !== 'system_admin' && 
+        // Allow any staff to record payment on flagged unpaid cars; otherwise restrict to owner/admin
+        const isFlaggedPaymentUpdate =
+            car.isFlagged &&
+            car.status === 'checked_out' &&
+            (totalPaidAmount !== undefined || isFlagged === false);
+
+        if (!isFlaggedPaymentUpdate &&
+            currentUser.type !== 'system_admin' && 
             currentUser.type !== 'manager' && 
             currentUser.type !== 'admin' &&
             car.valet_id.toString() !== currentUser._id.toString()) {
@@ -263,9 +278,28 @@ parkedCarRouter.put("/:id", isLoggedIn, async (req, res) => {
             notes: Joi.string().allow('').optional(),
             totalPaidAmount: Joi.number().min(0).optional(),
             paymentMethod: Joi.string().valid('manual', 'online').optional(),
+            isFlagged: Joi.boolean().optional(),
+            flaggedAt: Joi.date().allow(null).optional(),
+            flaggedBy: Joi.string().allow(null).optional(),
+            baseAmount: Joi.number().min(0).optional(),
+            vatAmount: Joi.number().min(0).optional(),
+            notificationSent: Joi.boolean().optional(),
+            lastNotificationSentAt: Joi.date().allow(null).optional(),
         })
 
-        const { error } = schema.validate({ status, notes, totalPaidAmount, paymentMethod });
+        const { error } = schema.validate({
+            status,
+            notes,
+            totalPaidAmount,
+            paymentMethod,
+            isFlagged,
+            flaggedAt,
+            flaggedBy,
+            baseAmount,
+            vatAmount,
+            notificationSent,
+            lastNotificationSentAt
+        });
         if (error) {
             return res.status(400).json({ error: error.details[0].message });
         }
@@ -372,6 +406,51 @@ parkedCarRouter.put("/:id", isLoggedIn, async (req, res) => {
 
         if (notes !== undefined) {
             car.notes = notes;
+        }
+
+        if (baseAmount !== undefined) {
+            car.baseAmount = baseAmount;
+        }
+        if (vatAmount !== undefined) {
+            car.vatAmount = vatAmount;
+        }
+
+        if (isFlagged === false) {
+            car.isFlagged = false;
+            car.flaggedAt = null;
+            car.flaggedBy = null;
+            if (notificationSent !== undefined) {
+                car.notificationSent = notificationSent;
+            } else {
+                car.notificationSent = false;
+            }
+            if (lastNotificationSentAt !== undefined) {
+                car.lastNotificationSentAt = lastNotificationSentAt;
+            } else {
+                car.lastNotificationSentAt = null;
+            }
+        } else if (isFlagged === true) {
+            car.isFlagged = true;
+        }
+
+        if (flaggedAt !== undefined) {
+            car.flaggedAt = flaggedAt;
+        }
+        if (flaggedBy !== undefined) {
+            car.flaggedBy = flaggedBy;
+        }
+        if (notificationSent !== undefined && isFlagged !== false) {
+            car.notificationSent = notificationSent;
+        }
+        if (lastNotificationSentAt !== undefined && isFlagged !== false) {
+            car.lastNotificationSentAt = lastNotificationSentAt;
+        }
+
+        // Auto-unflag once payment has been recorded for a checked-out car
+        if (car.status === 'checked_out' && car.totalPaidAmount > 0) {
+            car.isFlagged = false;
+            car.flaggedAt = null;
+            car.flaggedBy = null;
         }
 
         await car.save();

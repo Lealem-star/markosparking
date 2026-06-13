@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
-import { fetchFlaggedCars, notifyFlaggedCustomer, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, updateParkedCar } from '../../api/api';
+import { fetchFlaggedCars, notifyFlaggedCustomer, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, updateParkedCar, verifyChapaPayment } from '../../api/api';
+import { PaymentSuccessModal } from '../../components';
 import { AlertTriangle, Bell, CreditCard, X } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 
@@ -17,6 +18,9 @@ const FlaggedCustomers = () => {
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
     const [banner, setBanner] = useState(null); // { message, type: 'error'|'success' }
     const chapaInstanceRef = useRef(null);
+    const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
+    const [paymentSuccessDetails, setPaymentSuccessDetails] = useState({ message: '', amount: null });
+    const paymentSuccessOnCloseRef = useRef(null);
 
     const showBanner = useCallback((message, type = 'error') => {
         setBanner({ message, type });
@@ -25,6 +29,19 @@ const FlaggedCustomers = () => {
     }, []);
 
     const dismissBanner = useCallback(() => setBanner(null), []);
+
+    const handlePaymentSuccessClose = useCallback(() => {
+        setShowPaymentSuccessModal(false);
+        const onDone = paymentSuccessOnCloseRef.current;
+        paymentSuccessOnCloseRef.current = null;
+        onDone?.();
+    }, []);
+
+    const showPaymentSuccess = useCallback((message, amount, onDone) => {
+        paymentSuccessOnCloseRef.current = onDone;
+        setPaymentSuccessDetails({ message, amount });
+        setShowPaymentSuccessModal(true);
+    }, []);
 
     const loadFlaggedCars = useCallback(() => {
         if (!user?.token) return;
@@ -226,16 +243,32 @@ const FlaggedCustomers = () => {
                                 description: `Unpaid parking fee payment for ${carToUse.licensePlate || 'your vehicle'}`,
                                 buttonText: 'Pay Now',
                             },
-                            callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
-                            callback_url: CHAPA_BACKEND_CALLBACK_URL,
+                            callbackUrl: `${CHAPA_BACKEND_CALLBACK_URL}?carId=${carToUse._id}`,
+                            callback_url: `${CHAPA_BACKEND_CALLBACK_URL}?carId=${carToUse._id}`,
                             returnUrl: `${window.location.origin}${location.pathname}`,
                             return_url: `${window.location.origin}${location.pathname}`,
                             showFlag: true,
                             showPaymentMethodsNames: true,
-                            onSuccessfulPayment: async () => {
-                                console.log('✅ Payment successful for flagged car');
-                                // Update car status and unflag it
-                                await updateParkedCar({
+                            onSuccessfulPayment: async (response) => {
+                                console.log('✅ Payment successful for flagged car', response);
+                                const chapaTxRef = response?.tx_ref || response?.txRef || data.txRef;
+
+                                const finishFlaggedPayment = () => {
+                                    localStorage.removeItem(`chapa_payment_${carToUse._id}`);
+                                    loadFlaggedCars();
+                                    setShowPaymentFormModal(false);
+                                    showPaymentSuccess(
+                                        t('valet.paymentSuccessful'),
+                                        feeToUse.totalWithVat,
+                                        () => {
+                                            setSelectedCar(null);
+                                            setFeeDetails(null);
+                                            setLoading(false);
+                                        }
+                                    );
+                                };
+
+                                const fallbackUpdate = () => updateParkedCar({
                                     id: carToUse._id,
                                     body: {
                                         status: 'checked_out',
@@ -243,27 +276,32 @@ const FlaggedCustomers = () => {
                                         totalPaidAmount: feeToUse.totalWithVat,
                                         baseAmount: feeToUse.parkingFee,
                                         vatAmount: feeToUse.vatAmount,
-                                        isFlagged: false, // Unflag the car
+                                        isFlagged: false,
                                         flaggedAt: null,
                                         flaggedBy: null,
                                         notificationSent: false,
                                         lastNotificationSentAt: null
                                     },
                                     token: user?.token,
-                                    handleUpdateParkedCarSuccess: () => {
-                                        loadFlaggedCars(); // Refresh list
-                                        setShowPaymentFormModal(false);
-                                        setSelectedCar(null);
-                                        setFeeDetails(null);
-                                        setLoading(false);
-                                        showBanner(t('valet.paymentSuccessful'), 'success');
-                                    },
+                                    handleUpdateParkedCarSuccess: finishFlaggedPayment,
                                     handleUpdateParkedCarFailure: (err) => {
                                         console.error('Failed to update flagged car:', err);
                                         showBanner(`${t('messages.error')}: ${t('messages.operationFailed')}`, 'error');
                                         setLoading(false);
                                     }
                                 });
+
+                                if (chapaTxRef) {
+                                    await verifyChapaPayment({
+                                        txRef: chapaTxRef,
+                                        carId: carToUse._id,
+                                        token: user?.token,
+                                        handleVerifySuccess: finishFlaggedPayment,
+                                        handleVerifyFailure: () => fallbackUpdate()
+                                    });
+                                } else {
+                                    await fallbackUpdate();
+                                }
                             },
                             onPaymentFailure: (error) => {
                                 console.error('❌ Payment failed:', error);
@@ -555,6 +593,13 @@ const FlaggedCustomers = () => {
                     </div>
                 </div>
             )}
+
+            <PaymentSuccessModal
+                show={showPaymentSuccessModal}
+                message={paymentSuccessDetails.message}
+                amount={paymentSuccessDetails.amount}
+                onClose={handlePaymentSuccessClose}
+            />
         </div>
     );
 };

@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchParkedCars, updateParkedCar, sendSmsNotification, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, fetchDailyStats, fetchPricingSettings, flagParkedCar } from '../../api/api';
-import { EthiopianDatePicker } from '../../components';
+import { EthiopianDatePicker, PaymentSuccessModal } from '../../components';
 import { Car, Clock, Package, X, Search, LogOut, MoreVertical } from 'lucide-react';
 import '../../css/parkedCarsList.scss';
 import '../../css/valetOverview.scss';
@@ -36,6 +36,9 @@ const ParkedCarsList = () => {
 
     const [pricingSettings, setPricingSettings] = useState({});
     const [banner, setBanner] = useState(null); // { message, type: 'error'|'success' }
+    const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
+    const [paymentSuccessDetails, setPaymentSuccessDetails] = useState({ message: '', amount: null });
+    const paymentSuccessOnCloseRef = useRef(null);
 
     const showBanner = useCallback((message, type = 'error') => {
         setBanner({ message, type });
@@ -43,6 +46,19 @@ const ParkedCarsList = () => {
     }, []);
 
     const dismissBanner = useCallback(() => setBanner(null), []);
+
+    const handlePaymentSuccessClose = useCallback(() => {
+        setShowPaymentSuccessModal(false);
+        const onDone = paymentSuccessOnCloseRef.current;
+        paymentSuccessOnCloseRef.current = null;
+        onDone?.();
+    }, []);
+
+    const showPaymentSuccess = useCallback((message, amount, onDone) => {
+        paymentSuccessOnCloseRef.current = onDone;
+        setPaymentSuccessDetails({ message, amount });
+        setShowPaymentSuccessModal(true);
+    }, []);
 
     // Dedupe cars: same licensePlate + parkedAt (to minute) = duplicate (keep first by _id)
     const dedupeCars = useCallback((list) => {
@@ -591,9 +607,21 @@ const ParkedCarsList = () => {
                                             fetchDailyStats({ token: user.token, date: selectedDate, setDailyStats });
 
                                             setShowPaymentFormModal(false);
-                                            setSelectedCar(null);
-                                            setFeeDetails(null);
-                                            setLoading(false);
+                                            if (chapaInstanceRef.current) {
+                                                const container = document.getElementById('chapa-inline-form');
+                                                if (container) container.innerHTML = '';
+                                                chapaInstanceRef.current = null;
+                                            }
+
+                                            showPaymentSuccess(
+                                                t('valet.paymentSuccessful'),
+                                                feeToUse.totalWithVat,
+                                                () => {
+                                                    setSelectedCar(null);
+                                                    setFeeDetails(null);
+                                                    setLoading(false);
+                                                }
+                                            );
                                         },
                                         handleUpdateParkedCarFailure: (error) => {
                                             console.error('Failed to update car:', error);
@@ -1480,6 +1508,13 @@ const ParkedCarsList = () => {
                     </div>
                 </div>
             )}
+
+            <PaymentSuccessModal
+                show={showPaymentSuccessModal}
+                message={paymentSuccessDetails.message}
+                amount={paymentSuccessDetails.amount}
+                onClose={handlePaymentSuccessClose}
+            />
 
         </div>
     );
