@@ -14,7 +14,7 @@ export const buildPricingGroups = (priceLevels, users = []) => {
     const zoneMap = {};
 
     users
-        .filter((u) => u?.type === 'valet' && u?.parkZoneCode)
+        .filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false)
         .forEach((u) => {
             if (!zoneMap[u.parkZoneCode]) {
                 zoneMap[u.parkZoneCode] = u.priceLevel || null;
@@ -44,7 +44,7 @@ export const buildPricingGroups = (priceLevels, users = []) => {
 
 export const getPricingStats = (priceLevels, users = [], lastUpdated) => {
     const zones = new Set(
-        users.filter((u) => u?.type === 'valet' && u?.parkZoneCode).map((u) => u.parkZoneCode)
+        users.filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false).map((u) => u.parkZoneCode)
     );
 
     return {
@@ -75,7 +75,7 @@ export const filterPricingGroups = (groups, { searchQuery, zoneFilter, priceLeve
 export const getUniquePriceLevels = (priceLevels) => Object.keys(priceLevels).sort();
 
 export const getUniqueZones = (users) => [
-    ...new Set(users.filter((u) => u?.type === 'valet' && u?.parkZoneCode).map((u) => u.parkZoneCode)),
+    ...new Set(users.filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false).map((u) => u.parkZoneCode)),
 ].sort();
 
 export const formatPricingValue = (value) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { deleteUser, fetchUsers, createUser, updateUser, fetchPricingSettings } from '../../api/api';
+import { deactivateUser, fetchUsers, createUser, updateUser, fetchPricingSettings } from '../../api/api';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { DeleteModal } from '../../components';
@@ -31,7 +31,7 @@ const UserManagement = () => {
     const { t } = useTranslation();
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState();
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showDeactivateModal, setShowDeactivateModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
@@ -133,26 +133,50 @@ const UserManagement = () => {
         setError(failureError?.message || failureError?.error || 'Failed to create user');
     };
 
-    const handleDelete = (userToDelete) => {
-        setSelectedUser(userToDelete);
-        setShowDeleteModal(true);
+    const handleDeactivate = (userToDeactivate) => {
+        setSelectedUser(userToDeactivate);
+        setError('');
+        setShowDeactivateModal(true);
     };
 
-    const handleDeleteUser = () => {
-        deleteUser({
+    const handleDeactivateUser = () => {
+        deactivateUser({
             id: selectedUser?._id,
-            handleDeleteUserSuccess,
-            handleDeleteUserFailure
+            token: user?.token,
+            handleSuccess: handleDeactivateUserSuccess,
+            handleFailure: handleDeactivateUserFailure,
         });
     };
 
-    const handleDeleteUserSuccess = () => {
+    const handleDeactivateUserSuccess = () => {
+        setSuccess('User deactivated successfully!');
         fetchUsers({ setUsers });
-        setShowDeleteModal(false);
+        setShowDeactivateModal(false);
+        setTimeout(() => setSuccess(''), 2000);
     };
 
-    const handleDeleteUserFailure = () => {
-        setShowDeleteModal(false);
+    const handleDeactivateUserFailure = (failureError) => {
+        setError(typeof failureError === 'string' ? failureError : failureError?.message || 'Failed to deactivate user');
+        setShowDeactivateModal(false);
+    };
+
+    const handleReactivate = (userToReactivate) => {
+        setError('');
+        setSuccess('');
+
+        updateUser({
+            user_id: userToReactivate?._id,
+            body: { isActive: true },
+            token: user?.token,
+            handleUpdateUserSuccess: () => {
+                setSuccess(`${userToReactivate?.name} reactivated successfully!`);
+                fetchUsers({ setUsers });
+                setTimeout(() => setSuccess(''), 2000);
+            },
+            handleUpdateUserFailure: (failureError) => {
+                setError(typeof failureError === 'string' ? failureError : failureError?.message || failureError?.error || 'Failed to reactivate user');
+            },
+        });
     };
 
     const handleEdit = (userToEdit) => {
@@ -222,7 +246,7 @@ const UserManagement = () => {
     };
 
     const handleUpdateUserFailure = (failureError) => {
-        setError(failureError?.message || failureError?.error || 'Failed to update user');
+        setError(typeof failureError === 'string' ? failureError : failureError?.message || failureError?.error || 'Failed to update user');
     };
 
     return (
@@ -232,6 +256,9 @@ const UserManagement = () => {
             </div>
 
             {success && <div className="alert alert-success">{success}</div>}
+            {error && !showCreateModal && !showEditModal && (
+                <div className="alert alert-danger">{error}</div>
+            )}
 
             <StaffStatCards stats={stats} t={t} />
 
@@ -263,7 +290,8 @@ const UserManagement = () => {
                     staffList={managerialStaff}
                     t={t}
                     onEdit={handleEdit}
-                    onDelete={handleDelete}
+                    onDeactivate={handleDeactivate}
+                    onReactivate={handleReactivate}
                     emptyMessage={t('admin.noManagerialStaff')}
                 />
             </section>
@@ -278,7 +306,8 @@ const UserManagement = () => {
                     t={t}
                     managerialCount={managerialStaff.length}
                     onEdit={handleEdit}
-                    onDelete={handleDelete}
+                    onDeactivate={handleDeactivate}
+                    onReactivate={handleReactivate}
                 />
             </section>
 
@@ -312,9 +341,18 @@ const UserManagement = () => {
 
             <DeleteModal
                 value={selectedUser?.name}
-                showModal={showDeleteModal}
-                setShowModal={setShowDeleteModal}
-                onDeleteConfirm={handleDeleteUser}
+                showModal={showDeactivateModal}
+                setShowModal={setShowDeactivateModal}
+                onDeleteConfirm={handleDeactivateUser}
+                title={t('admin.deactivateUser')}
+                confirmLabel={t('admin.deactivateUser')}
+                message={
+                    <>
+                        {t('admin.deactivateUserConfirm')}{' '}
+                        <span className='text-warning fw-bolder'>{selectedUser?.name}</span>?
+                        {' '}{t('admin.deactivateUserHint')}
+                    </>
+                }
             />
         </div>
     );

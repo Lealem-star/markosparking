@@ -7,7 +7,8 @@ const ZoneAccordion = ({
     t,
     managerialCount,
     onEdit,
-    onDelete,
+    onDeactivate,
+    onReactivate,
     defaultExpandedZone = null,
 }) => {
     const [expandedZones, setExpandedZones] = useState(() => {
@@ -62,7 +63,8 @@ const ZoneAccordion = ({
                                     startIndex={startIndex}
                                     t={t}
                                     onEdit={onEdit}
-                                    onDelete={onDelete}
+                                    onDeactivate={onDeactivate}
+                                    onReactivate={onReactivate}
                                     emptyMessage={t('admin.noValetStaff')}
                                 />
                             </div>

@@ -44,6 +44,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['en', 'am'],
         default: 'en'
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 })
 

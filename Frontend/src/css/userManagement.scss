@@ -371,8 +371,6 @@
         gap: 6px;
         padding: 5px 10px;
         border-radius: 999px;
-        background: #ecfdf5;
-        color: #047857;
         font-size: 0.75rem;
         font-weight: 600;
 
@@ -380,7 +378,32 @@
             width: 7px;
             height: 7px;
             border-radius: 50%;
-            background: #22c55e;
+        }
+
+        &--active {
+            background: #ecfdf5;
+            color: #047857;
+
+            .staff-status-dot {
+                background: #22c55e;
+            }
+        }
+
+        &--inactive {
+            background: #f1f5f9;
+            color: #64748b;
+
+            .staff-status-dot {
+                background: #94a3b8;
+            }
+        }
+    }
+
+    .staff-row--inactive {
+        opacity: 0.72;
+
+        .staff-name-meta strong {
+            color: #64748b;
         }
     }
 
@@ -441,6 +464,14 @@
 
                 &:hover {
                     background: #fef2f2;
+                }
+            }
+
+            &.reactivate {
+                color: #047857;
+
+                &:hover {
+                    background: #ecfdf5;
                 }
             }
         }

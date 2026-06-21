@@ -2,7 +2,7 @@ import './App.css';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useEffect } from 'react';
-import { Layout, Home, NoPage, Users, Register, AdminDashboard, DashboardOverview, UserManagement, Settings, Reports, GroupChat, ValetDashboard, ValetOverview, RegisterCar, ParkedCarsList, FlaggedCustomers } from './pages/common';
+import { Layout, Home, NoPage, Register, AdminDashboard, DashboardOverview, UserManagement, Settings, Reports, GroupChat, ValetDashboard, ValetOverview, RegisterCar, ParkedCarsList, FlaggedCustomers } from './pages/common';
 import Profile from './pages/valet/Profile';
 import PaymentSuccessHost from './components/PaymentSuccessHost/PaymentSuccessHost';
 import { syncLanguageWithUser } from './utils/languageSync';
@@ -63,7 +63,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<RootRedirect />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="users" element={<Users />} />
+          <Route path="users" element={<Navigate to="/admin/users" replace />} />
         </Route>
         <Route path="/admin" element={<AdminDashboard />}>
           <Route index element={<DashboardOverview />} />

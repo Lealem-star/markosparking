@@ -18,6 +18,29 @@ const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, DOMAIN_NAME 
 
 const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
+const normalizePhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return phoneNumber;
+    let normalized = phoneNumber.replace(/[\s\-\(\)]/g, '').trim();
+
+    if (normalized.startsWith('0') && normalized.length === 10) {
+        normalized = '+251' + normalized.substring(1);
+    } else if (!normalized.startsWith('+') && normalized.length === 9) {
+        normalized = '+251' + normalized;
+    } else if (!normalized.startsWith('+') && normalized.length === 12 && normalized.startsWith('251')) {
+        normalized = '+' + normalized;
+    }
+
+    return normalized;
+};
+
+const getStaffManager = async (req) => {
+    const currentUser = await User.findOne({ phoneNumber: req.user?.phoneNumber });
+    if (!currentUser || !['system_admin', 'manager'].includes(currentUser.type)) {
+        return null;
+    }
+    return currentUser;
+};
+
 // Function to send SMS
 const sendSms = async (to, message) => {
     try {
@@ -268,6 +291,10 @@ userRouter.post("/login", async (req, res) => {
             }
             
             if (user) {
+                if (user.isActive === false) {
+                    return res.status(403).json({ error: "This account has been deactivated. Please contact your administrator." });
+                }
+
                 // Check if password matches
                 const result = await bcrypt.compare(password, user.password);
                 if (result) {
@@ -434,95 +461,204 @@ userRouter.post("/:id/upload-photo", (req, res, next) => {
 });
 
 // Update user endpoint
-userRouter.put("/:id", async (req, res) => {
+userRouter.put("/:id", isLoggedIn, async (req, res) => {
     try {
         const { id } = req.params;
-        const { cash, interac, name, phoneNumber, parkZoneCode, language } = req.body
+        const {
+            cash,
+            interac,
+            name,
+            phoneNumber,
+            parkZoneCode,
+            language,
+            type,
+            password,
+            priceLevel,
+            isActive,
+        } = req.body;
 
-        console.log('id - ', id);
-        if (Types.ObjectId.isValid(id)) {
-            const user = await User.findById({ _id: id })
-            if (!user) {
-                res.status(400).json({ error: "Provide correct user id" })
-            }
-            else {
-                let hasUpdates = false;
-
-                if (typeof cash === "boolean") {
-                    user.cash = cash;
-                    hasUpdates = true;
-                }
-                if (interac) {
-                    user.interac = interac;
-                    hasUpdates = true;
-                }
-                if (name && name.trim() !== '') {
-                    user.name = name.trim();
-                    hasUpdates = true;
-                }
-                if (phoneNumber && phoneNumber.trim() !== '') {
-                    // Check if phone number is already in use by another user
-                    const existingUser = await User.findOne({ phoneNumber });
-                    if (existingUser && existingUser._id.toString() !== id) {
-                        return res.status(400).json({ error: 'Phone number already in use by another user' });
-                    }
-                    user.phoneNumber = phoneNumber.trim();
-                    hasUpdates = true;
-                }
-                if (parkZoneCode && parkZoneCode.trim() !== '') {
-                    user.parkZoneCode = parkZoneCode.trim();
-                    hasUpdates = true;
-                }
-                if (language && ['en', 'am'].includes(language)) {
-                    user.language = language;
-                    hasUpdates = true;
-                }
-
-                if (!hasUpdates) {
-                    res.status(400).json({ error: 'Must provide at least one field to update (cash, interac, name, phoneNumber, parkZoneCode, or language)' });
-                } else {
-                    user.save().then(user => {
-                        // Don't send password in response
-                        const userResponse = { ...user.toObject() };
-                        delete userResponse.password;
-                        res.json({ user: userResponse, message: 'User updated successfully' });
-                    })
-                }
-            }
-        }
-        else {
-            res.status(400).json({ error: "Invalid id" })
+        if (!Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid id" });
         }
 
+        const currentUser = await User.findOne({ phoneNumber: req.user?.phoneNumber });
+        if (!currentUser) {
+            return res.status(403).json({ error: "User not found" });
+        }
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(400).json({ error: "Provide correct user id" });
+        }
+
+        const isSelf = currentUser._id.toString() === id;
+        const isStaffManager = ['system_admin', 'manager'].includes(currentUser.type);
+
+        if (!isSelf && !isStaffManager) {
+            return res.status(403).json({ error: "Not authorized to update this user" });
+        }
+
+        if (!isSelf && isStaffManager && currentUser.type === 'manager' && user.type === 'system_admin') {
+            return res.status(403).json({ error: "Managers cannot modify system admin accounts" });
+        }
+
+        const hasStaffFields =
+            type !== undefined ||
+            password !== undefined ||
+            priceLevel !== undefined ||
+            isActive !== undefined ||
+            (phoneNumber !== undefined && !isSelf);
+
+        if (hasStaffFields && !isStaffManager) {
+            return res.status(403).json({ error: "Not authorized to update staff fields" });
+        }
+
+        let hasUpdates = false;
+
+        if (typeof cash === "boolean") {
+            user.cash = cash;
+            hasUpdates = true;
+        }
+        if (interac !== undefined) {
+            user.interac = interac;
+            hasUpdates = true;
+        }
+        if (name && name.trim() !== '') {
+            user.name = name.trim();
+            hasUpdates = true;
+        }
+        if (phoneNumber && phoneNumber.trim() !== '') {
+            const phoneToUse = normalizePhoneNumber(phoneNumber);
+            const existingUser = await User.findOne({ phoneNumber: phoneToUse });
+            if (existingUser && existingUser._id.toString() !== id) {
+                return res.status(400).json({ error: 'Phone number already in use by another user' });
+            }
+            user.phoneNumber = phoneToUse;
+            hasUpdates = true;
+        }
+        if (parkZoneCode !== undefined && parkZoneCode.trim() !== '') {
+            user.parkZoneCode = parkZoneCode.trim();
+            hasUpdates = true;
+        }
+        if (language && ['en', 'am'].includes(language)) {
+            user.language = language;
+            hasUpdates = true;
+        }
+
+        if (isStaffManager) {
+            if (type !== undefined) {
+                if (!['system_admin', 'manager', 'admin', 'valet'].includes(type)) {
+                    return res.status(400).json({ error: 'Invalid user type' });
+                }
+                if (currentUser.type === 'manager' && type === 'system_admin') {
+                    return res.status(403).json({ error: 'Managers cannot assign system admin role' });
+                }
+                user.type = type;
+                if (type !== 'valet') {
+                    user.parkZoneCode = '';
+                    user.priceLevel = null;
+                }
+                hasUpdates = true;
+            }
+
+            if (priceLevel !== undefined) {
+                user.priceLevel = priceLevel?.trim() || null;
+                hasUpdates = true;
+            }
+
+            if (password !== undefined && password !== '') {
+                const passwordSchema = Joi.string()
+                    .min(8)
+                    .max(20)
+                    .regex(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,1024}$/)
+                    .messages({
+                        "string.pattern.base": `"password" should have one uppercase, lowercase, digit and special character`,
+                        "string.min": `"password" should have min 8 characters`,
+                        "string.max": `"password" should have max 20 characters`,
+                    });
+
+                const { error: passwordError } = passwordSchema.validate(password);
+                if (passwordError) {
+                    return res.status(400).json({ error: passwordError.details[0].message });
+                }
+
+                user.password = bcrypt.hashSync(password, 10);
+                hasUpdates = true;
+            }
+
+            if (typeof isActive === 'boolean') {
+                if (isActive === false && isSelf) {
+                    return res.status(400).json({ error: 'You cannot deactivate your own account' });
+                }
+                user.isActive = isActive;
+                hasUpdates = true;
+            }
+        }
+
+        const effectiveType = type !== undefined ? type : user.type;
+        if (isStaffManager && effectiveType === 'valet') {
+            if (!user.parkZoneCode?.trim()) {
+                return res.status(400).json({ error: 'Park Zone Code is required for valet users' });
+            }
+            if (!user.priceLevel?.trim()) {
+                return res.status(400).json({ error: 'Price Level is required for valet users' });
+            }
+        }
+
+        if (!hasUpdates) {
+            return res.status(400).json({
+                error: 'Must provide at least one field to update',
+            });
+        }
+
+        await user.save();
+        const userResponse = { ...user.toObject() };
+        delete userResponse.password;
+        res.json({ user: userResponse, message: 'User updated successfully' });
     } catch (error) {
         console.error(error);
-        res.status(400).json({ error });
+        res.status(400).json({ error: error.message || error });
     }
 });
 
-// Delete user endpoint
-userRouter.route('/delete/:id').delete(async (req, res) => {
+// Deactivate user endpoint (soft delete)
+userRouter.route('/delete/:id').delete(isLoggedIn, async (req, res) => {
     try {
-        const { id } = req.params
+        const { id } = req.params;
 
-        // Validate id and delete user if exist
-        if (Types.ObjectId.isValid(id)) {
-            const user = await User.findByIdAndDelete({ _id: id })
+        if (!Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid user id" });
+        }
 
-            if (user) {
-                res.json({ message: "User deleted successfully" })
-            }
-            else {
-                res.status(404).json({ error: "User not found" })
-            }
+        const currentUser = await getStaffManager(req);
+        if (!currentUser) {
+            return res.status(403).json({ error: "Only system admin or manager can deactivate users" });
         }
-        else {
-            res.status(400).json({ error: "Invalid user id" })
+
+        if (currentUser._id.toString() === id) {
+            return res.status(400).json({ error: "You cannot deactivate your own account" });
         }
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        if (currentUser.type === 'manager' && user.type === 'system_admin') {
+            return res.status(403).json({ error: "Managers cannot deactivate system admin accounts" });
+        }
+
+        if (user.isActive === false) {
+            return res.status(400).json({ error: "User is already deactivated" });
+        }
+
+        user.isActive = false;
+        await user.save();
+
+        res.json({ message: "User deactivated successfully" });
     } catch (error) {
-        res.status(400).json({ error })
+        res.status(400).json({ error: error.message || error });
     }
-
 });
 
 

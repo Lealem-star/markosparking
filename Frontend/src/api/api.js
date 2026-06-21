@@ -104,8 +104,8 @@ export const uploadProfilePhoto = async ({ user_id, file, handleUploadSuccess, h
 export const fetchUsers = async ({ setUsers }) => {
     try {
         const result = await axios.get(`${BASE_URL}user`)
-        if (result?.data?.length) {
-            setUsers(result?.data)
+        if (Array.isArray(result?.data)) {
+            setUsers(result.data)
         }
         console.log('fetchUsers ', result);
     } catch (error) {
@@ -113,19 +113,24 @@ export const fetchUsers = async ({ setUsers }) => {
     }
 }
 
-export const deleteUser = async ({ id, handleDeleteUserSuccess, handleDeleteUserFailure }) => {
+export const deactivateUser = async ({ id, token, handleSuccess, handleFailure }) => {
     try {
-        console.log(`URL >> ${BASE_URL}user/delete/${id}`);
-        const result = await axios.delete(`${BASE_URL}user/delete/${id}`)
-        if (result?.data?.message) {
-            return handleDeleteUserSuccess(result.message)
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
-        console.log('deleteUser ', result);
+        const result = await axios.delete(`${BASE_URL}user/delete/${id}`, { headers })
+        if (result?.data?.message) {
+            return handleSuccess(result.data)
+        }
     } catch (error) {
-        console.error('deleteUser ', error);
-        handleDeleteUserFailure(error?.response?.data?.error)
+        console.error('deactivateUser ', error);
+        handleFailure(error?.response?.data?.error || 'Failed to deactivate user')
     }
 }
+
+/** @deprecated Use deactivateUser — backend performs soft delete (isActive: false) */
+export const deleteUser = deactivateUser;
 
 export const createUser = async ({ body, token, handleCreateUserSuccess, handleCreateUserFailure }) => {
     try {

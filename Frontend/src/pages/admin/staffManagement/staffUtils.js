@@ -1,3 +1,5 @@
+export const isStaffActive = (staffMember) => staffMember?.isActive !== false;
+
 export const MANAGERIAL_TYPES = ['system_admin', 'manager', 'admin'];
 export const VALET_TYPE = 'valet';
 
@@ -64,7 +66,10 @@ export const filterStaff = (users, { searchQuery, roleFilter, zoneFilter, status
             (zoneFilter === 'all_zones' && isManagerial(item)) ||
             zone === zoneFilter;
 
-        const matchesStatus = statusFilter === 'all' || statusFilter === 'active';
+        const matchesStatus =
+            statusFilter === 'all' ||
+            (statusFilter === 'active' && isStaffActive(item)) ||
+            (statusFilter === 'inactive' && !isStaffActive(item));
 
         return matchesSearch && matchesRole && matchesZone && matchesStatus;
     });
@@ -84,14 +89,15 @@ export const groupValetsByZone = (valets) => {
 };
 
 export const getStaffStats = (users) => {
-    const valets = users.filter((u) => u?.type === VALET_TYPE);
-    const managers = users.filter((u) => MANAGERIAL_TYPES.includes(u?.type));
+    const activeUsers = users.filter(isStaffActive);
+    const valets = activeUsers.filter((u) => u?.type === VALET_TYPE);
+    const managers = activeUsers.filter((u) => MANAGERIAL_TYPES.includes(u?.type));
     const zoneSet = new Set(
         valets.map((v) => v?.parkZoneCode).filter(Boolean)
     );
 
     return {
-        totalStaff: users.length,
+        totalStaff: activeUsers.length,
         managers: managers.length,
         valets: valets.length,
         activeZones: zoneSet.size,
@@ -101,7 +107,7 @@ export const getStaffStats = (users) => {
 export const getUniqueZones = (users) => {
     return [...new Set(
         users
-            .filter((u) => u?.type === VALET_TYPE && u?.parkZoneCode)
+            .filter((u) => u?.type === VALET_TYPE && u?.parkZoneCode && isStaffActive(u))
             .map((u) => u.parkZoneCode)
     )].sort();
 };

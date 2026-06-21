@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit, Trash2, Star, Shield, Car, UserCog } from 'lucide-react';
-import { getInitials, getRoleLabel, getRoleSubtitle, getZoneLabel } from './staffUtils';
+import { MoreVertical, Edit, Trash2, UserCheck, Star, Shield, Car, UserCog } from 'lucide-react';
+import { getInitials, getRoleLabel, getRoleSubtitle, getZoneLabel, isStaffActive } from './staffUtils';
 
 const RoleBadge = ({ type, t }) => {
     const icons = {
@@ -19,9 +19,10 @@ const RoleBadge = ({ type, t }) => {
     );
 };
 
-const StaffActionsMenu = ({ onEdit, onDelete, t }) => {
+const StaffActionsMenu = ({ staffMember, onEdit, onDeactivate, onReactivate, t }) => {
     const [open, setOpen] = useState(false);
     const menuRef = useRef(null);
+    const isActive = isStaffActive(staffMember);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -49,17 +50,24 @@ const StaffActionsMenu = ({ onEdit, onDelete, t }) => {
                         <Edit size={14} />
                         {t('common.edit')}
                     </button>
-                    <button type="button" className="danger" onClick={() => { setOpen(false); onDelete(); }}>
-                        <Trash2 size={14} />
-                        {t('common.delete')}
-                    </button>
+                    {isActive ? (
+                        <button type="button" className="danger" onClick={() => { setOpen(false); onDeactivate(); }}>
+                            <Trash2 size={14} />
+                            {t('admin.deactivateUser')}
+                        </button>
+                    ) : (
+                        <button type="button" className="reactivate" onClick={() => { setOpen(false); onReactivate(); }}>
+                            <UserCheck size={14} />
+                            {t('admin.reactivateUser')}
+                        </button>
+                    )}
                 </div>
             )}
         </div>
     );
 };
 
-const StaffTable = ({ staffList, startIndex = 0, t, onEdit, onDelete, emptyMessage }) => {
+const StaffTable = ({ staffList, startIndex = 0, t, onEdit, onDeactivate, onReactivate, emptyMessage }) => {
     if (staffList.length === 0) {
         return (
             <div className="staff-empty-message">
@@ -83,8 +91,11 @@ const StaffTable = ({ staffList, startIndex = 0, t, onEdit, onDelete, emptyMessa
                     </tr>
                 </thead>
                 <tbody>
-                    {staffList.map((item, index) => (
-                        <tr key={item._id || index}>
+                    {staffList.map((item, index) => {
+                        const active = isStaffActive(item);
+
+                        return (
+                        <tr key={item._id || index} className={active ? '' : 'staff-row--inactive'}>
                             <td>{startIndex + index + 1}</td>
                             <td>
                                 <div className="staff-name-cell">
@@ -103,20 +114,23 @@ const StaffTable = ({ staffList, startIndex = 0, t, onEdit, onDelete, emptyMessa
                             </td>
                             <td>{getZoneLabel(item, t)}</td>
                             <td>
-                                <span className="staff-status-pill">
+                                <span className={`staff-status-pill ${active ? 'staff-status-pill--active' : 'staff-status-pill--inactive'}`}>
                                     <span className="staff-status-dot" />
-                                    {t('admin.active')}
+                                    {active ? t('admin.active') : t('admin.inactive')}
                                 </span>
                             </td>
                             <td>
                                 <StaffActionsMenu
+                                    staffMember={item}
                                     t={t}
                                     onEdit={() => onEdit(item)}
-                                    onDelete={() => onDelete(item)}
+                                    onDeactivate={() => onDeactivate(item)}
+                                    onReactivate={() => onReactivate(item)}
                                 />
                             </td>
                         </tr>
-                    ))}
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

@@ -192,6 +192,7 @@ const AdminDashboard = () => {
                     updateUser({
                         user_id: user?._id,
                         body: updateBody,
+                        token: user?.token,
                         handleUpdateUserSuccess: (data) => {
                             updatedUser = { ...updatedUser, ...data?.user };
                             dispatch(setUser(updatedUser));

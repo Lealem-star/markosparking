@@ -9,7 +9,6 @@ import ValetOverview from "../valet/ValetOverview";
 import RegisterCar from "../valet/RegisterCar";
 import ParkedCarsList from "../valet/ParkedCarsList";
 
-import Users from "../admin/Users";
 import AdminDashboard from "../admin/AdminDashboard";
 import DashboardOverview from "../admin/DashboardOverview";
 import UserManagement from "../admin/UserManagement";
@@ -28,7 +27,6 @@ export {
     ValetOverview,
     RegisterCar,
     ParkedCarsList,
-    Users,
     AdminDashboard,
     DashboardOverview,
     UserManagement,

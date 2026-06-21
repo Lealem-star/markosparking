@@ -68,6 +68,7 @@ const StaffFilterBar = ({
             >
                 <option value="all">{t('admin.allStatus')}</option>
                 <option value="active">{t('admin.active')}</option>
+                <option value="inactive">{t('admin.inactive')}</option>
             </select>
             <ChevronDown size={16} className="staff-filter-chevron" aria-hidden="true" />
         </div>
