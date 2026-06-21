@@ -1,17 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { fetchPricingSettings, updatePricingSettings } from '../../api/api';
-import { Edit2, Check, X as XIcon, Plus, Trash2 } from 'lucide-react';
+import { fetchPricingSettings, updatePricingSettings, fetchUsers } from '../../api/api';
+import { X as XIcon } from 'lucide-react';
+import { VatRateConfiguration, CarTypePricingConfiguration, AddPriceLevelModal, emptyPricing, CAR_TYPES } from './settingsModules';
 import '../../css/settings.scss';
+import '../../css/vatConfiguration.scss';
+import '../../css/pricingConfiguration.scss';
 
-const carTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
+const formatLastUpdated = () =>
+    new Date().toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 
 const Settings = () => {
     const { t } = useTranslation();
     const user = useSelector((state) => state.user);
     const [priceLevels, setPriceLevels] = useState({});
+    const [users, setUsers] = useState([]);
+    const [lastUpdated, setLastUpdated] = useState(formatLastUpdated());
     const [vatRate, setVatRate] = useState(0.15);
+    const [vatEnabled, setVatEnabled] = useState(true);
+    const [vatHistory, setVatHistory] = useState([]);
     const [activeSection, setActiveSection] = useState('pricing'); // 'pricing' | 'vat'
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState('');
@@ -26,19 +40,14 @@ const Settings = () => {
     });
     const [showAddModal, setShowAddModal] = useState(false);
     const [newPriceLevelName, setNewPriceLevelName] = useState('');
-    const [newPriceLevelPricing, setNewPriceLevelPricing] = useState({
-        tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
-        automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
-        truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
-        special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
-    });
+    const [newPriceLevelPricing, setNewPriceLevelPricing] = useState(emptyPricing());
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [priceLevelToDelete, setPriceLevelToDelete] = useState(null);
     const [editingVAT, setEditingVAT] = useState(false);
     const [vatInput, setVatInput] = useState('');
 
     useEffect(() => {
+        fetchUsers({ setUsers });
         fetchPricingSettings({
             setPricingSettings: (data) => {
                 // Support price levels structure: {priceLevels: {[name]: {carType: {...}}}}
@@ -56,22 +65,51 @@ const Settings = () => {
                     setVatRate(0.15);
                     setVatInput('15.00');
                 }
+                setVatEnabled(data?.vatEnabled !== false);
+                setVatHistory(Array.isArray(data?.vatRateHistory) ? data.vatRateHistory : []);
             }
         });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Save price levels to database
-    const savePriceLevels = (updatedPriceLevels) => {
+    const persistSettings = (settingsToSave, successMessage) => {
         setLoading(true);
         setError('');
         setSuccess('');
 
-        // Convert to API format: {priceLevels: {[name]: {carType: {...}}}, vatRate: number}
-        const settingsToSave = { priceLevels: {}, vatRate: vatRate };
+        updatePricingSettings({
+            settings: settingsToSave,
+            token: user?.token,
+            handleUpdateSuccess: (data) => {
+                const saved = data?.settings;
+                if (saved?.vatRateHistory) {
+                    setVatHistory(saved.vatRateHistory);
+                }
+                if (saved?.vatEnabled !== undefined) {
+                    setVatEnabled(saved.vatEnabled);
+                }
+                if (saved?.vatRate !== undefined) {
+                    setVatRate(saved.vatRate);
+                    setVatInput((saved.vatRate * 100).toFixed(2));
+                }
+                setSuccess(successMessage);
+                setLastUpdated(formatLastUpdated());
+                setLoading(false);
+                setTimeout(() => setSuccess(''), 3000);
+            },
+            handleUpdateFailure: (errorMessage) => {
+                setError(errorMessage);
+                setLoading(false);
+            }
+        });
+    };
+
+    // Save price levels to database
+    const savePriceLevels = (updatedPriceLevels) => {
+        const settingsToSave = { priceLevels: {}, vatRate, vatEnabled };
         Object.keys(updatedPriceLevels).forEach(priceLevelName => {
             const priceLevel = updatedPriceLevels[priceLevelName];
             settingsToSave.priceLevels[priceLevelName] = {};
-            carTypes.forEach(carType => {
+            CAR_TYPES.forEach(carType => {
                 const carPricing = priceLevel[carType] || {};
                 settingsToSave.priceLevels[priceLevelName][carType] = {
                     hourly: carPricing.hourly ? parseFloat(carPricing.hourly) || 0 : 0,
@@ -82,19 +120,7 @@ const Settings = () => {
             });
         });
 
-        updatePricingSettings({
-            settings: settingsToSave,
-            token: user?.token,
-            handleUpdateSuccess: (data) => {
-                setSuccess(t('settings.priceLevelSaved'));
-                setLoading(false);
-                setTimeout(() => setSuccess(''), 3000);
-            },
-            handleUpdateFailure: (errorMessage) => {
-                setError(errorMessage);
-                setLoading(false);
-            }
-        });
+        persistSettings(settingsToSave, t('settings.priceLevelSaved'));
     };
 
     // Handle edit price level car type pricing
@@ -160,15 +186,26 @@ const Settings = () => {
         
         setPriceLevels(updatedPriceLevels);
         setNewPriceLevelName('');
-        setNewPriceLevelPricing({
-            tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
-            automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
-            truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-            trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
-            special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
-        });
+        setNewPriceLevelPricing(emptyPricing());
         setShowAddModal(false);
         setError('');
+        savePriceLevels(updatedPriceLevels);
+    };
+
+    // Handle delete car type pricing (reset to zero)
+    const handleDeleteCarType = (priceLevelName, carType) => {
+        const updatedPriceLevels = {
+            ...priceLevels,
+            [priceLevelName]: {
+                ...priceLevels[priceLevelName],
+                [carType]: { hourly: 0, weekly: 0, monthly: 0, yearly: 0 },
+            },
+        };
+
+        setPriceLevels(updatedPriceLevels);
+        if (editingPriceLevel === priceLevelName && editingCarType === carType) {
+            handleCancelEdit();
+        }
         savePriceLevels(updatedPriceLevels);
     };
 
@@ -210,30 +247,14 @@ const Settings = () => {
             return;
         }
         const newVatRate = vatPercentage / 100;
-        setVatRate(newVatRate);
         setEditingVAT(false);
         setError('');
-        
-        // Save VAT rate to backend
-        const settingsToSave = { 
-            priceLevels: priceLevels, 
-            vatRate: newVatRate 
-        };
-        
-        setLoading(true);
-        updatePricingSettings({
-            settings: settingsToSave,
-            token: user?.token,
-            handleUpdateSuccess: (data) => {
-                setSuccess(t('settings.vatRateUpdated'));
-                setLoading(false);
-                setTimeout(() => setSuccess(''), 3000);
-            },
-            handleUpdateFailure: (errorMessage) => {
-                setError(errorMessage);
-                setLoading(false);
-            }
-        });
+
+        persistSettings({
+            priceLevels,
+            vatRate: newVatRate,
+            vatEnabled,
+        }, t('settings.vatRateUpdated'));
     };
 
     // Handle VAT rate cancel
@@ -241,6 +262,18 @@ const Settings = () => {
         setEditingVAT(false);
         setVatInput((vatRate * 100).toFixed(2));
         setError('');
+    };
+
+    const handleToggleVatEnabled = (enabled) => {
+        persistSettings({
+            priceLevels,
+            vatRate,
+            vatEnabled: enabled,
+        }, enabled ? t('settings.vatEnabledSuccess') : t('settings.vatDisabledSuccess'));
+    };
+
+    const handleShowVatHelp = () => {
+        window.alert(t('settings.vatHelpText'));
     };
 
     return (
@@ -265,387 +298,75 @@ const Settings = () => {
             </div>
 
             {activeSection === 'vat' && (
-            /* VAT Rate Configuration Card */
-            <div className="settings-card vat-card">
-                <div className="card-header-row">
-                    <div>
-                        <h2>{t('settings.vatRateConfiguration')}</h2>
-                        <p className="card-subtitle">{t('settings.configureVATRate')}</p>
-                    </div>
-                </div>
-                
-                {success && <div className="alert alert-success">{success}</div>}
-                {error && <div className="alert alert-danger">{error}</div>}
-                
-                <div className="vat-config-section">
-                    <div className="vat-display">
-                        <div className="vat-info">
-                            <label>{t('settings.currentVATRate')}</label>
-                            {editingVAT ? (
-                                <div className="vat-edit-group">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                        value={vatInput}
-                                        onChange={(e) => {
-                                            setVatInput(e.target.value);
-                                            setError('');
-                                        }}
-                                        className="vat-input"
-                                        placeholder="15.00"
-                                    />
-                                    <span className="vat-percent">%</span>
-                                </div>
-                            ) : (
-                                <div className="vat-value-display">
-                                    <span className="vat-percentage">{(vatRate * 100).toFixed(2)}%</span>
-                                    <span className="vat-description">({(vatRate * 100).toFixed(2)}% {t('settings.vatRateDescription')})</span>
-                                </div>
-                            )}
-                        </div>
-                        <div className="vat-actions">
-                            {editingVAT ? (
-                                <>
-                                    <button
-                                        className="btn-icon btn-save-edit"
-                                        onClick={handleSaveVAT}
-                                        title={t('common.save')}
-                                        disabled={loading}
-                                    >
-                                        <Check size={18} />
-                                    </button>
-                                    <button
-                                        className="btn-icon btn-cancel-edit"
-                                        onClick={handleCancelVAT}
-                                        title="Cancel"
-                                        disabled={loading}
-                                    >
-                                        <XIcon size={18} />
-                                    </button>
-                                </>
-                            ) : (
-                                <button
-                                    className="btn-icon btn-edit"
-                                    onClick={handleEditVAT}
-                                    title="Edit VAT Rate"
-                                    disabled={loading}
-                                >
-                                    <Edit2 size={18} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                    <div className="vat-preview">
-                        <p className="vat-preview-label">{t('settings.exampleCalculation')}</p>
-                        <div className="vat-preview-example">
-                            <div className="preview-row">
-                                <span>{t('settings.baseAmount')}</span>
-                                <span>100.00 ETB</span>
-                            </div>
-                            <div className="preview-row">
-                                <span>{t('dashboard.vat')} ({(vatRate * 100).toFixed(2)}%):</span>
-                                <span>{(100 * vatRate).toFixed(2)} ETB</span>
-                            </div>
-                            <div className="preview-row total-row">
-                                <span>{t('settings.totalAmount')}</span>
-                                <span>{(100 * (1 + vatRate)).toFixed(2)} ETB</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                <VatRateConfiguration
+                    t={t}
+                    vatRate={vatRate}
+                    vatEnabled={vatEnabled}
+                    vatHistory={vatHistory}
+                    editingVAT={editingVAT}
+                    vatInput={vatInput}
+                    loading={loading}
+                    success={success}
+                    error={error}
+                    onToggleEnabled={handleToggleVatEnabled}
+                    onEditRate={handleEditVAT}
+                    onVatInputChange={(value) => {
+                        setVatInput(value);
+                        setError('');
+                    }}
+                    onSave={handleSaveVAT}
+                    onCancel={handleCancelVAT}
+                    onShowHelp={handleShowVatHelp}
+                />
             )}
 
             {activeSection === 'pricing' && (
-            /* Car Type Pricing Configuration Card */
-            <div className="settings-card">
-                <div className="card-header-row">
-                    <h2>{t('settings.carTypePricingConfiguration')}</h2>
-                    <button 
-                        className="btn-add-plate-code"
-                        onClick={() => setShowAddModal(true)}
-                        disabled={loading}
-                    >
-                        <Plus size={18} />
-                        {t('settings.addPriceLevel')}
-                    </button>
-                </div>
-                
-                {success && <div className="alert alert-success">{success}</div>}
-                {error && <div className="alert alert-danger">{error}</div>}
-                
-                {Object.keys(priceLevels).length === 0 ? (
-                    <div className="empty-state" style={{ padding: '2rem', textAlign: 'center' }}>
-                        <p>{t('settings.noPriceLevels')}</p>
-                    </div>
-                ) : (
-                    Object.keys(priceLevels).map((priceLevelName) => {
-                        const priceLevel = priceLevels[priceLevelName] || {};
-                        return (
-                            <div key={priceLevelName} style={{ marginBottom: '2rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <h3 style={{ margin: 0, color: '#000' }}>{priceLevelName}</h3>
-                                    <button
-                                        className="btn-icon btn-delete"
-                                        onClick={() => handleDelete(priceLevelName)}
-                                        title="Delete Price Level"
-                                        disabled={loading}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                                <div className="table-container">
-                                    <table className="settings-table">
-                                        <thead>
-                                            <tr>
-                                                <th>{t('settings.carType')}</th>
-                                                <th>{t('settings.hourlyRate')}</th>
-                                                <th>{t('settings.weeklyPackage')}</th>
-                                                <th>{t('settings.monthlyPackage')}</th>
-                                                <th>{t('settings.yearlyPackage')}</th>
-                                                <th>{t('settings.actions')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {carTypes.map((carType) => {
-                                                const carPricing = priceLevel[carType] || {};
-                                                const isEditing = editingPriceLevel === priceLevelName && editingCarType === carType;
-                                                return (
-                                                    <tr key={carType}>
-                                                        <td className="car-type-cell" style={{ fontWeight: 'bold' }}>
-                                                            {t(`valet.carType_${carType}`)}
-                                                        </td>
-                                                        <td className="price-cell">
-                                                            {isEditing ? (
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    value={editPrices.hourly}
-                                                                    onChange={(e) => setEditPrices({ ...editPrices, hourly: e.target.value })}
-                                                                    placeholder="0.00"
-                                                                    className="edit-input"
-                                                                />
-                                                            ) : (
-                                                                <span>{carPricing.hourly || '0.00'}</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="price-cell">
-                                                            {isEditing ? (
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    value={editPrices.weekly}
-                                                                    onChange={(e) => setEditPrices({ ...editPrices, weekly: e.target.value })}
-                                                                    placeholder="0.00"
-                                                                    className="edit-input"
-                                                                />
-                                                            ) : (
-                                                                <span>{carPricing.weekly || '0.00'}</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="price-cell">
-                                                            {isEditing ? (
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    value={editPrices.monthly}
-                                                                    onChange={(e) => setEditPrices({ ...editPrices, monthly: e.target.value })}
-                                                                    placeholder="0.00"
-                                                                    className="edit-input"
-                                                                />
-                                                            ) : (
-                                                                <span>{carPricing.monthly || '0.00'}</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="price-cell">
-                                                            {isEditing ? (
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    value={editPrices.yearly}
-                                                                    onChange={(e) => setEditPrices({ ...editPrices, yearly: e.target.value })}
-                                                                    placeholder="0.00"
-                                                                    className="edit-input"
-                                                                />
-                                                            ) : (
-                                                                <span>{carPricing.yearly || '0.00'}</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="actions-cell">
-                                                            {isEditing ? (
-                                                                <div className="action-buttons">
-                                                                    <button
-                                                                        className="btn-icon btn-save-edit"
-                                                                        onClick={handleSaveEdit}
-                                        title={t('common.save')}
-                                    >
-                                        <Check size={16} />
-                                    </button>
-                                    <button
-                                        className="btn-icon btn-cancel-edit"
-                                        onClick={handleCancelEdit}
-                                        title={t('common.cancel')}
-                                    >
-                                        <XIcon size={16} />
-                                    </button>
-                                </div>
-                                                            ) : (
-                                                                <div className="action-buttons">
-                                                                    <button
-                                                                        className="btn-icon btn-edit"
-                                                                        onClick={() => handleEditCarTypePricing(priceLevelName, carType)}
-                                                                        title={t('common.edit')}
-                                                                        disabled={loading}
-                                                                    >
-                                                                        <Edit2 size={16} />
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+                <CarTypePricingConfiguration
+                    t={t}
+                    priceLevels={priceLevels}
+                    users={users}
+                    lastUpdated={lastUpdated}
+                    loading={loading}
+                    success={success}
+                    error={error}
+                    editingPriceLevel={editingPriceLevel}
+                    editingCarType={editingCarType}
+                    editPrices={editPrices}
+                    onEditPricesChange={setEditPrices}
+                    onEdit={handleEditCarTypePricing}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={handleCancelEdit}
+                    onDeleteCarType={handleDeleteCarType}
+                    onDeletePriceLevel={handleDelete}
+                    onAddPriceLevel={() => setShowAddModal(true)}
+                />
             )}
 
-            {/* Add Price Level Modal */}
-            {showAddModal && (
-                <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
-                        <div className="modal-header">
-                            <h2>{t('settings.addPriceLevel')}</h2>
-                            <button 
-                                className="modal-close"
-                                onClick={() => {
-                                    setShowAddModal(false);
-                                    setNewPriceLevelName('');
-                                    setNewPriceLevelPricing({
-                                        tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
-                                    });
-                                    setError('');
-                                }}
-                            >
-                                <XIcon size={20} />
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            {error && <div className="alert alert-danger">{error}</div>}
-                            <div className="form-group">
-                                <label>{t('settings.priceLevelName')}</label>
-                                <input
-                                    type="text"
-                                    value={newPriceLevelName}
-                                    onChange={(e) => {
-                                        setNewPriceLevelName(e.target.value);
-                                        setError('');
-                                    }}
-                                    placeholder={t('settings.priceLevelNamePlaceholder')}
-                                />
-                            </div>
-                            <div style={{ marginTop: '1.5rem' }}>
-                                <h4 style={{ marginBottom: '1rem', color: '#333', fontWeight: '600' }}>{t('settings.pricingForEachCarType')}</h4>
-                                {carTypes.map((carType) => (
-                                    <div key={carType} style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-                                        <h5 style={{ marginBottom: '0.5rem', color: '#333', fontWeight: '600' }}>{t(`valet.carType_${carType}`)}</h5>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                                            <div className="form-group">
-                                                <label style={{ color: '#333', display: 'block', marginBottom: '8px', fontWeight: '500' }}>{t('settings.hourly')}</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={newPriceLevelPricing[carType].hourly}
-                                                    onChange={(e) => setNewPriceLevelPricing({
-                                                        ...newPriceLevelPricing,
-                                                        [carType]: { ...newPriceLevelPricing[carType], hourly: e.target.value }
-                                                    })}
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label style={{ color: '#333', display: 'block', marginBottom: '8px', fontWeight: '500' }}>{t('settings.weekly')}</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={newPriceLevelPricing[carType].weekly}
-                                                    onChange={(e) => setNewPriceLevelPricing({
-                                                        ...newPriceLevelPricing,
-                                                        [carType]: { ...newPriceLevelPricing[carType], weekly: e.target.value }
-                                                    })}
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label style={{ color: '#333', display: 'block', marginBottom: '8px', fontWeight: '500' }}>{t('settings.monthly')}</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={newPriceLevelPricing[carType].monthly}
-                                                    onChange={(e) => setNewPriceLevelPricing({
-                                                        ...newPriceLevelPricing,
-                                                        [carType]: { ...newPriceLevelPricing[carType], monthly: e.target.value }
-                                                    })}
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label style={{ color: '#333', display: 'block', marginBottom: '8px', fontWeight: '500' }}>{t('settings.yearly')}</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={newPriceLevelPricing[carType].yearly}
-                                                    onChange={(e) => setNewPriceLevelPricing({
-                                                        ...newPriceLevelPricing,
-                                                        [carType]: { ...newPriceLevelPricing[carType], yearly: e.target.value }
-                                                    })}
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button 
-                                className="btn-cancel"
-                                onClick={() => {
-                                    setShowAddModal(false);
-                                    setNewPriceLevelName('');
-                                    setNewPriceLevelPricing({
-                                        tripod: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        automobile: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        truck: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        trailer: { hourly: '', weekly: '', monthly: '', yearly: '' },
-                                        special_vehicles: { hourly: '', weekly: '', monthly: '', yearly: '' }
-                                    });
-                                    setError('');
-                                }}
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button 
-                                className="btn-submit"
-                                onClick={handleAddPriceLevel}
-                            >
-                                {t('settings.addPriceLevel')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AddPriceLevelModal
+                t={t}
+                isOpen={showAddModal}
+                name={newPriceLevelName}
+                pricing={newPriceLevelPricing}
+                error={error}
+                loading={loading}
+                onClose={() => {
+                    setShowAddModal(false);
+                    setNewPriceLevelName('');
+                    setNewPriceLevelPricing(emptyPricing());
+                    setError('');
+                }}
+                onNameChange={(value) => {
+                    setNewPriceLevelName(value);
+                    setError('');
+                }}
+                onPricingChange={(carType, field, value) => {
+                    setNewPriceLevelPricing({
+                        ...newPriceLevelPricing,
+                        [carType]: { ...newPriceLevelPricing[carType], [field]: value }
+                    });
+                }}
+                onSubmit={handleAddPriceLevel}
+            />
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (

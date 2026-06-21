@@ -2,9 +2,29 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
-import { fetchFlaggedCars, notifyFlaggedCustomer, initializeChapaPayment, CHAPA_BACKEND_CALLBACK_URL, updateParkedCar, verifyChapaPayment } from '../../api/api';
+import {
+    fetchFlaggedCars,
+    notifyFlaggedCustomer,
+    initializeChapaPayment,
+    CHAPA_BACKEND_CALLBACK_URL,
+    updateParkedCar,
+    verifyChapaPayment,
+} from '../../api/api';
 import { queuePaymentSuccess } from '../../utils/paymentSuccessQueue';
-import { AlertTriangle, Bell, CreditCard, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, X } from 'lucide-react';
+import {
+    FlaggedStatCards,
+    FlaggedFilterBar,
+    FlaggedZoneAccordion,
+    FlaggedPaymentModal,
+    calculateFlaggedFee,
+    filterFlaggedCars,
+    getFlaggedStats,
+    getUniqueZones,
+    groupFlaggedByZone,
+    exportFlaggedCsv,
+} from './flaggedModules';
+import '../../css/flaggedCustomers.scss';
 import '../../css/parkedCarsList.scss';
 
 const FlaggedCustomers = () => {
@@ -13,15 +33,19 @@ const FlaggedCustomers = () => {
     const user = useSelector((state) => state.user);
     const [flaggedCars, setFlaggedCars] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [zoneFilter, setZoneFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [selectedCar, setSelectedCar] = useState(null);
     const [feeDetails, setFeeDetails] = useState(null);
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
-    const [banner, setBanner] = useState(null); // { message, type: 'error'|'success' }
+    const [banner, setBanner] = useState(null);
     const chapaInstanceRef = useRef(null);
+
+    const unknownZone = t('admin.unknownZone');
 
     const showBanner = useCallback((message, type = 'error') => {
         setBanner({ message, type });
-        // Auto-dismiss after 6 seconds
         setTimeout(() => setBanner(null), 6000);
     }, []);
 
@@ -33,14 +57,12 @@ const FlaggedCustomers = () => {
         fetchFlaggedCars({
             token: user.token,
             setFlaggedCars: (cars) => {
-                console.log('Flagged cars loaded:', cars);
                 setFlaggedCars(cars || []);
                 setLoading(false);
             },
-            handleError: (error) => {
-                console.error('Failed to load flagged cars:', error);
+            handleError: () => {
                 setLoading(false);
-            }
+            },
         });
     }, [user?.token]);
 
@@ -50,41 +72,27 @@ const FlaggedCustomers = () => {
         }
     }, [user?.token, loadFlaggedCars]);
 
-    const calculateFee = (car) => {
-        // Calculate fee from stored amounts or from duration
-        let parkingFee = car.baseAmount || 0;
-        let vatAmount = car.vatAmount || 0;
-        let totalWithVat = parkingFee + vatAmount;
+    const filteredCars = useMemo(
+        () => filterFlaggedCars(flaggedCars, { searchQuery, zoneFilter, statusFilter }, unknownZone),
+        [flaggedCars, searchQuery, zoneFilter, statusFilter, unknownZone]
+    );
 
-        // If fee not stored, calculate from duration
-        if (totalWithVat === 0 && car.parkedAt && car.checkedOutAt) {
-            const parkedAt = new Date(car.parkedAt);
-            const checkedOutAt = new Date(car.checkedOutAt);
-            const diffMs = checkedOutAt - parkedAt;
-            const totalMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
-            const hoursParked = totalMinutes / 60;
-            
-            // Use default pricing (50 ETB/hour) - could be improved to use actual pricing
-            parkingFee = Math.round((hoursParked * 50) * 100) / 100;
-            vatAmount = Math.round(parkingFee * 0.15 * 100) / 100;
-            totalWithVat = Math.round((parkingFee + vatAmount) * 100) / 100;
-        }
+    const stats = useMemo(
+        () => getFlaggedStats(flaggedCars, unknownZone),
+        [flaggedCars, unknownZone]
+    );
 
-        return {
-            parkingFee,
-            vatAmount,
-            totalWithVat,
-            parkedAt: car.parkedAt ? new Date(car.parkedAt).toLocaleString() : 'N/A',
-            checkedOutAt: car.checkedOutAt ? new Date(car.checkedOutAt).toLocaleString() : 'N/A'
-        };
-    };
+    const zones = useMemo(() => getUniqueZones(flaggedCars, unknownZone), [flaggedCars, unknownZone]);
+
+    const zoneGroups = useMemo(
+        () => groupFlaggedByZone(filteredCars, unknownZone),
+        [filteredCars, unknownZone]
+    );
 
     const handlePayNow = async (car) => {
-        const fee = calculateFee(car);
+        const fee = calculateFlaggedFee(car);
         setSelectedCar(car);
         setFeeDetails(fee);
-        
-        // Wait a moment for state to update, then initialize payment
         setTimeout(() => {
             handlePaymentMethod('online', car, fee);
         }, 100);
@@ -93,26 +101,19 @@ const FlaggedCustomers = () => {
     const handlePaymentMethod = async (paymentMethod, car = selectedCar, fee = feeDetails) => {
         const carToUse = car || selectedCar;
         const feeToUse = fee || feeDetails;
-        
-        if (!carToUse || !feeToUse) {
-            console.error('Missing car or fee details');
-            return;
-        }
+
+        if (!carToUse || !feeToUse) return;
 
         setLoading(true);
-        
+
         try {
-            // Clean up any existing payment data and Chapa instances
             if (chapaInstanceRef.current) {
                 const container = document.getElementById('chapa-inline-form');
-                if (container) {
-                    container.innerHTML = '';
-                }
+                if (container) container.innerHTML = '';
                 chapaInstanceRef.current = null;
             }
             localStorage.removeItem(`chapa_payment_${carToUse._id}`);
-            
-            // Initialize Chapa payment
+
             const customerName = carToUse.customerName || 'Customer';
             const customerEmail = carToUse.customerEmail || `${carToUse.phoneNumber?.replace(/[^0-9]/g, '') || 'customer'}@tana-parking.com`;
             const customerPhone = carToUse.phoneNumber;
@@ -126,48 +127,41 @@ const FlaggedCustomers = () => {
             await initializeChapaPayment({
                 carId: carToUse._id,
                 amount: feeToUse.totalWithVat,
-                customerName: customerName,
-                customerEmail: customerEmail,
-                customerPhone: customerPhone,
+                customerName,
+                customerEmail,
+                customerPhone,
                 token: user?.token,
                 handleInitSuccess: async (data) => {
-                    // Store payment reference
                     localStorage.setItem(`chapa_payment_${carToUse._id}`, JSON.stringify({
                         txRef: data.txRef,
                         carId: carToUse._id,
                         feeDetails: feeToUse,
-                        customerPhone: customerPhone,
+                        customerPhone,
                         isFlagged: true,
                         initiatedAt: Date.now(),
                     }));
 
                     const chapaPublicKey = data.publicKey || process.env.REACT_APP_CHAPA_PUBLIC_KEY;
-                    
+
                     if (!chapaPublicKey || !data.txRef) {
-                        console.error('Chapa public key or txRef is missing');
                         showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                         setLoading(false);
                         return;
                     }
 
-                    // Validate public key format
                     const isValidTestKey = chapaPublicKey.startsWith('CHAPUBK_TEST-');
                     const isValidLiveKey = chapaPublicKey.startsWith('CHAPUBK-');
                     if (!isValidTestKey && !isValidLiveKey) {
-                        console.error('Invalid Chapa public key format. Expected CHAPUBK_TEST-* or CHAPUBK-*');
                         showBanner('Payment service is temporarily unavailable. Please try again.', 'error');
                         setLoading(false);
                         return;
                     }
 
-                    // Initialize Chapa Inline.js
                     try {
-                        // Get ChapaCheckout from window
                         let ChapaCheckout;
                         if (window.ChapaCheckout) {
                             ChapaCheckout = window.ChapaCheckout;
                         } else {
-                            // Wait for script to load (max 3 seconds)
                             await new Promise((resolve, reject) => {
                                 let attempts = 0;
                                 const checkInterval = setInterval(() => {
@@ -183,37 +177,32 @@ const FlaggedCustomers = () => {
                                 }, 100);
                             });
                         }
-                        
+
                         if (!ChapaCheckout || typeof ChapaCheckout !== 'function') {
                             showBanner('Chapa payment library is not loaded. Please refresh the page.', 'error');
                             setLoading(false);
                             return;
                         }
 
-                        // Format amount and phone number
                         const formattedAmount = parseFloat(feeToUse.totalWithVat).toFixed(2);
                         const isTestMode = chapaPublicKey.startsWith('CHAPUBK_TEST-');
                         let formattedPhone = customerPhone;
-                        
+
                         if (isTestMode) {
                             if (formattedPhone.startsWith('+251')) {
                                 formattedPhone = '0' + formattedPhone.substring(4);
                             } else if (!formattedPhone.startsWith('0')) {
                                 formattedPhone = '0' + formattedPhone;
                             }
-                        } else {
-                            if (formattedPhone && !formattedPhone.startsWith('+')) {
-                                formattedPhone = formattedPhone.replace(/^0/, '+251');
-                                if (!formattedPhone.startsWith('+')) {
-                                    formattedPhone = `+251${formattedPhone}`;
-                                }
+                        } else if (formattedPhone && !formattedPhone.startsWith('+')) {
+                            formattedPhone = formattedPhone.replace(/^0/, '+251');
+                            if (!formattedPhone.startsWith('+')) {
+                                formattedPhone = `+251${formattedPhone}`;
                             }
                         }
 
-                        // Chapa Inline.js configuration
                         const chapaConfig = {
                             publicKey: chapaPublicKey,
-                            // Provide both txRef and tx_ref so Inline.js uses the exact reference
                             txRef: data.txRef,
                             tx_ref: data.txRef,
                             amount: formattedAmount,
@@ -235,7 +224,6 @@ const FlaggedCustomers = () => {
                             showFlag: true,
                             showPaymentMethodsNames: true,
                             onSuccessfulPayment: async (response) => {
-                                console.log('✅ Payment successful for flagged car', response);
                                 const chapaTxRef = response?.tx_ref || response?.txRef || data.txRef;
 
                                 const finishFlaggedPayment = () => {
@@ -263,15 +251,14 @@ const FlaggedCustomers = () => {
                                         flaggedAt: null,
                                         flaggedBy: null,
                                         notificationSent: false,
-                                        lastNotificationSentAt: null
+                                        lastNotificationSentAt: null,
                                     },
                                     token: user?.token,
                                     handleUpdateParkedCarSuccess: finishFlaggedPayment,
-                                    handleUpdateParkedCarFailure: (err) => {
-                                        console.error('Failed to update flagged car:', err);
+                                    handleUpdateParkedCarFailure: () => {
                                         showBanner(`${t('messages.error')}: ${t('messages.operationFailed')}`, 'error');
                                         setLoading(false);
-                                    }
+                                    },
                                 });
 
                                 if (chapaTxRef) {
@@ -280,30 +267,26 @@ const FlaggedCustomers = () => {
                                         carId: carToUse._id,
                                         token: user?.token,
                                         handleVerifySuccess: finishFlaggedPayment,
-                                        handleVerifyFailure: () => fallbackUpdate()
+                                        handleVerifyFailure: () => fallbackUpdate(),
                                     });
                                 } else {
                                     await fallbackUpdate();
                                 }
                             },
-                            onPaymentFailure: (error) => {
-                                console.error('❌ Payment failed:', error);
+                            onPaymentFailure: () => {
                                 showBanner(`${t('messages.error')}: ${t('valet.paymentFailed')}`, 'error');
                                 setLoading(false);
                             },
                             onClose: () => {
                                 setShowPaymentFormModal(false);
                                 setLoading(false);
-                            }
+                            },
                         };
 
                         const chapa = new ChapaCheckout(chapaConfig);
                         chapaInstanceRef.current = chapa;
-                        
-                        // Open payment form modal
                         setShowPaymentFormModal(true);
-                        
-                        // Wait for DOM to update, then initialize Chapa
+
                         setTimeout(() => {
                             const container = document.getElementById('chapa-inline-form');
                             if (container) {
@@ -311,33 +294,28 @@ const FlaggedCustomers = () => {
                                     chapa.initialize('chapa-inline-form');
                                     setLoading(false);
                                 } catch (initError) {
-                                    console.error('Error during chapa.initialize():', initError);
                                     showBanner(`Failed to initialize payment form: ${initError?.message || 'Unknown error'}`, 'error');
                                     setShowPaymentFormModal(false);
                                     setLoading(false);
                                 }
                             } else {
-                                console.error('Chapa container not found after rendering');
                                 showBanner('Failed to load payment form. Please try again.', 'error');
                                 setShowPaymentFormModal(false);
                                 setLoading(false);
                             }
                         }, 100);
                     } catch (initError) {
-                        console.error('ChapaCheckout constructor error:', initError);
                         showBanner(`Failed to initialize payment: ${initError?.message || 'Unknown error'}`, 'error');
                         setShowPaymentFormModal(false);
                         setLoading(false);
                     }
                 },
                 handleInitFailure: (error) => {
-                    console.error('Payment initialization failed:', error);
                     showBanner(`Failed to initialize payment: ${error}`, 'error');
                     setLoading(false);
-                }
+                },
             });
         } catch (error) {
-            console.error('Payment initialization error:', error);
             showBanner(`Failed to initialize payment: ${error?.message || 'Please try again.'}`, 'error');
             setLoading(false);
         }
@@ -346,9 +324,7 @@ const FlaggedCustomers = () => {
     const handleClosePaymentFormModal = () => {
         if (chapaInstanceRef.current) {
             const container = document.getElementById('chapa-inline-form');
-            if (container) {
-                container.innerHTML = '';
-            }
+            if (container) container.innerHTML = '';
             chapaInstanceRef.current = null;
         }
         setShowPaymentFormModal(false);
@@ -357,7 +333,7 @@ const FlaggedCustomers = () => {
 
     const handleNotify = async (car) => {
         if (!car._id) return;
-        
+
         setLoading(true);
         try {
             await notifyFlaggedCustomer({
@@ -365,220 +341,94 @@ const FlaggedCustomers = () => {
                 token: user?.token,
                 handleNotifySuccess: () => {
                     showBanner(t('valet.notificationSent'), 'success');
-                    loadFlaggedCars(); // Refresh to update notification status
+                    loadFlaggedCars();
                     setLoading(false);
                 },
                 handleNotifyFailure: (error) => {
                     showBanner(`Failed to send notification: ${error}`, 'error');
                     setLoading(false);
-                }
+                },
             });
-        } catch (error) {
-            console.error('Notify error:', error);
+        } catch {
             showBanner('Failed to send notification. Please try again.', 'error');
             setLoading(false);
         }
     };
 
-    const formatDateTime = (dateString) => {
-        if (!dateString) return '-';
-        const date = new Date(dateString);
-        return date.toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    const handleExport = () => {
+        if (filteredCars.length === 0) return;
+        exportFlaggedCsv(filteredCars, t);
     };
 
-    const isAdminView = location.pathname.startsWith('/admin');
-
-    const getCarZone = useCallback((car) => {
-        const zone = car.location || car.valet_id?.parkZoneCode;
-        return zone?.trim() || t('admin.unknownZone');
-    }, [t]);
-
-    const flaggedCarsByZone = useMemo(() => {
-        if (!isAdminView) return null;
-
-        const grouped = flaggedCars.reduce((acc, car) => {
-            const zone = getCarZone(car);
-            if (!acc[zone]) acc[zone] = [];
-            acc[zone].push(car);
-            return acc;
-        }, {});
-
-        const unknownZone = t('admin.unknownZone');
-        return Object.keys(grouped).sort((a, b) => {
-            if (a === unknownZone) return 1;
-            if (b === unknownZone) return -1;
-            return a.localeCompare(b);
-        }).map((zoneCode) => ({ zoneCode, cars: grouped[zoneCode] }));
-    }, [flaggedCars, getCarZone, isAdminView, t]);
-
-    const renderFlaggedTable = (cars) => (
-        <table className="cars-table">
-            <thead>
-                <tr>
-                    <th>{t('valet.licensePlate')}</th>
-                    <th>{t('valet.phoneNumber')}</th>
-                    <th>{t('valet.parkedAt')}</th>
-                    <th>{t('valet.checkedOutAt')}</th>
-                    <th>{t('valet.parkingFee')}</th>
-                    <th>{t('valet.actions')}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {cars.map((car) => {
-                    const fee = calculateFee(car);
-                    return (
-                        <tr key={car._id}>
-                            <td className="license-plate">{car.licensePlate || `${car.plateCode || ''}-${car.region || ''}-${car.licensePlateNumber || ''}`}</td>
-                            <td>{car.phoneNumber || 'N/A'}</td>
-                            <td>{formatDateTime(car.parkedAt)}</td>
-                            <td>{formatDateTime(car.checkedOutAt)}</td>
-                            <td>{fee.totalWithVat.toFixed(2)} ETB</td>
-                            <td>
-                                <div className="actions actions-flagged">
-                                    <button
-                                        className="btn-action btn-pay"
-                                        onClick={() => handlePayNow(car)}
-                                        disabled={loading}
-                                    >
-                                        <CreditCard size={16} />
-                                        {t('valet.payNow')}
-                                    </button>
-                                    <button
-                                        className="btn-action btn-notify"
-                                        onClick={() => handleNotify(car)}
-                                        disabled={loading || car.notificationSent}
-                                    >
-                                        <Bell size={16} />
-                                        {car.notificationSent ? t('valet.notified') : t('valet.notify')}
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    );
-                })}
-            </tbody>
-        </table>
-    );
-
     return (
-        <div className="parked-cars-list">
-            {/* Alert banner - fixed at top */}
+        <div className="flagged-customers">
             {banner && (
                 <div className={`alert-banner alert-banner-${banner.type}`} role="alert">
                     <span className="alert-banner-message">{banner.message}</span>
-                    <button
-                        type="button"
-                        className="alert-banner-dismiss"
-                        onClick={dismissBanner}
-                        aria-label="Dismiss"
-                    >
+                    <button type="button" className="alert-banner-dismiss" onClick={dismissBanner} aria-label="Dismiss">
                         <X size={18} />
                     </button>
                 </div>
             )}
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+            <div className="flagged-page-header">
                 <div>
                     <h1>{t('valet.flaggedCustomers')}</h1>
-                    <p>{t('valet.unpaidParking')}</p>
+                    <p>{t('valet.flaggedCustomersSubtitle')}</p>
                 </div>
                 <button
+                    type="button"
+                    className="flagged-btn flagged-btn--refresh"
                     onClick={loadFlaggedCars}
                     disabled={loading}
-                    style={{
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        border: '1px solid #667eea',
-                        background: '#667eea',
-                        color: '#fff',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        fontWeight: '500',
-                        opacity: loading ? 0.6 : 1
-                    }}
                 >
+                    <RefreshCw size={16} />
                     {t('common.refresh')}
                 </button>
             </div>
 
-            {loading && (
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <p>{t('common.loading')}</p>
+            <FlaggedStatCards stats={stats} t={t} />
+
+            <FlaggedFilterBar
+                t={t}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                zoneFilter={zoneFilter}
+                onZoneChange={setZoneFilter}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                zones={zones}
+                onExport={handleExport}
+                loading={loading}
+            />
+
+            {loading && flaggedCars.length === 0 ? (
+                <div className="flagged-loading">{t('common.loading')}</div>
+            ) : filteredCars.length === 0 ? (
+                <div className="flagged-empty-message">
+                    <AlertTriangle size={40} style={{ color: '#94a3b8', marginBottom: 12 }} />
+                    <p>{t('valet.noFlaggedCars')}</p>
                 </div>
+            ) : (
+                <FlaggedZoneAccordion
+                    groups={zoneGroups}
+                    t={t}
+                    loading={loading}
+                    onPayNow={handlePayNow}
+                    onNotify={handleNotify}
+                />
             )}
 
-            <div className="cars-table-container">
-                {!loading && flaggedCars.length > 0 ? (
-                    isAdminView ? (
-                        <div className="flagged-zone-groups">
-                            {flaggedCarsByZone.map(({ zoneCode, cars }) => (
-                                <div key={zoneCode} className="flagged-zone-group">
-                                    <h3 className="flagged-zone-header">
-                                        {t('admin.flaggedInZone')}: <span className="zone-code">{zoneCode}</span>
-                                        <span className="zone-count">({cars.length})</span>
-                                    </h3>
-                                    {renderFlaggedTable(cars)}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        renderFlaggedTable(flaggedCars)
-                    )
-                ) : !loading ? (
-                    <div className="no-data">
-                        <AlertTriangle size={48} style={{ color: '#9ca3af', marginBottom: '16px' }} />
-                        <p>{t('valet.noFlaggedCars')}</p>
-                    </div>
-                ) : null}
-            </div>
-
-            {/* Payment Form Modal - Chapa inline payment */}
-            {showPaymentFormModal && selectedCar && feeDetails && (
-                <div className="payment-modal-overlay" onClick={handleClosePaymentFormModal}>
-                    <div className="payment-form-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{t('valet.completePayment')}</h2>
-                            <button 
-                                className="close-btn" 
-                                onClick={handleClosePaymentFormModal} 
-                                disabled={loading}
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        
-                        <div className="modal-content">
-                            <div className="payment-summary-section">
-                                <h3>{t('valet.paymentSummary')}</h3>
-                                <div className="summary-row">
-                                    <span className="label">{t('valet.totalAmount')}:</span>
-                                    <span className="value">{feeDetails.totalWithVat.toFixed(2)} ETB</span>
-                                </div>
-                                <div className="summary-row">
-                                    <span className="label">{t('valet.phoneNumber')}:</span>
-                                    <span className="value">{selectedCar.phoneNumber || 'N/A'}</span>
-                                </div>
-                                <div className="summary-row">
-                                    <span className="label">{t('valet.licensePlate')}:</span>
-                                    <span className="value">{selectedCar.licensePlate || 'N/A'}</span>
-                                </div>
-                            </div>
-
-                            <div className="chapa-payment-form-section">
-                                <h3>{t('valet.payOnline')}</h3>
-                                <div id="chapa-inline-form"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <FlaggedPaymentModal
+                t={t}
+                isOpen={showPaymentFormModal}
+                selectedCar={selectedCar}
+                feeDetails={feeDetails}
+                loading={loading}
+                onClose={handleClosePaymentFormModal}
+            />
         </div>
     );
 };
 
 export default FlaggedCustomers;
-

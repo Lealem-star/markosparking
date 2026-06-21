@@ -45,7 +45,17 @@ pricingSettingsRouter.put("/", isLoggedIn, async (req, res) => {
         const schema = Joi.object({
             settings: Joi.object({
                 priceLevels: Joi.object().pattern(Joi.string(), priceLevelSchema).optional(),
-                vatRate: Joi.number().min(0).max(1).optional()
+                vatRate: Joi.number().min(0).max(1).optional(),
+                vatEnabled: Joi.boolean().optional(),
+                vatRateHistory: Joi.array().items(
+                    Joi.object({
+                        rate: Joi.number().min(0).max(1).required(),
+                        status: Joi.string().valid('active', 'inactive').required(),
+                        effectiveFrom: Joi.alternatives().try(Joi.date(), Joi.string()).required(),
+                        updatedBy: Joi.string().allow('').optional(),
+                        notes: Joi.string().allow('').optional(),
+                    })
+                ).optional(),
             }).allow({}) // Allow other fields for backward compatibility
         });
 
@@ -56,9 +66,45 @@ pricingSettingsRouter.put("/", isLoggedIn, async (req, res) => {
 
         // Get or create settings document
         let pricingSettings = await PricingSettings.getOrCreate();
-        
+        const previousSettings = pricingSettings.settings || {};
+        const mergedSettings = { ...previousSettings, ...settings };
+
+        if (settings.vatRate !== undefined && settings.vatRate !== previousSettings.vatRate) {
+            const history = [...(previousSettings.vatRateHistory || [])].map((entry) =>
+                entry.status === 'active' ? { ...entry, status: 'inactive' } : entry
+            );
+
+            history.unshift({
+                rate: settings.vatRate,
+                status: 'active',
+                effectiveFrom: new Date().toISOString(),
+                updatedBy: currentUser.name,
+                notes: settings.vatRateChangeNotes || 'VAT rate updated',
+            });
+
+            mergedSettings.vatRateHistory = history;
+        }
+
+        if (!mergedSettings.vatRateHistory?.length && mergedSettings.vatRate !== undefined) {
+            mergedSettings.vatRateHistory = [{
+                rate: mergedSettings.vatRate,
+                status: 'active',
+                effectiveFrom: new Date().toISOString(),
+                updatedBy: currentUser.name,
+                notes: 'Initial VAT rate configuration',
+            }];
+        }
+
+        if (settings.vatEnabled !== undefined) {
+            mergedSettings.vatEnabled = settings.vatEnabled;
+        } else if (mergedSettings.vatEnabled === undefined) {
+            mergedSettings.vatEnabled = true;
+        }
+
+        delete mergedSettings.vatRateChangeNotes;
+
         // Update settings object
-        pricingSettings.settings = settings;
+        pricingSettings.settings = mergedSettings;
         await pricingSettings.save();
 
         res.json({ message: "Pricing settings updated successfully", settings: pricingSettings.settings });

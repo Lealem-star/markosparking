@@ -1,9 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { Car, DollarSign } from 'lucide-react';
 import { fetchUsers, fetchParkedCars } from '../../api/api';
 import { EthiopianDatePicker } from '../../components';
 import '../../css/dashboardOverview.scss';
+
+const StatSparkline = ({ color }) => (
+    <svg className="dashboard-stat-sparkline" viewBox="0 0 80 40" aria-hidden="true">
+        <polyline
+            points="0,32 12,28 24,30 36,22 48,24 60,16 72,18 80,10"
+            fill="none"
+            stroke={color}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
 
 const DashboardOverview = () => {
     const { t } = useTranslation();
@@ -78,25 +92,33 @@ const DashboardOverview = () => {
         <div className="dashboard-overview">
 
             <div className="stats-grid">
-                <div className="stat-card gradient-purple">
-                    <div className="stat-content">
-                        <h3>{totalDailyCars}</h3>
-                        <p>{t('dashboard.totalDailyCars')}</p>
+                <article className="stat-card stat-card--cars">
+                    <div className="stat-card-body">
+                        <div className="stat-icon">
+                            <Car size={20} />
+                        </div>
+                        <div className="stat-value">{totalDailyCars}</div>
+                        <div className="stat-label">{t('dashboard.totalDailyCars')}</div>
                     </div>
-                    <div className="stat-chart">
-                        <div className="mini-chart"></div>
+                    <div className="stat-sparkline-wrap">
+                        <StatSparkline color="#8a70f1" />
                     </div>
-                </div>
+                    <div className="stat-card-glow" aria-hidden="true" />
+                </article>
 
-                <div className="stat-card gradient-green">
-                    <div className="stat-content">
-                        <h3>{totalDailyRevenue.toFixed(2)}</h3>
-                        <p>{t('dashboard.totalDailyRevenue')}</p>
+                <article className="stat-card stat-card--revenue">
+                    <div className="stat-card-body">
+                        <div className="stat-icon">
+                            <DollarSign size={20} />
+                        </div>
+                        <div className="stat-value">{totalDailyRevenue.toFixed(2)}</div>
+                        <div className="stat-label">{t('dashboard.totalDailyRevenue')}</div>
                     </div>
-                    <div className="stat-chart">
-                        <div className="mini-chart"></div>
+                    <div className="stat-sparkline-wrap">
+                        <StatSparkline color="#2ecc71" />
                     </div>
-                </div>
+                    <div className="stat-card-glow" aria-hidden="true" />
+                </article>
             </div>
 
             <div className="dashboard-grid">
