@@ -6,6 +6,8 @@ import {
     getLicensePlate,
 } from './flaggedUtils';
 
+import FlaggedCustomerCards from './FlaggedCustomerCards';
+
 const FlaggedCustomersTable = ({
     t,
     cars,
@@ -37,7 +39,15 @@ const FlaggedCustomersTable = ({
     };
 
     return (
-        <div className="flagged-table-wrap">
+        <>
+            <FlaggedCustomerCards
+                t={t}
+                cars={cars}
+                loading={loading}
+                onPayNow={onPayNow}
+                onNotify={onNotify}
+            />
+            <div className="flagged-table-wrap flagged-table-wrap--desktop">
             <table className="flagged-table">
                 <thead>
                     <tr>
@@ -116,7 +126,8 @@ const FlaggedCustomersTable = ({
                     })}
                 </tbody>
             </table>
-        </div>
+            </div>
+        </>
     );
 };
 

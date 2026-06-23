@@ -102,6 +102,17 @@
             }
         }
 
+        &--filter {
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #334155;
+            white-space: nowrap;
+
+            &:hover:not(:disabled) {
+                background: #f8fafc;
+            }
+        }
+
         &:disabled {
             opacity: 0.6;
             cursor: not-allowed;
@@ -162,11 +173,19 @@
         .flagged-stat-hint {
             font-size: 0.75rem;
             color: #94a3b8;
+
+            &--mobile {
+                display: none;
+            }
         }
 
         &--total .flagged-stat-icon { background: #dbeafe; color: #2563eb; }
         &--zones .flagged-stat-icon { background: #ede9fe; color: #7c3aed; }
-        &--outstanding .flagged-stat-icon { background: #ede9fe; color: #7c3aed; }
+        &--outstanding .flagged-stat-icon { background: #fee2e2; color: #dc2626; }
+
+        &--outstanding .flagged-stat-value {
+            color: #dc2626;
+        }
     }
 
     .flagged-filter-bar {
@@ -179,6 +198,34 @@
         border-radius: 14px;
         padding: 16px;
         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+
+    .flagged-filter-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        flex: 1 1 auto;
+
+        .flagged-btn--export {
+            margin-left: auto;
+        }
+    }
+
+    .flagged-filter-mobile-only {
+        display: none;
+    }
+
+    .flagged-filter-desktop-only {
+        display: inline-flex;
+    }
+
+    .flagged-mobile-cards {
+        display: none;
+    }
+
+    .flagged-table-wrap--desktop {
+        display: block;
     }
 
     .flagged-search-wrap {
@@ -545,67 +592,181 @@
     }
 
     .flagged-customers .flagged-page-header {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
 
         h1 {
             font-size: 1.35rem;
         }
 
+        p {
+            font-size: 0.8125rem;
+        }
+
         .flagged-btn--refresh {
-            width: 100%;
-            justify-content: center;
+            width: auto;
+            flex-shrink: 0;
+            margin-top: 2px;
         }
     }
 
     .flagged-customers .flagged-stats-grid {
-        grid-template-columns: 1fr;
+        display: flex;
+        overflow-x: auto;
+        gap: 12px;
+        grid-template-columns: none;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+
+        .flagged-stat-card {
+            flex: 0 0 min(42vw, 160px);
+            scroll-snap-align: start;
+            padding: 14px;
+        }
+
+        .flagged-stat-value {
+            font-size: 1.25rem;
+        }
+
+        .flagged-stat-hint--desktop {
+            display: none;
+        }
+
+        .flagged-stat-hint--mobile {
+            display: block;
+        }
     }
 
     .flagged-customers .flagged-filter-bar {
         flex-direction: column;
         align-items: stretch;
+        gap: 10px;
     }
 
-    .flagged-customers .flagged-search-wrap,
-    .flagged-customers .flagged-filter-select-wrap {
+    .flagged-customers .flagged-search-wrap {
         flex: 1 1 auto;
         min-width: 0;
     }
 
-    .flagged-customers .flagged-btn--export {
-        margin-left: 0;
-        justify-content: center;
+    .flagged-customers .flagged-filter-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 8px;
+        width: 100%;
+
+        .flagged-btn--export {
+            margin-left: 0;
+        }
+    }
+
+    .flagged-customers .flagged-filter-select-wrap {
+        min-width: 0;
+    }
+
+    .flagged-customers .flagged-filter-mobile-only {
+        display: inline-flex;
+    }
+
+    .flagged-customers .flagged-filter-desktop-only {
+        display: none;
+    }
+
+    .flagged-customers .flagged-btn--filter {
+        height: 100%;
+        min-height: 42px;
+        padding: 10px 12px;
     }
 
     .flagged-customers .flagged-zone-card-header {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
     }
 
     .flagged-customers .flagged-zone-header-actions {
         flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: space-between;
+        flex-wrap: nowrap;
         align-items: center;
-        padding: 0 12px 12px;
-        width: 100%;
+        gap: 10px;
+        padding-right: 12px;
     }
 
-    .flagged-customers .flagged-table-wrap {
-        margin: 0 -4px;
+    .flagged-customers .flagged-zone-outstanding-label {
+        font-size: 0.625rem;
     }
 
-    .flagged-customers .flagged-table {
-        min-width: 720px;
+    .flagged-customers .flagged-zone-panel {
+        padding: 8px 10px 12px;
     }
 
-    .flagged-customers .flagged-row-actions {
+    .flagged-customers .flagged-table-wrap--desktop {
+        display: none;
+    }
+
+    .flagged-customers .flagged-mobile-cards {
+        display: flex;
         flex-direction: column;
-        align-items: stretch;
+        gap: 10px;
+    }
 
-        .flagged-action-btn {
+    .flagged-customers .flagged-customer-card {
+        display: block;
+        background: #fff;
+        border: 1px solid #e8ecf1;
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+
+    .flagged-customers .flagged-customer-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .flagged-customers .flagged-customer-card-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .flagged-customers .flagged-customer-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8125rem;
+        color: #64748b;
+
+        svg {
+            flex-shrink: 0;
+            color: #94a3b8;
+        }
+    }
+
+    .flagged-customers .flagged-customer-card-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .flagged-customers .flagged-customer-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .flagged-action-btn--pay,
+        .flagged-action-btn--notify {
+            flex: 1;
             justify-content: center;
+            padding: 10px 12px;
+        }
+
+        .flagged-action-btn--more {
+            flex-shrink: 0;
         }
     }
 }
