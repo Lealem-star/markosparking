@@ -1,55 +1,25 @@
 import './App.css';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import { useEffect } from 'react';
-import { Layout, Home, NoPage, Register, AdminDashboard, DashboardOverview, UserManagement, Settings, Reports, GroupChat, ValetDashboard, ValetOverview, RegisterCar, ParkedCarsList, FlaggedCustomers } from './pages/common';
+import { Layout, NoPage, Register, GroupChat, FlaggedCustomers } from './pages/shared';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import DashboardOverview from './pages/admin/DashboardOverview';
+import UserManagement from './pages/admin/UserManagement';
+import Settings from './pages/admin/Settings';
+import Reports from './pages/admin/Reports';
+import ValetDashboard from './pages/valet/ValetDashboard';
+import ValetOverview from './pages/valet/ValetOverview';
+import RegisterCar from './pages/valet/RegisterCar';
+import ParkedCarsList from './pages/valet/ParkedCarsList';
 import Profile from './pages/valet/Profile';
 import PaymentSuccessHost from './components/PaymentSuccessHost/PaymentSuccessHost';
 import { syncLanguageWithUser } from './utils/languageSync';
-
-function LegacyPaymentRedirect() {
-  const user = useSelector((state) => state.user);
-  if (!user?.token) return <Navigate to="/" replace />;
-  if (user.type === 'valet') return <Navigate to="/valet/dashboard" replace />;
-  return <Navigate to="/admin/dashboard" replace />;
-}
-
-// Protected route wrapper - redirects logged-in users away from login/register
-function PublicRoute({ children }) {
-  const user = useSelector((state) => state.user);
-  
-  // If user is logged in, redirect to their dashboard
-  if (user && user.token) {
-    if (user.type === 'system_admin' || user.type === 'manager') {
-      return <Navigate to="/admin/dashboard" replace />;
-    } else if (user.type === 'valet') {
-      return <Navigate to="/valet/dashboard" replace />;
-    }
-    return <Navigate to="/" replace />;
-  }
-  
-  return children;
-}
-
-// Root redirect component - redirects based on user type
-function RootRedirect() {
-  const user = useSelector((state) => state.user);
-  
-  if (user && user.token) {
-    if (user.type === 'system_admin' || user.type === 'manager') {
-      return <Navigate to="/admin/dashboard" replace />;
-    } else if (user.type === 'valet') {
-      return <Navigate to="/valet/dashboard" replace />;
-    }
-  }
-  
-  return <Home />;
-}
+import { useCurrentUser } from './hooks/useAuth';
+import { LegacyPaymentRedirect, PublicRoute, RootRedirect } from './routes/AppRoutes';
 
 function App() {
-  const user = useSelector((state) => state.user);
+  const user = useCurrentUser();
 
-  // Sync language with user preference
   useEffect(() => {
     if (user?.language) {
       syncLanguageWithUser(user.language);
@@ -57,9 +27,9 @@ function App() {
   }, [user?.language]);
 
   return (
-        <BrowserRouter>
-          <PaymentSuccessHost />
-          <Routes>
+    <BrowserRouter>
+      <PaymentSuccessHost />
+      <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<RootRedirect />} />
           <Route path="profile" element={<Profile />} />
@@ -85,11 +55,14 @@ function App() {
           <Route path="flagged-customers" element={<FlaggedCustomers />} />
         </Route>
         <Route path="login" element={<Navigate to="/" replace />} />
-        <Route path="register" element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        } />
+        <Route
+          path="register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
         <Route path="payment/success" element={<LegacyPaymentRedirect />} />
         <Route path="payment/callback" element={<LegacyPaymentRedirect />} />
         <Route path="*" element={<NoPage />} />

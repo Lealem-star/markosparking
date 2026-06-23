@@ -1,86 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { clearUser, setUser } from '../../reducers/userReducer';
-import { resetPassword, updateUser, uploadProfilePhoto } from '../../api/api';
-import { syncLanguageWithUser } from '../../utils/languageSync';
-import TanaLogo from '../../img/Tana.png';
-import { 
-    LayoutDashboard, 
-    Users, 
-    Settings, 
-    LogOut, 
-    Menu,
-    X,
-    Bell,
+import { clearUser } from '../../store';
+import { ADMIN_ROLES } from '../../constants/roles';
+import { useRequireRole } from '../../hooks/useRequireRole';
+import { useChatUnread } from '../../hooks/useChatUnread';
+import { useProfileUpdate } from '../../hooks/useProfileUpdate';
+import DashboardShell from '../../components/layout/DashboardShell';
+import ProfileModal from '../../components/profile/ProfileModal';
+import {
+    LayoutDashboard,
+    Users,
+    Settings,
+    LogOut,
     User,
-    Camera,
     FileText,
-    AlertTriangle
+    AlertTriangle,
 } from 'lucide-react';
-import { socket } from '../../utils/chatSocket';
 
-import '../../css/adminDashboard.scss';
+import '../../styles/adminDashboard.scss';
 
 const AdminDashboard = () => {
     const { t } = useTranslation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
     const [showProfileModal, setShowProfileModal] = useState(false);
-    const [profileForm, setProfileForm] = useState({
-        name: '',
-        password: '',
-        confirmPassword: '',
-        profilePhoto: null,
-        profilePhotoPreview: null,
-        language: 'en'
-    });
-    const [isUpdated, setIsUpdated] = useState(false);
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const user = useSelector((state) => state.user);
+    const { user, isAuthorized } = useRequireRole(ADMIN_ROLES);
+    const { unreadCount, openChat } = useChatUnread('/admin/chat');
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
+    const {
+        profileForm,
+        isUpdated,
+        error,
+        loading,
+        initFormFromUser,
+        handleFormChange,
+        handlePhotoChange,
+        resetProfileState,
+        submitProfile,
+    } = useProfileUpdate(user);
 
-    // Protect route - system admin and manager can access
-    useEffect(() => {
-        if (!user) {
-            navigate('/');
-        } else if (user.type !== 'system_admin' && user.type !== 'manager') {
-            navigate('/');
-        }
-    }, [user, navigate]);
-
-    // Show profile modal when route matches
     useEffect(() => {
         if (location.pathname === '/admin/dashboard/profile') {
             setShowProfileModal(true);
-            const BASE_URL = process.env.REACT_APP_BASE_URL || "http://localhost:4000/";
-            const photoUrl = user?.profilePhoto 
-                ? (user.profilePhoto.startsWith('http') 
-                    ? user.profilePhoto 
-                    : `${BASE_URL}${user.profilePhoto.startsWith('/') ? user.profilePhoto.substring(1) : user.profilePhoto}`)
-                : null;
-            console.log('User profilePhoto from Redux:', user?.profilePhoto);
-            console.log('Constructed photoUrl for modal:', photoUrl);
-            setProfileForm({
-                name: user?.name || '',
-                password: '',
-                confirmPassword: '',
-                profilePhoto: null,
-                profilePhotoPreview: photoUrl,
-                language: user?.language || 'en'
-            });
+            initFormFromUser(user);
         } else {
             setShowProfileModal(false);
         }
-    }, [location.pathname, user]);
+    }, [location.pathname, user, initFormFromUser]);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (profileDropdownOpen && !event.target.closest('.user-profile-dropdown')) {
@@ -89,9 +61,7 @@ const AdminDashboard = () => {
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [profileDropdownOpen]);
 
     const handleLogout = () => {
@@ -108,156 +78,7 @@ const AdminDashboard = () => {
     const handleCloseProfileModal = () => {
         navigate('/admin/dashboard');
         setShowProfileModal(false);
-        setError('');
-        setIsUpdated(false);
-    };
-
-    const handleProfileFormChange = (field, value) => {
-        setProfileForm({ ...profileForm, [field]: value });
-        setError('');
-        setIsUpdated(false);
-    };
-
-    const handleProfilePhotoChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileForm({
-                    ...profileForm,
-                    profilePhoto: file,
-                    profilePhotoPreview: reader.result
-                });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleUpdateProfile = () => {
-        setError('');
-        setIsUpdated(false);
-        setLoading(true);
-
-        // Validate password if provided
-        if (profileForm.password && profileForm.password !== profileForm.confirmPassword) {
-            setError(t('profile.passwordMismatch'));
-            setLoading(false);
-            return;
-        }
-
-        // Track what needs to be updated
-        const needsNameUpdate = profileForm.name !== user?.name;
-        const needsPasswordUpdate = profileForm.password && profileForm.password.length > 0;
-        const needsPhotoUpdate = profileForm.profilePhoto !== null;
-        const needsLanguageUpdate = profileForm.language !== (user?.language || 'en');
-
-        if (!needsNameUpdate && !needsPasswordUpdate && !needsPhotoUpdate && !needsLanguageUpdate) {
-            setError(t('profile.noChangesToSave'));
-            setLoading(false);
-            return;
-        }
-
-        // Handle updates sequentially
-        let updatedUser = { ...user };
-        let updateChain = Promise.resolve();
-
-        // 1. Upload profile photo first if needed
-        if (needsPhotoUpdate) {
-            updateChain = updateChain.then(() => {
-                return new Promise((resolve, reject) => {
-                    uploadProfilePhoto({
-                        user_id: user?._id,
-                        file: profileForm.profilePhoto,
-                        handleUploadSuccess: (data) => {
-                            updatedUser = { ...updatedUser, ...data?.user };
-                            dispatch(setUser(updatedUser));
-                            resolve();
-                        },
-                        handleUploadFailure: (error) => {
-                            reject(error);
-                        }
-                    });
-                });
-            });
-        }
-
-        // 2. Update name and language if changed
-        if (needsNameUpdate || needsLanguageUpdate) {
-            updateChain = updateChain.then(() => {
-                return new Promise((resolve, reject) => {
-                    const updateBody = {};
-                    if (needsNameUpdate) updateBody.name = profileForm.name;
-                    if (needsLanguageUpdate) updateBody.language = profileForm.language;
-                    
-                    updateUser({
-                        user_id: user?._id,
-                        body: updateBody,
-                        token: user?.token,
-                        handleUpdateUserSuccess: (data) => {
-                            updatedUser = { ...updatedUser, ...data?.user };
-                            dispatch(setUser(updatedUser));
-                            // Sync language immediately if changed
-                            if (needsLanguageUpdate) {
-                                syncLanguageWithUser(profileForm.language);
-                            }
-                            resolve();
-                        },
-                        handleUpdateUserFailure: (error) => {
-                            reject(error);
-                        }
-                    });
-                });
-            });
-        }
-
-        // 3. Update password if changed
-        if (needsPasswordUpdate) {
-            updateChain = updateChain.then(() => {
-                return new Promise((resolve, reject) => {
-                    resetPassword({
-                        user_id: user?._id,
-                        body: { password: profileForm.password },
-                        handleResetPasswordSuccess: () => {
-                            resolve();
-                        },
-                        handleResetPasswordFailure: (error) => {
-                            reject(error);
-                        }
-                    });
-                });
-            });
-        }
-
-        // Execute all updates
-        updateChain
-            .then(() => {
-                setIsUpdated(true);
-                setLoading(false);
-                setTimeout(() => {
-                    handleCloseProfileModal();
-                }, 2000);
-            })
-            .catch((error) => {
-                setError(error || 'Failed to update profile');
-                setLoading(false);
-            });
-    };
-
-    // Subscribe to chat messages for unread count
-    useEffect(() => {
-        const handleNewMessage = (msg) => {
-            if (location.pathname === '/admin/chat') return;
-            setUnreadCount((prev) => prev + 1);
-        };
-        socket.on('chat:newMessage', handleNewMessage);
-        return () => {
-            socket.off('chat:newMessage', handleNewMessage);
-        };
-    }, [location.pathname]);
-
-    const handleBellClick = () => {
-        navigate('/admin/chat');
-        setUnreadCount(0);
+        resetProfileState();
     };
 
     const menuItems = [
@@ -268,333 +89,84 @@ const AdminDashboard = () => {
         { icon: AlertTriangle, label: t('valet.flaggedCustomers'), path: '/admin/flagged-customers' },
     ];
 
-    const isActive = (path) => {
-        return location.pathname === path;
-    };
+    const isActive = (path) => location.pathname === path;
 
-    if (!user || (user.type !== 'system_admin' && user.type !== 'manager')) {
-        return null; // Or a loading spinner, or a redirect handled by useEffect
+    if (!isAuthorized) {
+        return null;
     }
 
+    const mobileRoleLabel = user?.type === 'system_admin'
+        ? 'System Admin'
+        : (user?.type === 'admin' ? 'Admin' : 'Manager');
+
     return (
-        <div className="admin-dashboard">
-            {/* Sidebar */}
-            <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-                <div className="sidebar-header">
-                    <div className="logo">
-                        <img src={TanaLogo} alt="Logo" className="logo-img" />
-                        <span className="logo-text">tana parking</span>
-                    </div>
-                    <button 
-                        className="sidebar-toggle"
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                    >
-                        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-                    </button>
-                </div>
-                
-                <nav className="sidebar-nav">
-                    {menuItems.map((item, index) => {
-                        const Icon = item.icon;
-                        return (
-                            <button
-                                key={index}
-                                className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
-                                onClick={() => {
-                                    navigate(item.path);
-                                    setMobileMenuOpen(false);
-                                }}
-                            >
-                                <Icon size={20} />
-                                {sidebarOpen && <span>{item.label}</span>}
-                            </button>
-                        );
-                    })}
-                </nav>
-
-                <div className="sidebar-footer">
-                    <div className="user-profile-dropdown">
-                        <button 
-                            className="nav-item user-profile-btn"
-                            onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+        <>
+            <DashboardShell
+                shellClassName="admin-dashboard"
+                logoText="tana parking"
+                mobileSidebarLogoText={mobileRoleLabel}
+                menuItems={menuItems}
+                isActive={isActive}
+                onNavigate={navigate}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                mobileMenuOpen={mobileMenuOpen}
+                onMobileMenuOpenChange={setMobileMenuOpen}
+                user={user}
+                userDisplayName={user?.name || 'Admin'}
+                profileDropdownOpen={profileDropdownOpen}
+                onProfileDropdownToggle={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                onProfileUpdate={handleProfileUpdate}
+                onLogout={handleLogout}
+                unreadCount={unreadCount}
+                onOpenChat={openChat}
+                welcomeContent={<span>{t('dashboard.welcome')}, {user?.name || 'Admin'}</span>}
+                mobileNavExtra={(
+                    <>
+                        <button
+                            type="button"
+                            className={`nav-item ${isActive('/admin/dashboard/profile') ? 'active' : ''}`}
+                            onClick={() => {
+                                navigate('/admin/dashboard/profile');
+                                setMobileMenuOpen(false);
+                            }}
                         >
-                            {user?.profilePhoto ? (
-                                <img 
-                                    src={user.profilePhoto.startsWith('http') 
-                                        ? user.profilePhoto 
-                                        : `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000/'}${user.profilePhoto.startsWith('/') ? user.profilePhoto.substring(1) : user.profilePhoto}`}
-                                    alt="Profile" 
-                                    className="user-avatar-img"
-                                />
-                            ) : (
-                                <div className="user-avatar">
-                                    {user?.name?.[0]?.toUpperCase()}
-                                </div>
-                            )}
-                            {sidebarOpen && (
-                                <>
-                                    <span className="user-name">{user?.name || 'Admin'}</span>
-                                    <span className="dropdown-arrow">▼</span>
-                                </>
-                            )}
+                            <User size={20} />
+                            <span>{t('profile.profileUpdate')}</span>
                         </button>
-                        {profileDropdownOpen && sidebarOpen && (
-                            <div className="profile-dropdown-menu">
-                                <button 
-                                    className="dropdown-item"
-                                    onClick={handleProfileUpdate}
-                                >
-                                    <span>{t('profile.profileUpdate')}</span>
-                                </button>
-                                <button 
-                                    className="dropdown-item logout-item"
-                                    onClick={handleLogout}
-                                >
-                                    <LogOut size={16} />
-                                    <span>{t('common.logout')}</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <div className="main-content">
-                {/* Header */}
-                <header className="dashboard-header">
-                    <div className="header-left">
-                        <button 
-                            className="mobile-menu-btn"
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        <button
+                            type="button"
+                            className="nav-item logout-item"
+                            onClick={() => {
+                                handleLogout();
+                                setMobileMenuOpen(false);
+                            }}
                         >
-                            <Menu size={24} />
+                            <LogOut size={20} />
+                            <span>{t('common.logout')}</span>
                         </button>
-                        <div className="welcome-message">
-                            <span>{t('dashboard.welcome')}, {user?.name || 'Admin'}</span>
-                        </div>
-                    </div>
-                    
-                    <div className="header-right">
-                        <button className="icon-btn" onClick={handleBellClick}>
-                            <Bell size={20} />
-                            {unreadCount > 0 && (
-                                <span className="badge">{unreadCount}</span>
-                            )}
-                        </button>
-                    </div>
-                </header>
-
-
-                {/* Mobile Sidebar Overlay */}
-                {mobileMenuOpen && (
-                    <div 
-                        className="mobile-overlay"
-                        onClick={() => setMobileMenuOpen(false)}
-                    >
-                        <aside 
-                            className={`mobile-sidebar ${mobileMenuOpen ? 'open' : ''}`}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="sidebar-header">
-                                <div className="logo">
-                                    <img src={TanaLogo} alt="Logo" className="logo-img" />
-                                    <span className="logo-text">{user?.type === 'system_admin' ? 'System Admin' : (user?.type === 'admin' ? 'Admin' : 'Manager')}</span>
-                                </div>
-                                <button
-                                    className="sidebar-toggle"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-                            <nav className="sidebar-nav">
-                                {menuItems.map((item, index) => {
-                                    const Icon = item.icon;
-                                    return (
-                                        <button
-                                            key={index}
-                                            className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
-                                            onClick={() => {
-                                                navigate(item.path);
-                                                setMobileMenuOpen(false);
-                                            }}
-                                        >
-                                            <Icon size={20} />
-                                            <span>{item.label}</span>
-                                        </button>
-                                    );
-                                })}
-                                <button
-                                    className={`nav-item ${isActive('/admin/dashboard/profile') ? 'active' : ''}`}
-                                    onClick={() => {
-                                        navigate('/admin/dashboard/profile');
-                                        setMobileMenuOpen(false);
-                                    }}
-                                >
-                                    <User size={20} />
-                                    <span>Profile</span>
-                                </button>
-                                <button
-                                    className="nav-item logout-item"
-                                    onClick={() => {
-                                        handleLogout();
-                                        setMobileMenuOpen(false);
-                                    }}
-                                >
-                                    <LogOut size={20} />
-                                    <span>Logout</span>
-                                </button>
-                            </nav>
-                        </aside>
-                    </div>
+                    </>
                 )}
-
-                {/* Page Content */}
-                <div className="content-area">
-                    <Outlet />
-                </div>
-            </div>
-
-            {/* Profile Update Modal */}
-            {showProfileModal && (
-                <div className="profile-modal-overlay" onClick={handleCloseProfileModal}>
-                    <div className="profile-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="profile-modal-header">
-                            <h2>{t('profile.updateProfile')}</h2>
-                            <button className="modal-close-btn" onClick={handleCloseProfileModal}>
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <div className="profile-modal-body">
-                            {isUpdated && (
-                                <div className="alert alert-success">
-                                    {t('profile.profileUpdatedSuccessfully')}
-                                </div>
-                            )}
-                            {error && (
-                                <div className="alert alert-danger">
-                                    {error}
-                                </div>
-                            )}
-
-                            {/* Profile Photo Upload */}
-                            <div className="profile-photo-section">
-                                <div className="profile-photo-preview">
-                                    {profileForm.profilePhotoPreview ? (
-                                        <img 
-                                            src={profileForm.profilePhotoPreview} 
-                                            alt="Profile" 
-                                            className="profile-photo-img"
-                                        />
-                                    ) : (
-                                        <div className="profile-photo-placeholder">
-                                            <User size={48} />
-                                        </div>
-                                    )}
-                                    <label className="profile-photo-upload-btn">
-                                        <Camera size={20} />
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleProfilePhotoChange}
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                </div>
-                                <p className="profile-photo-hint">{t('profile.clickCameraToUpload')}</p>
-                            </div>
-
-                            {/* Name Field */}
-                            <div className="form-group">
-                                <label htmlFor="profile-name">{t('profile.name')}</label>
-                                <input
-                                    type="text"
-                                    id="profile-name"
-                                    className="form-control"
-                                    value={profileForm.name}
-                                    onChange={(e) => handleProfileFormChange('name', e.target.value)}
-                                    placeholder="Enter your name"
-                                />
-                            </div>
-
-                            {/* Language Selection */}
-                            <div className="form-group">
-                                <label htmlFor="profile-language">{t('profile.language')}</label>
-                                <select
-                                    id="profile-language"
-                                    className="form-control"
-                                    value={profileForm.language}
-                                    onChange={(e) => handleProfileFormChange('language', e.target.value)}
-                                >
-                                    <option value="en">{t('profile.english')}</option>
-                                    <option value="am">{t('profile.amharic')}</option>
-                                </select>
-                            </div>
-
-                            {/* Email (read-only) */}
-                            <div className="form-group">
-                                <label htmlFor="profile-email">{t('profile.email')}</label>
-                                <input
-                                    type="email"
-                                    id="profile-email"
-                                    className="form-control"
-                                    value={user?.email || ''}
-                                    disabled
-                                />
-                            </div>
-
-                            {/* Password Change Section */}
-                            <div className="password-section">
-                                <h3>{t('profile.changePassword')}</h3>
-                                <div className="form-group">
-                                    <label htmlFor="profile-password">{t('profile.newPassword')}</label>
-                                    <input
-                                        type="password"
-                                        id="profile-password"
-                                        className="form-control"
-                                        value={profileForm.password}
-                                        onChange={(e) => handleProfileFormChange('password', e.target.value)}
-                                        placeholder="Enter new password"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="profile-confirm-password">{t('profile.confirmPassword')}</label>
-                                    <input
-                                        type="password"
-                                        id="profile-confirm-password"
-                                        className="form-control"
-                                        value={profileForm.confirmPassword}
-                                        onChange={(e) => handleProfileFormChange('confirmPassword', e.target.value)}
-                                        placeholder="Confirm new password"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="profile-modal-actions">
-                                <button 
-                                    className="btn-cancel"
-                                    onClick={handleCloseProfileModal}
-                                    disabled={loading}
-                                >
-                                    {t('common.cancel')}
-                                </button>
-                                <button 
-                                    className="btn-submit"
-                                    onClick={handleUpdateProfile}
-                                    disabled={loading}
-                                >
-                                    {loading ? t('profile.updating') : t('profile.updateProfile')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                overlay={(
+                    <ProfileModal
+                        isOpen={showProfileModal}
+                        onClose={handleCloseProfileModal}
+                        user={user}
+                        profileForm={profileForm}
+                        isUpdated={isUpdated}
+                        error={error}
+                        loading={loading}
+                        onFormChange={handleFormChange}
+                        onPhotoChange={handlePhotoChange}
+                        onSubmit={() => submitProfile(t, handleCloseProfileModal)}
+                        showEmailField
+                    />
+                )}
+            >
+                <Outlet />
+            </DashboardShell>
+        </>
     );
 };
 
 export default AdminDashboard;
-

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { FileText, DollarSign, Users } from 'lucide-react';
+import { useCurrentUser } from '../../hooks/useAuth';
+import { REPORT_ROLES } from '../../constants/roles';
 import FinancialReports from './reports/FinancialReports';
 import CustomerReports from './reports/CustomerReports';
 import AdministrativeReports from './reports/AdministrativeReports';
-import '../../css/reports.scss';
+import '../../styles/reports.scss';
 
 const Reports = () => {
     const { t } = useTranslation();
-    const user = useSelector((state) => state.user);
+    const user = useCurrentUser();
     const [activeTab, setActiveTab] = useState('financial');
 
     const tabs = [
@@ -20,7 +21,7 @@ const Reports = () => {
 
     const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || FinancialReports;
 
-    if (!user || !['system_admin', 'manager', 'admin'].includes(user.type)) {
+    if (!user || !REPORT_ROLES.includes(user.type)) {
         return (
             <div className="reports-container">
                 <div className="access-denied">
@@ -58,4 +59,3 @@ const Reports = () => {
 };
 
 export default Reports;
-

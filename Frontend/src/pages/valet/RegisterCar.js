@@ -1,123 +1,83 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { createParkedCar, sendSmsNotification, CHAPA_BACKEND_CALLBACK_URL, fetchPricingSettings, initializePackagePayment, verifyChapaPackagePayment } from '../../api/api';
-import { queuePaymentSuccess } from '../../utils/paymentSuccessQueue';
-import '../../css/registerCar.scss';
-
-// Default plate codes fallback (used if database is empty)
-const defaultPlateCodes = [
-    '01', '02', '03', '04', '05', 'police', 'AO', 'ተላላፊ', 'የእለት', 'DF', 'AU', 'AU-CD', 'UN', 'UN-CD', 'CD',
-];
-
-const regions = [
-    'ET', 'AA', 'AF', 'AM', 'BG', 'DR', 'GM', 'HR', 'OR', 'SM', 'TG', 'SD', 'DE', 'ME', 'DM',
-];
-
-const carTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
+import { createParkedCarRecord, sendSms } from '../../api/api';
+import { getApiError } from '../../api/client';
+import { useCurrentUser } from '../../hooks/useAuth';
+import { usePricingSettingsQuery } from '../../hooks/queries';
+import { useChapaPayment } from '../../hooks/useChapaPayment';
+import ChapaPaymentModal from '../../components/payment/ChapaPaymentModal';
+import {
+    RegisterCarForm,
+    RegisterCarServiceModal,
+    RegisterCarPackageModal,
+    EMPTY_FORM,
+    resolvePlateCodesFromPricing,
+    buildHourlyRegistrationSms,
+    getFormLicenseDisplay,
+    PACKAGE_DURATIONS,
+} from './registerCarModules';
+import '../../styles/registerCar.scss';
 
 const RegisterCar = () => {
     const { t } = useTranslation();
-    const user = useSelector((state) => state.user);
+    const user = useCurrentUser();
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        plateCode: '',
-        region: '', // New field for region
-        licensePlateNumber: '', // New field for license plate number
-        carType: '', // New field for car type
-        model: '',
-        color: '',
-        phoneNumber: '',
-        notes: ''
-    });
-    const [plateCodes, setPlateCodes] = useState(defaultPlateCodes);
-    const [pricingSettings, setPricingSettings] = useState({}); // Store pricing settings for car types
+
+    const [formData, setFormData] = useState(EMPTY_FORM);
+    const { data: pricingData } = usePricingSettingsQuery();
+    const pricingSettings = useMemo(() => {
+        if (pricingData && typeof pricingData === 'object' && pricingData.priceLevels) {
+            return pricingData;
+        }
+        return { priceLevels: {} };
+    }, [pricingData]);
+    const plateCodes = useMemo(
+        () => resolvePlateCodesFromPricing(pricingData),
+        [pricingData]
+    );
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const [showServiceModal, setShowServiceModal] = useState(false);
     const [showPackageModal, setShowPackageModal] = useState(false);
-    const [serviceType, setServiceType] = useState(''); // 'hourly' or 'package'
-    const [packageDuration, setPackageDuration] = useState(''); // 'weekly', 'monthly', 'yearly'
+    const [serviceType, setServiceType] = useState('');
+    const [packageDuration, setPackageDuration] = useState('');
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
     const [packagePaymentAmount, setPackagePaymentAmount] = useState(0);
     const [packageTxRef, setPackageTxRef] = useState('');
-    const chapaInstanceRef = useRef(null);
 
-    // Fetch plate codes and pricing settings from database on component mount
-    useEffect(() => {
-        fetchPricingSettings({
-            setPricingSettings: (data) => {
-                // Store pricing settings with price levels structure
-                // Structure: {priceLevels: {[name]: {carType: {hourly, weekly, monthly, yearly}}}}
-                if (data && typeof data === 'object' && data.priceLevels) {
-                    setPricingSettings(data);
-                } else {
-                    // Default fallback structure
-                    setPricingSettings({
-                        priceLevels: {}
-                    });
-                }
-                
-                // Extract plate codes from pricing settings (for backward compatibility)
-                // If database has settings, use those keys; otherwise use defaults
-                if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-                    // Check if data has car type structure or plate code structure
-                    const hasCarTypes = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'].some(type => data[type]);
-                    if (!hasCarTypes && !data.priceLevels) {
-                        // Old format - plate codes
-                    const codes = Object.keys(data);
-                    setPlateCodes(codes);
-                    } else {
-                        // New format - keep using default codes for plate codes field
-                        setPlateCodes(defaultPlateCodes);
-                    }
-                } else {
-                    // Use default codes if database is empty
-                    setPlateCodes(defaultPlateCodes);
-                }
-                // Store VAT rate from backend
-                if (data && data.vatRate !== undefined) {
-                    window.vatRate = data.vatRate;
-                } else {
-                    window.vatRate = 0.15; // Default
-                }
-            }
-        });
-    }, []);
-
-    // Calculate package fee based on valet's price level, car type and package duration
-    const calculatePackageFee = (carType, duration) => {
-        // Determine price level to use: valet's priceLevel or first available
-        const valetPriceLevel = user?.priceLevel || null;
-        const priceLevels = pricingSettings?.priceLevels || {};
-        const priceLevelNames = Object.keys(priceLevels);
-
-        const priceLevelToUse = valetPriceLevel && priceLevels[valetPriceLevel]
-            ? valetPriceLevel
-            : (priceLevelNames.length > 0 ? priceLevelNames[0] : null);
-
-        if (!priceLevelToUse) return null;
-
-        const carPricing = priceLevels[priceLevelToUse]?.[carType] || {};
-        const packagePrice = carPricing[duration];
-
-        if (packagePrice === undefined || packagePrice === null || isNaN(Number(packagePrice))) {
-            return null;
-        }
-
-        const priceNumber = Number(packagePrice);
-        // Get VAT rate from backend settings (stored in window.vatRate) or use default
-        const vatRate = window.vatRate || 0.15;
-        const vatAmount = Math.round(priceNumber * vatRate * 100) / 100;
-        const totalWithVat = Math.round((priceNumber + vatAmount) * 100) / 100;
-
-        return {
-            totalWithVat,
-            priceLevelUsed: priceLevelToUse
-        };
+    const resetForm = () => {
+        setFormData(EMPTY_FORM);
+        setServiceType('');
+        setPackageDuration('');
+        setLoading(false);
     };
+
+    const { startPayment, closePayment } = useChapaPayment({
+        mode: 'package',
+        user,
+        formData,
+        pricingSettings,
+        t,
+        setLoading,
+        setShowPaymentFormModal,
+        loading,
+        onError: setError,
+        onPackagePaymentComplete: resetForm,
+        onPaymentInitialized: ({ txRef, amount }) => {
+            setPackageTxRef(txRef);
+            setPackagePaymentAmount(amount);
+        },
+        onPaymentClosed: () => {
+            setPackageTxRef('');
+            setPackagePaymentAmount(0);
+        },
+    });
+
+    useEffect(() => {
+        window.vatRate = pricingData?.vatRate ?? 0.15;
+    }, [pricingData]);
 
     const handleChange = (field, value) => {
         setFormData({ ...formData, [field]: value });
@@ -135,423 +95,60 @@ const RegisterCar = () => {
             return;
         }
 
-        // Show service subscription modal instead of directly creating car
         setShowServiceModal(true);
     };
 
     const handleServiceTypeSelect = (type) => {
         setServiceType(type);
         if (type === 'package') {
-            // Show package duration selection modal
             setShowServiceModal(false);
             setShowPackageModal(true);
-        } else {
-            // Hourly service - clear package duration and proceed to create car and payment
-            setPackageDuration('');
-            setShowServiceModal(false);
-            createCarAndProceedToPayment();
+            return;
         }
+
+        setPackageDuration('');
+        setShowServiceModal(false);
+        createHourlyCar();
     };
 
     const handlePackageDurationSelect = (duration) => {
         setPackageDuration(duration);
         setShowPackageModal(false);
-        // Package is payment-first + inline modal (no car created yet)
-        startPackageInlinePayment(duration);
+        startPayment({ duration });
     };
 
-    const createCarAndProceedToPayment = (selectedPackageDuration = null) => {
+    const createHourlyCar = async () => {
         setLoading(true);
-        const finalServiceType = serviceType || 'hourly';
-        const finalPackageDuration = finalServiceType === 'package' 
-            ? (selectedPackageDuration || packageDuration || null)
+        const validatedPackageDuration = serviceType === 'package'
+            && PACKAGE_DURATIONS.includes(packageDuration)
+            ? packageDuration
             : null;
 
-        // Ensure packageDuration is a valid value or null
-        const validatedPackageDuration = finalPackageDuration && ['weekly', 'monthly', 'yearly'].includes(finalPackageDuration)
-            ? finalPackageDuration
-            : null;
-
-        // Hourly flow: create the car immediately
-        createParkedCar({
-            body: {
-                plateCode: formData.plateCode,
-                region: formData.region,
-                licensePlateNumber: formData.licensePlateNumber,
-                carType: formData.carType,
-                model: formData.model,
-                color: formData.color,
-                phoneNumber: formData.phoneNumber,
-                notes: formData.notes,
-                serviceType: finalServiceType,
-                packageDuration: validatedPackageDuration
-            },
-            token: user?.token,
-            handleCreateParkedCarSuccess,
-            handleCreateParkedCarFailure
-        });
-    };
-
-    const handleCreateParkedCarSuccess = async (carData) => {
-        // Package is handled payment-first, so we should never create a car here for package registrations.
-        // (If it happens, treat it as hourly success.)
-
-        // For hourly service, just show success message and redirect
-        setSuccess('Car registered successfully!');
-
-        // Construct SMS message
-        const now = new Date();
-        const parkingTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const parkingDate = now.toLocaleDateString();
-
-        const smsMessage = `Dear customer,\nyour car (Plate Code: ${formData.plateCode}, License Plate Number: ${formData.licensePlateNumber}, Model: ${formData.model}) is now parked at Tana parking.\nParking started at ${parkingTime} on ${parkingDate}.\nThank you!`;
-
-        // Send SMS notification
         try {
-            await sendSmsNotification({
-                phoneNumber: formData.phoneNumber,
-                message: smsMessage,
-                token: user?.token,
-                handleSendSmsSuccess: () => console.log('SMS sent successfully'),
-                handleSendSmsFailure: (smsError) => console.error('Failed to send SMS:', smsError)
-            });
-        } catch (smsError) {
-            console.error('Error sending SMS notification:', smsError);
-        }
+            await createParkedCarRecord({
+                ...formData,
+                serviceType: serviceType || 'hourly',
+                packageDuration: validatedPackageDuration,
+            }, user?.token);
 
-        // Reset form
-        resetForm();
+            setSuccess('Car registered successfully!');
 
-        setTimeout(() => {
-            navigate('/valet/dashboard');
-        }, 1500);
-    };
-
-    const closePackagePaymentModal = (force = false) => {
-        if (!force && loading) return;
-        if (chapaInstanceRef.current) {
-            const container = document.getElementById('chapa-inline-form');
-            if (container) container.innerHTML = '';
-            chapaInstanceRef.current = null;
-        }
-        setShowPaymentFormModal(false);
-        setPackageTxRef('');
-        setPackagePaymentAmount(0);
-    };
-
-    const verifyPackageWithRetry = async (txRef, maxAttempts = 10, delayMs = 1200) => {
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                // eslint-disable-next-line no-await-in-loop
-                const result = await new Promise((resolve, reject) => {
-                    verifyChapaPackagePayment({
-                        txRef,
-                        token: user?.token,
-                        handleVerifySuccess: resolve,
-                        handleVerifyFailure: reject
-                    });
-                });
-
-                // Check if payment is successful
-                if (result?.transaction?.status === 'successful') {
-                    return result;
-                }
-
-                // If pending/processing, continue retrying
-                if (result?.transaction?.status === 'pending' || result?.transaction?.status === 'processing') {
-                    // eslint-disable-next-line no-await-in-loop
-                    await new Promise((r) => setTimeout(r, delayMs));
-                    continue;
-                }
-
-                // If failed status, throw error
-                if (result?.transaction?.status === 'failed' || result?.transaction?.status === 'cancelled') {
-                    throw new Error(result?.message || 'Payment failed or was cancelled.');
-                }
-
-                // Unknown status, continue retrying
-                // eslint-disable-next-line no-await-in-loop
-                await new Promise((r) => setTimeout(r, delayMs));
-            } catch (error) {
-                const errMsg = (error?.message || error?.response?.data?.error || '').toLowerCase();
-                const isAlreadyProcessed = errMsg.includes('already processed') || errMsg.includes('not found') || error?.response?.status === 404;
-                if (isAlreadyProcessed) {
-                    // Payment was already verified (e.g. by webhook) - stop retrying
-                    return { transaction: { status: 'successful' }, alreadyProcessed: true };
-                }
-                // If it's a network error or API error, continue retrying
-                if (attempt < maxAttempts) {
-                    // eslint-disable-next-line no-await-in-loop
-                    await new Promise((r) => setTimeout(r, delayMs));
-                    continue;
-                }
-                // Last attempt failed
-                throw error;
-            }
-        }
-        throw new Error('Payment is still pending. Please wait a moment and try again.');
-    };
-
-    const startPackageInlinePayment = async (duration) => {
-        try {
-            setError('');
-            setSuccess('');
-            setLoading(true);
-
-            const validatedDuration = ['weekly', 'monthly', 'yearly'].includes(duration) ? duration : null;
-            if (!validatedDuration) {
-                setError('Invalid package duration selected.');
-                setLoading(false);
-                return;
+                await sendSms(
+                    formData.phoneNumber,
+                    buildHourlyRegistrationSms(formData),
+                    user?.token
+                );
+            } catch (smsErr) {
+                console.error('Error sending SMS notification:', smsErr);
             }
 
-            const feeInfo = calculatePackageFee(formData.carType, validatedDuration);
-            if (!feeInfo?.totalWithVat || feeInfo.totalWithVat <= 0) {
-                setError('Package pricing not configured or invalid. Please contact administrator.');
-                setLoading(false);
-                return;
-            }
-
-            if (!user?.priceLevel) {
-                setError('Your account has no price level assigned. Please contact admin.');
-                setLoading(false);
-                return;
-            }
-
-            const carDataPayload = {
-                plateCode: formData.plateCode,
-                region: formData.region,
-                licensePlateNumber: formData.licensePlateNumber,
-                carType: formData.carType,
-                model: formData.model,
-                color: formData.color,
-                phoneNumber: formData.phoneNumber,
-                notes: formData.notes,
-                priceLevel: user.priceLevel
-            };
-
-            await initializePackagePayment({
-                amount: feeInfo.totalWithVat,
-                packageDuration: validatedDuration,
-                customerPhone: formData.phoneNumber,
-                carData: carDataPayload,
-                token: user?.token,
-                handleInitSuccess: async (data) => {
-                    const txRef = data?.txRef;
-                    const chapaPublicKey = data?.publicKey || process.env.REACT_APP_CHAPA_PUBLIC_KEY;
-
-                    if (!txRef) {
-                        setError('Failed to initialize package payment (missing txRef).');
-                        setLoading(false);
-                        return;
-                    }
-
-                    if (!chapaPublicKey) {
-                        console.error('Chapa public key is not configured. Please add CHAPA_PUBLIC_KEY to backend .env');
-                        setError('Payment service is temporarily unavailable. Please try again.');
-                        setLoading(false);
-                        return;
-                    }
-
-                    localStorage.setItem(`chapa_payment_pkg_${txRef}`, JSON.stringify({
-                        txRef,
-                        packageDuration: validatedDuration,
-                        amount: feeInfo.totalWithVat,
-                        carData: carDataPayload,
-                        initiatedAt: Date.now(),
-                    }));
-
-                    setPackageTxRef(txRef);
-                    setPackagePaymentAmount(feeInfo.totalWithVat);
-                    setShowPaymentFormModal(true);
-
-                    // Wait for modal DOM render
-                    setTimeout(async () => {
-                        try {
-                            // Clean up container
-                            const container = document.getElementById('chapa-inline-form');
-                            if (container) container.innerHTML = '';
-
-                            let ChapaCheckout = window.ChapaCheckout;
-                            if (!ChapaCheckout) {
-                                let attempts = 0;
-                                await new Promise((resolve, reject) => {
-                                    const checkInterval = setInterval(() => {
-                                        attempts++;
-                                        if (window.ChapaCheckout) {
-                                            clearInterval(checkInterval);
-                                            ChapaCheckout = window.ChapaCheckout;
-                                            resolve();
-                                        } else if (attempts > 30) {
-                                            clearInterval(checkInterval);
-                                            reject(new Error('Chapa library failed to load'));
-                                        }
-                                    }, 100);
-                                });
-                            }
-
-                            if (!ChapaCheckout) {
-                                setError('Chapa payment library is not loaded. Please refresh the page.');
-                                setShowPaymentFormModal(false);
-                                setLoading(false);
-                                return;
-                            }
-
-                            // Format phone number to E.164 if needed
-                            let formattedPhone = formData.phoneNumber;
-                            if (formattedPhone && !formattedPhone.startsWith('+')) {
-                                formattedPhone = formattedPhone.replace(/^0/, '+251');
-                                if (!formattedPhone.startsWith('+')) {
-                                    formattedPhone = `+251${formattedPhone}`;
-                                }
-                            }
-                            const generatedEmail = `${formattedPhone.replace(/[^0-9]/g, '')}@tana-parking.com`;
-                            
-                            // Ensure amount is properly formatted as string with 2 decimal places
-                            const amountNum = parseFloat(feeInfo.totalWithVat);
-                            const formattedAmount = amountNum.toFixed(2);
-                            
-                            const chapa = new ChapaCheckout({
-                                // Provide both camelCase + snake_case keys for better Inline.js compatibility
-                                publicKey: chapaPublicKey,
-                                public_key: chapaPublicKey,
-                                amount: formattedAmount, // String with 2 decimal places
-                                currency: 'ETB',
-                                txRef,
-                                tx_ref: txRef,
-                                phoneNumber: formattedPhone,
-                                phone_number: formattedPhone,
-                                // Chapa requires these fields even if we only use phone number
-                                // Using placeholder values so user doesn't need to enter them
-                                firstName: 'Customer',
-                                lastName: 'Package',
-                                first_name: 'Customer',
-                                last_name: 'Package',
-                                email: generatedEmail,
-                                availablePaymentMethods: ['telebirr', 'cbebirr', 'ebirr', 'mpesa'],
-                                customizations: {
-                                    buttonText: 'Pay Now',
-                                },
-                                // Backend callback for Chapa; returnUrl sends user to dashboard after pay.
-                                callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
-                                callback_url: CHAPA_BACKEND_CALLBACK_URL,
-                                returnUrl: `${window.location.origin}/valet/register-car`,
-                                return_url: `${window.location.origin}/valet/register-car`,
-                                showFlag: true,
-                                showPaymentMethodsNames: true,
-                                onSuccessfulPayment: async () => {
-                                    try {
-                                        const verifyResult = await verifyPackageWithRetry(txRef);
-
-                                        // SMS sent here after inline payment success
-                                        try {
-                                            const carInfo = verifyResult?.car;
-                                            const packageDurationLabel = carInfo?.packageDuration || validatedDuration;
-                                            const licenseDisplay = `${formData.plateCode}-${formData.region}-${formData.licensePlateNumber}`;
-
-                                            let remainingDaysText = '';
-                                            if (carInfo?.packageEndDate) {
-                                                const now = new Date();
-                                                const end = new Date(carInfo.packageEndDate);
-                                                const diffMs = end.getTime() - now.getTime();
-                                                const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-                                                remainingDaysText = `Package expires on ${end.toLocaleDateString()} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining).`;
-                                            }
-
-                                            const smsMessage = `Dear customer,\nYour ${packageDurationLabel} parking package at Tana Parking is now active for car (Plate: ${licenseDisplay}, Model: ${formData.model}).\n${remainingDaysText}\nTotal paid: ${feeInfo.totalWithVat.toFixed(2)} ETB.\nThank you!`;
-
-                                            await sendSmsNotification({
-                                                phoneNumber: formData.phoneNumber,
-                                                message: smsMessage,
-                                                token: user?.token,
-                                                handleSendSmsSuccess: () => console.log('Package SMS sent successfully'),
-                                                handleSendSmsFailure: (smsError) => console.error('Failed to send package SMS:', smsError),
-                                            });
-                                        } catch (smsErr) {
-                                            console.error('Error sending package activation SMS:', smsErr);
-                                        }
-
-                                        localStorage.removeItem(`chapa_payment_pkg_${txRef}`);
-                                        closePackagePaymentModal(true);
-                                        resetForm();
-                                        setLoading(false);
-                                        queuePaymentSuccess({
-                                            message: t('valet.packagePaymentSuccessful'),
-                                            amount: feeInfo.totalWithVat,
-                                            navigateTo: '/valet/dashboard',
-                                        });
-                                    } catch (verifyErr) {
-                                        setError(verifyErr?.message || 'Payment succeeded but verification is still pending. Please wait and refresh.');
-                                        setLoading(false);
-                                    }
-                                },
-                                onPaymentFailure: (err) => {
-                                    console.error('Payment failed - full error:', err);
-                                    console.error('Payment failed - error message:', err?.message);
-                                    console.error('Payment failed - error type:', typeof err);
-                                    console.error('Payment failed - error keys:', Object.keys(err || {}));
-                                    
-                                    // Extract more detailed error message
-                                    let errorMessage = 'Please try again';
-                                    if (err?.message) {
-                                        errorMessage = err.message;
-                                    } else if (typeof err === 'string') {
-                                        errorMessage = err;
-                                    } else if (err?.error) {
-                                        errorMessage = err.error;
-                                    }
-                                    
-                                    setError(`Payment failed: ${errorMessage}`);
-                                    setLoading(false);
-                                },
-                                onClose: () => {
-                                    closePackagePaymentModal();
-                                    setLoading(false);
-                                }
-                            });
-
-                            chapaInstanceRef.current = chapa;
-                            chapa.initialize('chapa-inline-form');
-                            setLoading(false);
-                        } catch (inlineErr) {
-                            console.error('Package inline payment init error:', inlineErr);
-                            setError('Failed to load payment form. Please try again.');
-                            setShowPaymentFormModal(false);
-                            setLoading(false);
-                        }
-                    }, 100);
-                },
-                handleInitFailure: (errorMessage) => {
-                    setError(errorMessage || 'Failed to initialize package payment');
-                    setLoading(false);
-                }
-            });
+            resetForm();
+            setTimeout(() => navigate('/valet/dashboard'), 1500);
         } catch (err) {
-            console.error('startPackageInlinePayment error:', err);
-            setError(err?.message || 'Failed to start package payment');
+            setError(getApiError(err, 'Failed to register car'));
             setLoading(false);
         }
-    };
-
-    const resetForm = () => {
-        setFormData({
-            plateCode: '',
-            region: '',
-            licensePlateNumber: '',
-            carType: '',
-            model: '',
-            color: '',
-            phoneNumber: '',
-            notes: ''
-        });
-        setServiceType('');
-        setPackageDuration('');
-        setLoading(false);
-    };
-
-    const handleCreateParkedCarFailure = (error) => {
-        setError(error || 'Failed to register car');
-        setLoading(false);
     };
 
     return (
@@ -560,466 +157,51 @@ const RegisterCar = () => {
                 {success && <div className="alert alert-success">{success}</div>}
                 {error && <div className="alert alert-danger">{error}</div>}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label>{t('valet.plateCode')} *</label>
-                            <select
-                                value={formData.plateCode}
-                                onChange={(e) => handleChange('plateCode', e.target.value)}
-                                required
-                            >
-                                <option value="" disabled>{t('auth.select')} {t('valet.plateCode')}</option>
-                                {plateCodes.map((code) => (
-                                    <option key={code} value={code}>
-                                        {code}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>{t('valet.region')} *</label>
-                            <select
-                                value={formData.region}
-                                onChange={(e) => handleChange('region', e.target.value)}
-                                required
-                            >
-                                <option value="" disabled>{t('auth.select')} {t('valet.region')}</option>
-                                {regions.map((regionCode) => (
-                                    <option key={regionCode} value={regionCode}>
-                                        {regionCode}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>{t('valet.licensePlateNumber')} *</label>
-                            <input
-                                type="text"
-                                value={formData.licensePlateNumber}
-                                onChange={(e) => handleChange('licensePlateNumber', e.target.value.toUpperCase())}
-                                placeholder="A12345"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label>Car Type *</label>
-                            <select
-                                value={formData.carType}
-                                onChange={(e) => handleChange('carType', e.target.value)}
-                                required
-                            >
-                                <option value="" disabled>Select Car Type</option>
-                                {carTypes.map((type) => (
-                                    <option key={type} value={type}>
-                                        {t(`valet.carType_${type}`)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>{t('valet.phoneNumber')} *</label>
-                            <input
-                                type="text"
-                                value={formData.phoneNumber}
-                                onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                                placeholder="e.g., 2519XXXXXXXX or 09XXXXXXXX"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label>{t('valet.model')}</label>
-                            <input
-                                type="text"
-                                value={formData.model}
-                                onChange={(e) => handleChange('model', e.target.value)}
-                                placeholder="Camry, Civic, etc."
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label>{t('valet.color')}</label>
-                            <input
-                                type="text"
-                                value={formData.color}
-                                onChange={(e) => handleChange('color', e.target.value)}
-                                placeholder="Red, Blue, Black, etc."
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-group">
-                        <label>{t('valet.notes')} ({t('common.optional')})</label>
-                        <textarea
-                            value={formData.notes}
-                            onChange={(e) => handleChange('notes', e.target.value)}
-                            placeholder="Additional notes about the vehicle..."
-                            rows="3"
-                        />
-                    </div>
-
-                    <div className="form-actions">
-                        <button 
-                            type="button" 
-                            className="btn-cancel"
-                            onClick={() => navigate('/valet/dashboard')}
-                        >
-                            {t('common.cancel')}
-                        </button>
-                        <button 
-                            type="submit" 
-                            className="btn-submit"
-                            disabled={loading}
-                        >
-                            {loading ? t('common.loading') : t('valet.registerCar')}
-                        </button>
-                    </div>
-                </form>
+                <RegisterCarForm
+                    t={t}
+                    formData={formData}
+                    plateCodes={plateCodes}
+                    loading={loading}
+                    onChange={handleChange}
+                    onSubmit={handleSubmit}
+                    onCancel={() => navigate('/valet/dashboard')}
+                />
             </div>
 
-            {/* Service Subscription Modal */}
-            {showServiceModal && (
-                <div 
-                    className="modal-overlay" 
-                    onClick={() => setShowServiceModal(false)}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 3000
-                    }}
-                >
-                    <div 
-                        className="modal-content" 
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: 'white',
-                            borderRadius: '12px',
-                            width: '90%',
-                            maxWidth: '500px',
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-                            padding: '0'
-                        }}
-                    >
-                        <div style={{ padding: '24px', borderBottom: '1px solid #e0e0e0' }}>
-                            <h3 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '600', color: '#333' }}>
-                                {t('valet.selectServiceType')}
-                            </h3>
-                            <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                                {t('valet.selectServiceType')}
-                            </p>
-                        </div>
-                        
-                        <div style={{ padding: '24px' }}>
-                            <div style={{ display: 'flex', gap: '1rem', flexDirection: 'row' }}>
-                                <button 
-                                    type="button"
-                                    className="btn-service hourly"
-                                    onClick={() => handleServiceTypeSelect('hourly')}
-                                    style={{ 
-                                        flex: 1,
-                                        padding: '12px 20px', 
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        borderRadius: '8px',
-                                        border: '2px solid #667eea',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.transform = 'translateY(-2px)';
-                                        e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.transform = 'translateY(0)';
-                                        e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
-                                    }}
-                                >
-                                    {t('valet.hourly')} {t('valet.serviceType')}
-                                </button>
-                                <button 
-                                    type="button"
-                                    className="btn-service package"
-                                    onClick={() => handleServiceTypeSelect('package')}
-                                    style={{ 
-                                        flex: 1,
-                                        padding: '12px 20px', 
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        borderRadius: '8px',
-                                        border: '2px solid #667eea',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.transform = 'translateY(-2px)';
-                                        e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.transform = 'translateY(0)';
-                                        e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
-                                    }}
-                                >
-                                    {t('valet.package')} {t('valet.serviceType')}
-                                </button>
-                            </div>
-                        </div>
+            <RegisterCarServiceModal
+                t={t}
+                isOpen={showServiceModal}
+                onClose={() => setShowServiceModal(false)}
+                onSelectService={handleServiceTypeSelect}
+            />
 
-                        <div style={{ 
-                            padding: '20px 24px', 
-                            borderTop: '1px solid #e0e0e0',
-                            display: 'flex',
-                            justifyContent: 'flex-end'
-                        }}>
-                            <button 
-                                className="btn-cancel" 
-                                onClick={() => setShowServiceModal(false)}
-                                style={{
-                                    padding: '10px 20px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #e0e0e0',
-                                    background: '#f5f7fa',
-                                    color: '#666',
-                                    cursor: 'pointer',
-                                    fontWeight: '500',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.background = '#e0e0e0';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.background = '#f5f7fa';
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <RegisterCarPackageModal
+                t={t}
+                isOpen={showPackageModal}
+                onClose={() => setShowPackageModal(false)}
+                onBack={() => {
+                    setShowPackageModal(false);
+                    setShowServiceModal(true);
+                }}
+                onSelectDuration={handlePackageDurationSelect}
+            />
 
-            {/* Package Duration Selection Modal */}
-            {showPackageModal && (
-                <div 
-                    className="modal-overlay" 
-                    onClick={() => setShowPackageModal(false)}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 3000
-                    }}
-                >
-                    <div 
-                        className="modal-content" 
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: 'white',
-                            borderRadius: '12px',
-                            width: '90%',
-                            maxWidth: '500px',
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-                            padding: '0'
-                        }}
-                    >
-                        <div style={{ padding: '24px', borderBottom: '1px solid #e0e0e0' }}>
-                            <h3 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '600', color: '#333' }}>
-                                Select Package Duration
-                            </h3>
-                            <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                                Choose the package duration for this vehicle
-                            </p>
-                        </div>
-                        
-                        <div style={{ padding: '24px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <button 
-                                    type="button"
-                                    className="btn-package weekly"
-                                    onClick={() => handlePackageDurationSelect('weekly')}
-                                    style={{ 
-                                        width: '100%',
-                                        padding: '16px 24px', 
-                                        fontSize: '16px',
-                                        fontWeight: '600',
-                                        borderRadius: '8px',
-                                        border: '2px solid #667eea',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.transform = 'translateY(-2px)';
-                                        e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.transform = 'translateY(0)';
-                                        e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
-                                    }}
-                                >
-                                    Weekly
-                                </button>
-                                <button 
-                                    type="button"
-                                    className="btn-package monthly"
-                                    onClick={() => handlePackageDurationSelect('monthly')}
-                                    style={{ 
-                                        width: '100%',
-                                        padding: '16px 24px', 
-                                        fontSize: '16px',
-                                        fontWeight: '600',
-                                        borderRadius: '8px',
-                                        border: '2px solid #667eea',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.transform = 'translateY(-2px)';
-                                        e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.transform = 'translateY(0)';
-                                        e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
-                                    }}
-                                >
-                                    Monthly
-                                </button>
-                                <button 
-                                    type="button"
-                                    className="btn-package yearly"
-                                    onClick={() => handlePackageDurationSelect('yearly')}
-                                    style={{ 
-                                        width: '100%',
-                                        padding: '16px 24px', 
-                                        fontSize: '16px',
-                                        fontWeight: '600',
-                                        borderRadius: '8px',
-                                        border: '2px solid #667eea',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.transform = 'translateY(-2px)';
-                                        e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.transform = 'translateY(0)';
-                                        e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
-                                    }}
-                                >
-                                    Yearly
-                                </button>
-                            </div>
-                        </div>
-
-                        <div style={{ 
-                            padding: '20px 24px', 
-                            borderTop: '1px solid #e0e0e0',
-                            display: 'flex',
-                            justifyContent: 'flex-end'
-                        }}>
-                            <button 
-                                className="btn-cancel" 
-                                onClick={() => {
-                                    setShowPackageModal(false);
-                                    setShowServiceModal(true);
-                                }}
-                                style={{
-                                    padding: '10px 20px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #e0e0e0',
-                                    background: '#f5f7fa',
-                                    color: '#666',
-                                    cursor: 'pointer',
-                                    fontWeight: '500',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.background = '#e0e0e0';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.background = '#f5f7fa';
-                                }}
-                            >
-                                Back
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Package Payment Form Modal (Chapa inline) */}
-            {showPaymentFormModal && (
-                <div className="payment-modal-overlay" onClick={closePackagePaymentModal}>
-                    <div className="payment-form-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>Complete Package Payment</h2>
-                            <button className="close-btn" onClick={closePackagePaymentModal} disabled={loading}>
-                                ×
-                            </button>
-                        </div>
-                        <div className="modal-content">
-                            <div className="payment-summary-section">
-                                <h3>Payment Summary</h3>
-                                <div className="summary-row">
-                                    <span className="label">Total Amount:</span>
-                                    <span className="value">{Number(packagePaymentAmount || 0).toFixed(2)} ETB</span>
-                                </div>
-                                <div className="summary-row">
-                                    <span className="label">Phone Number:</span>
-                                    <span className="value">{formData.phoneNumber || 'N/A'}</span>
-                                </div>
-                                <div className="summary-row">
-                                    <span className="label">Reference:</span>
-                                    <span className="value">{packageTxRef || 'N/A'}</span>
-                                </div>
-                            </div>
-                            <div className="chapa-payment-form-section">
-                                <h3>Pay Online</h3>
-                                <div id="chapa-inline-form"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ChapaPaymentModal
+                t={t}
+                isOpen={showPaymentFormModal}
+                loading={loading}
+                onClose={closePayment}
+                title={t('valet.completePayment', { defaultValue: 'Complete Package Payment' })}
+                totalAmount={packagePaymentAmount}
+                phoneNumber={formData.phoneNumber}
+                licensePlate={getFormLicenseDisplay(formData)}
+                extraSummaryRows={packageTxRef ? [{
+                    label: t('valet.paymentReference', { defaultValue: 'Reference' }),
+                    value: packageTxRef,
+                }] : []}
+            />
         </div>
     );
 };
 
 export default RegisterCar;
-

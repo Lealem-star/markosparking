@@ -1,4 +1,4 @@
-import i18n from '../i18n/config';
+import i18n from '../localization/setup';
 
 /**
  * Syncs i18n language with user's language preference

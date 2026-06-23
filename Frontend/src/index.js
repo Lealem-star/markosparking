@@ -5,12 +5,14 @@ import './index.css';
 import "bootstrap/dist/css/bootstrap.min.css";
 // Bootstrap Bundle JS
 import "bootstrap/dist/js/bootstrap.bundle.min";
-import './i18n/config'; // Initialize i18n
+import './localization/setup'; // Initialize localization
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { store, persistor } from './store';
+import { queryClient } from './api/queryClient';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -19,7 +21,9 @@ root.render(
     {/* Providing and persisting state through entire app by wrapping it */}
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <App />
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
       </PersistGate>
     </Provider>
   </React.StrictMode>

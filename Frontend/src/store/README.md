@@ -13,11 +13,14 @@ This document provides a detailed explanation of how Redux is implemented and ut
 
 ### Basic Setup
 ```javascript
-import { configureStore } from '@reduxjs/toolkit';
-import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
-import rootReducer from './reducers/rootReducer';
+// src/index.js — app entry
+import { store, persistor } from './store';
+
+// components / hooks — actions and selectors
+import { setUser, clearUser, selectCurrentUser } from '../store';
 ```
+
+Store configuration lives in `src/store/index.js`; reducers live in `src/store/reducers/`.
 
 **Key Components:**
 1. **@reduxjs/toolkit**

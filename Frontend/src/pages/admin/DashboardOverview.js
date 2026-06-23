@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useCurrentUser } from '../../hooks/useAuth';
+import { useParkedCarsQuery } from '../../hooks/queries';
+import { getApiError } from '../../api/client';
 import { Car, DollarSign } from 'lucide-react';
-import { fetchUsers, fetchParkedCars } from '../../api/api';
 import { EthiopianDatePicker } from '../../components';
-import '../../css/dashboardOverview.scss';
+import '../../styles/dashboardOverview.scss';
 
 const StatSparkline = ({ color }) => (
     <svg className="dashboard-stat-sparkline" viewBox="0 0 80 40" aria-hidden="true">
@@ -21,72 +22,55 @@ const StatSparkline = ({ color }) => (
 
 const DashboardOverview = () => {
     const { t } = useTranslation();
-    const [users, setUsers] = useState([]); // eslint-disable-line no-unused-vars
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [revenueRows, setRevenueRows] = useState([]);
-    const [loadingRevenue, setLoadingRevenue] = useState(false);
-    const [revenueError, setRevenueError] = useState('');
-    const [totalDailyCars, setTotalDailyCars] = useState(0);
-    const [totalDailyRevenue, setTotalDailyRevenue] = useState(0);
+    const user = useCurrentUser();
 
-    const user = useSelector((state) => state.user);
+    const {
+        data: cars = [],
+        isLoading: loadingRevenue,
+        error: revenueQueryError,
+    } = useParkedCarsQuery(user?.token, { date: selectedDate });
 
-    useEffect(() => {
-        fetchUsers({ setUsers: (data) => {
-            setUsers(data);
-        }});
-    }, []);
+    const revenueError = revenueQueryError
+        ? getApiError(revenueQueryError, 'Failed to load revenue data')
+        : '';
 
-    useEffect(() => {
-        const loadRevenue = () => {
-            if (!user?.token) return;
+    const { revenueRows, totalDailyCars, totalDailyRevenue } = useMemo(() => {
+        const map = new Map();
+        let totalRevenue = 0;
 
-            setLoadingRevenue(true);
-            setRevenueError('');
+        cars.forEach((car) => {
+            const valet = car.valet_id || {};
+            const key = `${car.location || 'Unknown'}||${valet._id || 'unknown'}`;
 
-            fetchParkedCars({
-                token: user.token,
-                date: selectedDate,
-                setParkedCars: (cars) => {
-                    const map = new Map();
-                    let totalRevenue = 0;
+            if (!map.has(key)) {
+                map.set(key, {
+                    parkZoneCode: car.location || 'Unknown',
+                    valetName: valet.name || 'Unknown',
+                    totalCars: 0,
+                    totalRevenue: 0,
+                    totalVAT: 0,
+                });
+            }
 
-                    cars.forEach((car) => {
-                        const valet = car.valet_id || {};
-                        const key = `${car.location || 'Unknown'}||${valet._id || 'unknown'}`;
+            const entry = map.get(key);
+            entry.totalCars += 1;
 
-                        if (!map.has(key)) {
-                            map.set(key, {
-                                parkZoneCode: car.location || 'Unknown',
-                                valetName: valet.name || 'Unknown',
-                                totalCars: 0,
-                                totalRevenue: 0,
-                                totalVAT: 0
-                            });
-                        }
+            const revenue = car.totalPaidAmount || 0;
+            const vat = car.vatAmount || 0;
+            entry.totalRevenue += revenue;
+            entry.totalVAT += vat;
+            totalRevenue += revenue;
+        });
 
-                        const entry = map.get(key);
-                        entry.totalCars += 1;
-                        
-                        // Use actual totalPaidAmount from the car (default to 0 if not set)
-                        const revenue = car.totalPaidAmount || 0;
-                        const vat = car.vatAmount || 0;
-                        entry.totalRevenue += revenue;
-                        entry.totalVAT += vat;
-                        totalRevenue += revenue;
-                    });
+        const rows = Array.from(map.values());
 
-                    const rows = Array.from(map.values());
-                    setRevenueRows(rows);
-                    setTotalDailyCars(rows.reduce((sum, row) => sum + row.totalCars, 0));
-                    setTotalDailyRevenue(totalRevenue);
-                    setLoadingRevenue(false);
-                }
-            });
+        return {
+            revenueRows: rows,
+            totalDailyCars: rows.reduce((sum, row) => sum + row.totalCars, 0),
+            totalDailyRevenue: totalRevenue,
         };
-
-        loadRevenue();
-    }, [user, selectedDate]);
+    }, [cars]);
 
     return (
         <div className="dashboard-overview">
@@ -179,5 +163,3 @@ const DashboardOverview = () => {
 };
 
 export default DashboardOverview;
-
-

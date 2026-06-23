@@ -223,7 +223,7 @@ const getImageAsBase64 = () => {
         const logoPaths = [
             '/Tana.png',
             './Tana.png',
-            '../img/Tana.png',
+            '../assets/Tana.png',
             'Tana.png'
         ];
 

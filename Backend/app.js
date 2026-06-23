@@ -1,23 +1,15 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const app = express();
-const bodyParser = require("body-parser");
-const { connectDB } = require("./config/db.config");
-const userRouter = require("./controllers/user");
-const handleError = require('./utils/errorHandler');
-const { isLoggedIn } = require("./controllers/middleware");
-const paymentMethodRouter = require("./controllers/paymentMethod");
-const paymentRouter = require("./controllers/payment");
-const parkedCarRouter = require("./controllers/parkedCar");
-const smsRouter = require("./controllers/sms");
-const pricingSettingsRouter = require("./controllers/pricingSettings");
-const reportsRouter = require("./controllers/reports");
-const chatRouter = require("./controllers/chat");
+require('./config/env');
+
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
+const bodyParser = require('body-parser');
+const { connectDB } = require('./config/db.config');
+const { notFound, errorMiddleware } = require('./middleware');
 
+const app = express();
 const port = process.env.PORT || 4000;
-
 // CORS configuration - Apply BEFORE routes to handle preflight requests
 const allowedOrigins = [
     'http://localhost:3000',
@@ -98,31 +90,10 @@ io.on('connection', (socket) => {
     });
 });
 
-app.get('/', isLoggedIn, async (req, res) => {
-    res.json({ message: 'Hello world!'})
-})
+app.use(require('./routes'));
 
-app.use("/user", userRouter)
-app.use("/paymentMethod", paymentMethodRouter)
-app.use("/payment", paymentRouter)
-app.use("/parkedCar", parkedCarRouter)
-app.use("/sms", smsRouter)
-app.use("/pricingSettings", pricingSettingsRouter)
-app.use("/reports", reportsRouter)
-app.use("/chat", chatRouter)
-
-// Error handler
-
-app.use((req, res, next) => {
-    const error = new Error("Not Found")
-    error.status = 404;
-    next(error)
-})
-
-app.use((error, req, res, next) => {
-    handleError(error, res);
-})
-
+app.use(notFound);
+app.use(errorMiddleware);
 server.listen(port, () => {
     console.log(`Running on http://localhost:${port}`)
 })

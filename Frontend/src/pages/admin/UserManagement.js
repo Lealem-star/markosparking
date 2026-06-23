@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { deactivateUser, fetchUsers, createUser, updateUser, fetchPricingSettings } from '../../api/api';
-import { useSelector } from 'react-redux';
+import React, { useMemo, useState } from 'react';
+import { deactivateUserRecord, createUserRecord, updateUserRecord } from '../../api/api';
+import { getApiError } from '../../api/client';
+import { useCurrentUser } from '../../hooks/useAuth';
+import { usePricingSettingsQuery, useUsersQuery, useInvalidateUsers } from '../../hooks/queries';
 import { useTranslation } from 'react-i18next';
 import { DeleteModal } from '../../components';
 import { Shield, Car } from 'lucide-react';
@@ -16,7 +18,7 @@ import {
     groupValetsByZone,
     isManagerial,
 } from './staffManagement';
-import '../../css/userManagement.scss';
+import '../../styles/userManagement.scss';
 
 const EMPTY_FORM = {
     name: '',
@@ -29,34 +31,31 @@ const EMPTY_FORM = {
 
 const UserManagement = () => {
     const { t } = useTranslation();
-    const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState();
     const [showDeactivateModal, setShowDeactivateModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [formData, setFormData] = useState(EMPTY_FORM);
-    const [priceLevels, setPriceLevels] = useState([]);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
     const [zoneFilter, setZoneFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
-    const user = useSelector((state) => state.user);
+    const user = useCurrentUser();
+    const invalidateUsers = useInvalidateUsers();
+    const { data: users = [] } = useUsersQuery(user?.token);
+    const { data: pricingData } = usePricingSettingsQuery();
 
-    useEffect(() => {
-        fetchUsers({ setUsers });
-        fetchPricingSettings({
-            setPricingSettings: (data) => {
-                if (data?.priceLevels) {
-                    setPriceLevels(Object.keys(data.priceLevels));
-                } else {
-                    setPriceLevels([]);
-                }
-            }
-        });
-    }, []);
+    const priceLevels = useMemo(() => {
+        if (pricingData?.priceLevels) {
+            return Object.keys(pricingData.priceLevels);
+        }
+        return [];
+    }, [pricingData]);
+
+    const refreshUsers = () => invalidateUsers();
 
     const filteredUsers = useMemo(
         () => filterStaff(users, { searchQuery, roleFilter, zoneFilter, statusFilter }),
@@ -107,18 +106,15 @@ const UserManagement = () => {
             }
         }
 
-        createUser({
-            body: formData,
-            token: user?.token,
-            handleCreateUserSuccess,
-            handleCreateUserFailure
-        });
+        createUserRecord(formData, user?.token)
+            .then(handleCreateUserSuccess)
+            .catch((err) => handleCreateUserFailure(getApiError(err)));
     };
 
     const handleCreateUserSuccess = () => {
         setSuccess('User created successfully!');
         resetForm();
-        fetchUsers({ setUsers });
+        refreshUsers();
         setTimeout(() => {
             setShowCreateModal(false);
             setSuccess('');
@@ -139,18 +135,18 @@ const UserManagement = () => {
         setShowDeactivateModal(true);
     };
 
-    const handleDeactivateUser = () => {
-        deactivateUser({
-            id: selectedUser?._id,
-            token: user?.token,
-            handleSuccess: handleDeactivateUserSuccess,
-            handleFailure: handleDeactivateUserFailure,
-        });
+    const handleDeactivateUser = async () => {
+        try {
+            await deactivateUserRecord(selectedUser?._id, user?.token);
+            handleDeactivateUserSuccess();
+        } catch (err) {
+            handleDeactivateUserFailure(getApiError(err));
+        }
     };
 
     const handleDeactivateUserSuccess = () => {
         setSuccess('User deactivated successfully!');
-        fetchUsers({ setUsers });
+        refreshUsers();
         setShowDeactivateModal(false);
         setTimeout(() => setSuccess(''), 2000);
     };
@@ -160,23 +156,18 @@ const UserManagement = () => {
         setShowDeactivateModal(false);
     };
 
-    const handleReactivate = (userToReactivate) => {
+    const handleReactivate = async (userToReactivate) => {
         setError('');
         setSuccess('');
 
-        updateUser({
-            user_id: userToReactivate?._id,
-            body: { isActive: true },
-            token: user?.token,
-            handleUpdateUserSuccess: () => {
-                setSuccess(`${userToReactivate?.name} reactivated successfully!`);
-                fetchUsers({ setUsers });
-                setTimeout(() => setSuccess(''), 2000);
-            },
-            handleUpdateUserFailure: (failureError) => {
-                setError(typeof failureError === 'string' ? failureError : failureError?.message || failureError?.error || 'Failed to reactivate user');
-            },
-        });
+        try {
+            await updateUserRecord(userToReactivate?._id, { isActive: true }, user?.token);
+            setSuccess(`${userToReactivate?.name} reactivated successfully!`);
+            refreshUsers();
+            setTimeout(() => setSuccess(''), 2000);
+        } catch (err) {
+            setError(getApiError(err, 'Failed to reactivate user'));
+        }
     };
 
     const handleEdit = (userToEdit) => {
@@ -226,19 +217,15 @@ const UserManagement = () => {
             updateBody.password = formData.password;
         }
 
-        updateUser({
-            user_id: editingUser?._id,
-            body: updateBody,
-            token: user?.token,
-            handleUpdateUserSuccess,
-            handleUpdateUserFailure
-        });
+        updateUserRecord(editingUser?._id, updateBody, user?.token)
+            .then(handleUpdateUserSuccess)
+            .catch((err) => handleUpdateUserFailure(getApiError(err)));
     };
 
     const handleUpdateUserSuccess = () => {
         setSuccess('User updated successfully!');
         resetForm();
-        fetchUsers({ setUsers });
+        refreshUsers();
         setTimeout(() => {
             setShowEditModal(false);
             setSuccess('');

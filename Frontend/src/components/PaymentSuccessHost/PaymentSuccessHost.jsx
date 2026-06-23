@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { useCurrentUser } from '../../hooks/useAuth';
 import PaymentSuccessModal from '../PaymentSuccessModal/PaymentSuccessModal';
-import { verifyChapaPayment, verifyChapaPackagePayment } from '../../api/api';
+import { verifyChapaPaymentTx, verifyChapaPackagePaymentTx } from '../../api/api';
 import {
     consumePaymentSuccess,
     PAYMENT_SUCCESS_EVENT,
@@ -17,7 +17,7 @@ const PaymentSuccessHost = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
-    const user = useSelector((state) => state.user);
+    const user = useCurrentUser();
     const [modal, setModal] = useState(null);
 
     const openFromStorage = useCallback(() => {
@@ -51,25 +51,19 @@ const PaymentSuccessHost = () => {
                     continue;
                 }
 
-                // eslint-disable-next-line no-await-in-loop
-                await new Promise((resolve) => {
-                    verifyChapaPackagePayment({
-                        txRef: stored.txRef,
-                        token: user.token,
-                        handleVerifySuccess: (result) => {
-                            if (result?.transaction?.status === 'successful' || result?.success) {
-                                localStorage.removeItem(key);
-                                queuePaymentSuccess({
-                                    message: t('valet.packagePaymentSuccessful'),
-                                    amount: stored.amount,
-                                    navigateTo: '/valet/dashboard',
-                                });
-                            }
-                            resolve();
-                        },
-                        handleVerifyFailure: () => resolve(),
-                    });
-                });
+                try {
+                    const result = await verifyChapaPackagePaymentTx(stored.txRef, user.token);
+                    if (result?.transaction?.status === 'successful' || result?.success) {
+                        localStorage.removeItem(key);
+                        queuePaymentSuccess({
+                            message: t('valet.packagePaymentSuccessful'),
+                            amount: stored.amount,
+                            navigateTo: '/valet/dashboard',
+                        });
+                    }
+                } catch {
+                    // Ignore stale or pending verification attempts
+                }
                 return;
             }
 
@@ -85,25 +79,18 @@ const PaymentSuccessHost = () => {
                     continue;
                 }
 
-                // eslint-disable-next-line no-await-in-loop
-                await new Promise((resolve) => {
-                    verifyChapaPayment({
-                        txRef: stored.txRef,
-                        carId: stored.carId,
-                        token: user.token,
-                        handleVerifySuccess: (result) => {
-                            if (result?.success || result?.transaction?.status === 'successful') {
-                                localStorage.removeItem(key);
-                                queuePaymentSuccess({
-                                    message: t('valet.paymentSuccessful'),
-                                    amount: stored.feeDetails?.totalWithVat ?? stored.amount,
-                                });
-                            }
-                            resolve();
-                        },
-                        handleVerifyFailure: () => resolve(),
-                    });
-                });
+                try {
+                    const result = await verifyChapaPaymentTx(stored.txRef, user.token, stored.carId);
+                    if (result?.success || result?.transaction?.status === 'successful') {
+                        localStorage.removeItem(key);
+                        queuePaymentSuccess({
+                            message: t('valet.paymentSuccessful'),
+                            amount: stored.feeDetails?.totalWithVat ?? stored.amount,
+                        });
+                    }
+                } catch {
+                    // Ignore stale or pending verification attempts
+                }
                 return;
             }
         }
