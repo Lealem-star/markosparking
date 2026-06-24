@@ -30,6 +30,12 @@ const populateCarQuery = (query) => query
     .populate('valet_id', 'name phoneNumber priceLevel')
     .populate('checkedOutBy', 'name phoneNumber');
 
+const isUnpaidCheckedOutCar = (car) => {
+    if (!car || car.status !== 'checked_out') return false;
+    const paid = car.totalPaidAmount;
+    return paid == null || paid <= 0;
+};
+
 const findFlaggedCustomer = async ({ licensePlate, plateCode, region, licensePlateNumber, phoneNumber }) => {
     return ParkedCar.findOne({
         isFlagged: true,
@@ -533,8 +539,8 @@ const notifyFlaggedCustomer = async (id) => {
         throw new AppError('Parked car not found', 404);
     }
 
-    if (!car.isFlagged) {
-        throw new AppError('Car is not flagged', 400);
+    if (!isUnpaidCheckedOutCar(car)) {
+        throw new AppError('Car is not eligible for notification', 400);
     }
 
     if (!car.phoneNumber) {

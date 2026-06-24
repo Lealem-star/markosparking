@@ -380,6 +380,7 @@
     "confirmDelete": "Are you sure you want to delete this item?",
     "operationSuccessful": "Operation completed successfully",
     "operationFailed": "Operation failed. Please try again.",
+    "smsFailed": "SMS notification failed. The main action completed, but the customer was not texted.",
     "requiredField": "This field is required",
     "invalidInput": "Invalid input",
     "networkError": "Network error. Please check your connection."

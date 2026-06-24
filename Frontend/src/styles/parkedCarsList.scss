@@ -1298,6 +1298,11 @@
         background: #28a745;
         color: #fff;
     }
+
+    &.alert-banner-warning {
+        background: #f59e0b;
+        color: #fff;
+    }
 }
 
 @keyframes alertBannerSlideIn {

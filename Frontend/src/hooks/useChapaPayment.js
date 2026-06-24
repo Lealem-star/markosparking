@@ -77,12 +77,27 @@ const reportError = (onError, message) => {
     if (onError) onError(message);
 };
 
+const reportSmsFailed = (onSmsFailed, t, smsError) => {
+    if (!onSmsFailed) return;
+
+    const detail = smsError?.response?.data?.error
+        || smsError?.message
+        || '';
+    const baseMessage = t?.('messages.smsFailed') || 'SMS notification failed.';
+    const message = detail && !baseMessage.includes(detail)
+        ? `${baseMessage} ${detail}`
+        : baseMessage;
+
+    onSmsFailed(message);
+};
+
 export const useChapaPayment = ({
     mode,
     user,
     setLoading,
     setShowPaymentFormModal,
     onError,
+    onSmsFailed,
     loading = false,
     returnUrl,
     t,
@@ -162,7 +177,7 @@ export const useChapaPayment = ({
                     try {
                         await sendSms(car.phoneNumber, buildCheckoutSmsMessage(car, feeDetails), user?.token);
                     } catch (smsError) {
-                        console.error('Failed to send SMS:', smsError);
+                        reportSmsFailed(onSmsFailed, t, smsError);
                     }
                 }
 
@@ -264,6 +279,7 @@ export const useChapaPayment = ({
     }, [
         user?.token,
         onError,
+        onSmsFailed,
         onCarPaymentComplete,
         onFlaggedPaymentComplete,
         setShowPaymentFormModal,
@@ -380,7 +396,7 @@ export const useChapaPayment = ({
                                             user?.token
                                         );
                                     } catch (smsErr) {
-                                        console.error('Error sending package activation SMS:', smsErr);
+                                        reportSmsFailed(onSmsFailed, t, smsErr);
                                     }
 
                                     localStorage.removeItem(`chapa_payment_pkg_${txRef}`);
@@ -436,6 +452,7 @@ export const useChapaPayment = ({
         pricingSettings,
         t,
         onError,
+        onSmsFailed,
         setLoading,
         setShowPaymentFormModal,
         onPackagePaymentComplete,

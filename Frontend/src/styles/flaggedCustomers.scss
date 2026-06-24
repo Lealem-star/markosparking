@@ -31,6 +31,12 @@
             border: 1px solid #a7f3d0;
         }
 
+        &-warning {
+            background: #fffbeb;
+            color: #b45309;
+            border: 1px solid #fcd34d;
+        }
+
         .alert-banner-message {
             flex: 1;
             font-size: 0.875rem;

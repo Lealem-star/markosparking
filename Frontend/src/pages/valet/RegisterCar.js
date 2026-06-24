@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { createParkedCarRecord, sendSms } from '../../api/api';
 import { getApiError } from '../../api/client';
 import { useCurrentUser } from '../../hooks/useAuth';
+import { useBanner } from '../../hooks/useBanner';
 import { usePricingSettingsQuery } from '../../hooks/queries';
 import { useChapaPayment } from '../../hooks/useChapaPayment';
 import ChapaPaymentModal from '../../components/payment/ChapaPaymentModal';
+import AlertBanner from '../../components/ui/AlertBanner';
 import {
     RegisterCarForm,
     RegisterCarServiceModal,
@@ -46,6 +48,7 @@ const RegisterCar = () => {
     const [showPaymentFormModal, setShowPaymentFormModal] = useState(false);
     const [packagePaymentAmount, setPackagePaymentAmount] = useState(0);
     const [packageTxRef, setPackageTxRef] = useState('');
+    const { banner, showBanner, dismissBanner } = useBanner();
 
     const resetForm = () => {
         setFormData(EMPTY_FORM);
@@ -64,6 +67,7 @@ const RegisterCar = () => {
         setShowPaymentFormModal,
         loading,
         onError: setError,
+        onSmsFailed: (message) => showBanner(message, 'warning'),
         onPackagePaymentComplete: resetForm,
         onPaymentInitialized: ({ txRef, amount }) => {
             setPackageTxRef(txRef);
@@ -140,7 +144,10 @@ const RegisterCar = () => {
                     user?.token
                 );
             } catch (smsErr) {
-                console.error('Error sending SMS notification:', smsErr);
+                showBanner(
+                    `${t('messages.smsFailed')} ${getApiError(smsErr)}`.trim(),
+                    'warning'
+                );
             }
 
             resetForm();
@@ -153,6 +160,7 @@ const RegisterCar = () => {
 
     return (
         <div className="register-car">
+            <AlertBanner banner={banner} onDismiss={dismissBanner} />
             <div className="form-container">
                 {success && <div className="alert alert-success">{success}</div>}
                 {error && <div className="alert alert-danger">{error}</div>}

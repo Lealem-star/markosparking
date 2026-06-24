@@ -113,6 +113,7 @@ const ParkedCarsList = () => {
         setLoading: setActionLoading,
         setShowPaymentFormModal,
         onError: (message) => showBanner(message, 'error'),
+        onSmsFailed: (message) => showBanner(message, 'warning'),
         onCarPaymentComplete: handlePaymentComplete,
     });
 

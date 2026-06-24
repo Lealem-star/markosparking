@@ -62,6 +62,7 @@ const FlaggedCustomers = () => {
         setShowPaymentFormModal,
         returnUrl: `${window.location.origin}${location.pathname}`,
         onError: (message) => showBanner(message, 'error'),
+        onSmsFailed: (message) => showBanner(message, 'warning'),
         onFlaggedPaymentComplete: (fee) => {
             refreshFlaggedCars();
             setSelectedCar(null);
