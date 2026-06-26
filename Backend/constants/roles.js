@@ -1,0 +1,154 @@
+const ROLES = Object.freeze({
+    SYSTEM_ADMIN: 'system_admin',
+    DIRECTOR: 'director',
+    SUPERVISOR: 'supervisor',
+    FINANCE_OFFICER: 'finance_officer',
+    VALET: 'valet',
+});
+
+const ALL_USER_TYPES = Object.values(ROLES);
+
+const STAFF_SHELL_ROLES = [
+    ROLES.SYSTEM_ADMIN,
+    ROLES.DIRECTOR,
+    ROLES.SUPERVISOR,
+    ROLES.FINANCE_OFFICER,
+];
+
+const OFFICE_STAFF_TYPES = [...STAFF_SHELL_ROLES];
+
+const ROLE_RANK = Object.freeze({
+    [ROLES.SYSTEM_ADMIN]: 100,
+    [ROLES.DIRECTOR]: 80,
+    [ROLES.SUPERVISOR]: 60,
+    [ROLES.FINANCE_OFFICER]: 40,
+    [ROLES.VALET]: 20,
+});
+
+const STAFF_MANAGEMENT_ROLES = [
+    ROLES.SYSTEM_ADMIN,
+    ROLES.DIRECTOR,
+    ROLES.SUPERVISOR,
+];
+
+const REPORT_ACCESS_ROLES = [
+    ROLES.SYSTEM_ADMIN,
+    ROLES.DIRECTOR,
+    ROLES.FINANCE_OFFICER,
+];
+
+const OFFICE_WIDE_DATA_ROLES = [
+    ROLES.SYSTEM_ADMIN,
+    ROLES.DIRECTOR,
+    ROLES.FINANCE_OFFICER,
+];
+
+const SMS_SENDER_ROLES = [
+    ROLES.VALET,
+    ROLES.SUPERVISOR,
+    ROLES.DIRECTOR,
+    ROLES.FINANCE_OFFICER,
+    ROLES.SYSTEM_ADMIN,
+];
+
+const CREATABLE_BY = Object.freeze({
+    [ROLES.SYSTEM_ADMIN]: [
+        ROLES.DIRECTOR,
+        ROLES.SUPERVISOR,
+        ROLES.FINANCE_OFFICER,
+        ROLES.VALET,
+    ],
+    [ROLES.DIRECTOR]: [
+        ROLES.SUPERVISOR,
+        ROLES.FINANCE_OFFICER,
+        ROLES.VALET,
+    ],
+});
+
+const LEGACY_ROLE_MAP = Object.freeze({
+    manager: ROLES.DIRECTOR,
+    admin: ROLES.FINANCE_OFFICER,
+});
+
+const normalizeRole = (type) => LEGACY_ROLE_MAP[type] || type;
+
+const isStaffShellRole = (type) => STAFF_SHELL_ROLES.includes(normalizeRole(type));
+
+const isOfficeStaff = (type) => OFFICE_STAFF_TYPES.includes(normalizeRole(type));
+
+const isStaffManager = (type) => STAFF_MANAGEMENT_ROLES.includes(normalizeRole(type));
+
+const hasOfficeWideDataAccess = (type) => OFFICE_WIDE_DATA_ROLES.includes(normalizeRole(type));
+
+const requiresZoneCode = (type) => {
+    const role = normalizeRole(type);
+    return role === ROLES.VALET || role === ROLES.SUPERVISOR;
+};
+
+const requiresPriceLevel = (type) => normalizeRole(type) === ROLES.VALET;
+
+const canCreateRole = (actorType, targetType) => {
+    const actor = normalizeRole(actorType);
+    const target = normalizeRole(targetType);
+    return (CREATABLE_BY[actor] || []).includes(target);
+};
+
+const canManageUser = (actor, target) => {
+    if (!actor || !target) return false;
+
+    const actorType = normalizeRole(actor.type);
+    const targetType = normalizeRole(target.type);
+
+    if (actor._id.toString() === target._id.toString()) {
+        return true;
+    }
+
+    if (actorType === ROLES.SYSTEM_ADMIN) {
+        return true;
+    }
+
+    if (actorType === ROLES.DIRECTOR && targetType !== ROLES.SYSTEM_ADMIN) {
+        return true;
+    }
+
+    if (
+        actorType === ROLES.SUPERVISOR
+        && targetType === ROLES.VALET
+        && actor.parkZoneCode
+        && target.parkZoneCode === actor.parkZoneCode
+    ) {
+        return true;
+    }
+
+    return false;
+};
+
+const assertCanManageUser = (actor, target) => {
+    if (!canManageUser(actor, target)) {
+        throw new Error('Not authorized to manage this user');
+    }
+};
+
+module.exports = {
+    ROLES,
+    ALL_USER_TYPES,
+    STAFF_SHELL_ROLES,
+    OFFICE_STAFF_TYPES,
+    ROLE_RANK,
+    STAFF_MANAGEMENT_ROLES,
+    REPORT_ACCESS_ROLES,
+    OFFICE_WIDE_DATA_ROLES,
+    SMS_SENDER_ROLES,
+    CREATABLE_BY,
+    LEGACY_ROLE_MAP,
+    normalizeRole,
+    isStaffShellRole,
+    isOfficeStaff,
+    isStaffManager,
+    hasOfficeWideDataAccess,
+    requiresZoneCode,
+    requiresPriceLevel,
+    canCreateRole,
+    canManageUser,
+    assertCanManageUser,
+};

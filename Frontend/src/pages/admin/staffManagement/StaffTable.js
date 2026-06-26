@@ -5,8 +5,9 @@ import { getInitials, getRoleLabel, getRoleSubtitle, getZoneLabel, isStaffActive
 const RoleBadge = ({ type, t }) => {
     const icons = {
         system_admin: Star,
-        manager: Shield,
-        admin: UserCog,
+        director: Shield,
+        supervisor: UserCog,
+        finance_officer: UserCog,
         valet: Car,
     };
     const Icon = icons[type] || UserCog;

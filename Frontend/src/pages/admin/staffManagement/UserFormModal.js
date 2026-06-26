@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { canCreateRole, requiresZoneCode, requiresPriceLevel } from '../../../constants/roles';
+import { getRoleLabel } from './staffUtils';
 
 const UserFormModal = ({
     isOpen,
@@ -6,6 +9,7 @@ const UserFormModal = ({
     formData,
     priceLevels,
     error,
+    actorType,
     onClose,
     onChange,
     onSubmit,
@@ -13,6 +17,16 @@ const UserFormModal = ({
     cancelLabel,
     isPasswordRequired = true,
 }) => {
+    const { t } = useTranslation();
+    const creatableRoles = useMemo(() => {
+        const allRoles = ['director', 'supervisor', 'finance_officer', 'valet'];
+        const allowed = allRoles.filter((role) => canCreateRole(actorType, role));
+        if (formData.type && !allowed.includes(formData.type)) {
+            return [formData.type, ...allowed];
+        }
+        return allowed;
+    }, [actorType, formData.type]);
+
     if (!isOpen) return null;
 
     return (
@@ -63,42 +77,44 @@ const UserFormModal = ({
                             onChange={(e) => onChange('type', e.target.value)}
                         >
                             <option value="">Select type</option>
-                            <option value="manager">Manager</option>
-                            <option value="admin">Admin</option>
-                            <option value="valet">Valet</option>
+                            {creatableRoles.map((role) => (
+                                <option key={role} value={role}>
+                                    {getRoleLabel(role, t)}
+                                </option>
+                            ))}
                         </select>
                     </div>
-                    {formData.type === 'valet' && (
-                        <>
-                            <div className="form-group">
-                                <label>Park Zone Code *</label>
-                                <input
-                                    type="text"
-                                    value={formData.parkZoneCode}
-                                    onChange={(e) => onChange('parkZoneCode', e.target.value)}
-                                    placeholder="Enter park zone code"
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Price Level *</label>
-                                <select
-                                    value={formData.priceLevel}
-                                    onChange={(e) => onChange('priceLevel', e.target.value)}
-                                    required
-                                >
-                                    <option value="">Select Price Level</option>
-                                    {priceLevels.map((levelName) => (
-                                        <option key={levelName} value={levelName}>{levelName}</option>
-                                    ))}
-                                </select>
-                                {priceLevels.length === 0 && (
-                                    <small className="form-warning">
-                                        No price levels available. Please create price levels in Settings first.
-                                    </small>
-                                )}
-                            </div>
-                        </>
+                    {requiresZoneCode(formData.type) && (
+                        <div className="form-group">
+                            <label>Park Zone Code *</label>
+                            <input
+                                type="text"
+                                value={formData.parkZoneCode}
+                                onChange={(e) => onChange('parkZoneCode', e.target.value)}
+                                placeholder="Enter park zone code"
+                                required
+                            />
+                        </div>
+                    )}
+                    {requiresPriceLevel(formData.type) && (
+                        <div className="form-group">
+                            <label>Price Level *</label>
+                            <select
+                                value={formData.priceLevel}
+                                onChange={(e) => onChange('priceLevel', e.target.value)}
+                                required
+                            >
+                                <option value="">Select Price Level</option>
+                                {priceLevels.map((levelName) => (
+                                    <option key={levelName} value={levelName}>{levelName}</option>
+                                ))}
+                            </select>
+                            {priceLevels.length === 0 && (
+                                <small className="form-warning">
+                                    No price levels available. Please create price levels in Settings first.
+                                </small>
+                            )}
+                        </div>
                     )}
                 </div>
                 <div className="modal-footer">

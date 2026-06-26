@@ -8,8 +8,14 @@ const AppError = require('../errors/AppError');
 const { JWT_SECRET, DOMAIN_NAME } = require('../config/env');
 const { normalizePhoneNumber } = require('../utils/phoneUtils');
 const { sendSms } = require('./smsService');
-
-const STAFF_MANAGER_ROLES = ['system_admin', 'manager'];
+const {
+    ROLES,
+    isStaffManager,
+    canCreateRole,
+    canManageUser,
+    requiresZoneCode,
+    requiresPriceLevel,
+} = require('../constants/roles');
 
 const sanitizeUser = (user) => {
     const userResponse = { ...user.toObject() };
@@ -26,22 +32,37 @@ const assertObjectId = (id, message = 'Invalid id') => {
     }
 };
 
-const isStaffManager = (user) => STAFF_MANAGER_ROLES.includes(user?.type);
-
 const assertCanModifyTarget = (currentUser, targetUser, { isSelf }) => {
-    if (!isSelf && isStaffManager(currentUser) && currentUser.type === 'manager' && targetUser.type === 'system_admin') {
-        throw new AppError('Managers cannot modify system admin accounts', 403);
+    if (isSelf) return;
+    if (!canManageUser(currentUser, targetUser)) {
+        throw new AppError('Not authorized to manage this user', 403);
+    }
+};
+
+const assertZoneRequirements = (type, parkZoneCode, priceLevel) => {
+    if (requiresZoneCode(type) && !parkZoneCode?.trim()) {
+        throw new AppError('Park Zone Code is required for this role', 400);
+    }
+    if (requiresPriceLevel(type) && !priceLevel?.trim()) {
+        throw new AppError('Price Level is required for valet users', 400);
     }
 };
 
 const createUser = async (actor, data) => {
-    if (!actor || actor.type !== 'system_admin') {
-        throw new AppError('Only system admin can create users', 403);
+    if (!actor || ![ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR].includes(actor.type)) {
+        throw new AppError('Only system admin or parking director can create users', 403);
     }
 
     let { name, phoneNumber, password, type, parkZoneCode, priceLevel } = data;
+
+    if (!canCreateRole(actor.type, type)) {
+        throw new AppError('You are not allowed to create this user role', 403);
+    }
+
     phoneNumber = stripPhoneFormatting(phoneNumber);
     const phoneToUse = normalizePhoneNumber(phoneNumber);
+
+    assertZoneRequirements(type, parkZoneCode, priceLevel);
 
     const existing = await User.findOne({ phoneNumber: phoneToUse });
     if (existing) {
@@ -55,8 +76,8 @@ const createUser = async (actor, data) => {
         phoneNumber: phoneToUse,
         password: hashedPassword,
         type,
-        parkZoneCode,
-        priceLevel,
+        parkZoneCode: requiresZoneCode(type) ? parkZoneCode.trim() : '',
+        priceLevel: requiresPriceLevel(type) ? priceLevel.trim() : null,
     });
 
     try {
@@ -69,7 +90,23 @@ const createUser = async (actor, data) => {
     return { user: sanitizeUser(newUser), message: 'User created successfully' };
 };
 
-const listUsers = async () => User.find({}).select('-password');
+const buildUserListQuery = (currentUser) => {
+    if (currentUser.type === ROLES.SUPERVISOR) {
+        return {
+            type: ROLES.VALET,
+            parkZoneCode: currentUser.parkZoneCode,
+        };
+    }
+    return {};
+};
+
+const listUsers = async (currentUser) => {
+    if (!currentUser || !isStaffManager(currentUser.type)) {
+        throw new AppError('Not authorized to list users', 403);
+    }
+
+    return User.find(buildUserListQuery(currentUser)).select('-password');
+};
 
 const login = async ({ phoneNumber, password }) => {
     phoneNumber = stripPhoneFormatting(phoneNumber);
@@ -110,17 +147,13 @@ const resetPassword = async (currentUser, targetId, password) => {
 
     const isSelf = currentUser._id.toString() === targetId;
 
-    if (!isSelf && !isStaffManager(currentUser)) {
-        throw new AppError('Not authorized to reset this password', 403);
-    }
-
     const user = await User.findById(targetId);
     if (!user) {
         throw new AppError('Provide correct user id', 400);
     }
 
-    if (!isSelf && isStaffManager(currentUser) && currentUser.type === 'manager' && user.type === 'system_admin') {
-        throw new AppError('Managers cannot reset system admin passwords', 403);
+    if (!isSelf && !canManageUser(currentUser, user)) {
+        throw new AppError('Not authorized to reset this password', 403);
     }
 
     user.password = bcrypt.hashSync(password, 10);
@@ -136,20 +169,23 @@ const updateProfilePhoto = async (currentUser, targetId, file) => {
     }
 
     const isSelf = currentUser._id.toString() === targetId;
-    if (!isSelf && !isStaffManager(currentUser)) {
+    const user = await User.findById(targetId);
+    if (!user) {
+        if (file?.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+        throw new AppError('User not found', 400);
+    }
+
+    if (!isSelf && !canManageUser(currentUser, user)) {
+        if (file?.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
         throw new AppError('Not authorized to upload photo for this user', 403);
     }
 
     if (!file) {
         throw new AppError('No file uploaded', 400);
-    }
-
-    const user = await User.findById(targetId);
-    if (!user) {
-        if (file.path && fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
-        }
-        throw new AppError('User not found', 400);
     }
 
     if (user.profilePhoto) {
@@ -187,9 +223,9 @@ const updateUser = async (currentUser, targetId, updates) => {
     } = updates;
 
     const isSelf = currentUser._id.toString() === targetId;
-    const staffManager = isStaffManager(currentUser);
+    const staffManager = isStaffManager(currentUser.type);
 
-    if (!isSelf && !staffManager) {
+    if (!isSelf && !canManageUser(currentUser, user)) {
         throw new AppError('Not authorized to update this user', 403);
     }
 
@@ -199,8 +235,14 @@ const updateUser = async (currentUser, targetId, updates) => {
         type !== undefined || password !== undefined || priceLevel !== undefined
         || isActive !== undefined || (phoneNumber !== undefined && !isSelf);
 
-    if (hasStaffFields && !staffManager) {
+    if (hasStaffFields && !staffManager && !isSelf) {
         throw new AppError('Not authorized to update staff fields', 403);
+    }
+
+    if (type !== undefined && !isSelf) {
+        if (!canCreateRole(currentUser.type, type) && type !== user.type) {
+            throw new AppError('You are not allowed to assign this user role', 403);
+        }
     }
 
     let hasUpdates = false;
@@ -229,14 +271,13 @@ const updateUser = async (currentUser, targetId, updates) => {
         hasUpdates = true;
     }
 
-    if (staffManager) {
+    if (staffManager && !isSelf) {
         if (type !== undefined) {
-            if (currentUser.type === 'manager' && type === 'system_admin') {
-                throw new AppError('Managers cannot assign system admin role', 403);
-            }
             user.type = type;
-            if (type !== 'valet') {
+            if (!requiresZoneCode(type)) {
                 user.parkZoneCode = '';
+            }
+            if (!requiresPriceLevel(type)) {
                 user.priceLevel = null;
             }
             hasUpdates = true;
@@ -253,23 +294,24 @@ const updateUser = async (currentUser, targetId, updates) => {
         }
 
         if (typeof isActive === 'boolean') {
-            if (isActive === false && isSelf) {
-                throw new AppError('You cannot deactivate your own account', 400);
-            }
             user.isActive = isActive;
             hasUpdates = true;
         }
+    } else if (staffManager && isSelf && password !== undefined && password !== '') {
+        user.password = bcrypt.hashSync(password, 10);
+        hasUpdates = true;
+    }
+
+    if (isSelf && typeof isActive === 'boolean' && isActive === false) {
+        throw new AppError('You cannot deactivate your own account', 400);
     }
 
     const effectiveType = type !== undefined ? type : user.type;
-    if (staffManager && effectiveType === 'valet') {
-        if (!user.parkZoneCode?.trim()) {
-            throw new AppError('Park Zone Code is required for valet users', 400);
-        }
-        if (!user.priceLevel?.trim()) {
-            throw new AppError('Price Level is required for valet users', 400);
-        }
-    }
+    assertZoneRequirements(
+        effectiveType,
+        parkZoneCode !== undefined ? parkZoneCode : user.parkZoneCode,
+        priceLevel !== undefined ? priceLevel : user.priceLevel
+    );
 
     if (!hasUpdates) {
         throw new AppError('Must provide at least one field to update', 400);
@@ -282,8 +324,8 @@ const updateUser = async (currentUser, targetId, updates) => {
 const deactivateUser = async (currentUser, targetId) => {
     assertObjectId(targetId, 'Invalid user id');
 
-    if (!currentUser || !isStaffManager(currentUser)) {
-        throw new AppError('Only system admin or manager can deactivate users', 403);
+    if (!currentUser || !isStaffManager(currentUser.type)) {
+        throw new AppError('Only authorized staff managers can deactivate users', 403);
     }
 
     if (currentUser._id.toString() === targetId) {
@@ -295,8 +337,8 @@ const deactivateUser = async (currentUser, targetId) => {
         throw new AppError('User not found', 404);
     }
 
-    if (currentUser.type === 'manager' && user.type === 'system_admin') {
-        throw new AppError('Managers cannot deactivate system admin accounts', 403);
+    if (!canManageUser(currentUser, user)) {
+        throw new AppError('Not authorized to deactivate this user', 403);
     }
 
     if (user.isActive === false) {

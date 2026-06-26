@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { clearUser } from '../../store';
-import { ADMIN_ROLES } from '../../constants/roles';
+import { STAFF_SHELL_ROLES } from '../../constants/roles';
 import { useRequireRole } from '../../hooks/useRequireRole';
 import { useChatUnread } from '../../hooks/useChatUnread';
 import { useProfileUpdate } from '../../hooks/useProfileUpdate';
 import DashboardShell from '../../components/layout/DashboardShell';
 import ProfileModal from '../../components/profile/ProfileModal';
 import {
-    LayoutDashboard,
-    Users,
-    Settings,
-    LogOut,
-    User,
-    FileText,
-    AlertTriangle,
-} from 'lucide-react';
+    getMenuItemsForRole,
+    getRoleLabelKey,
+    getRoleSubtitleKey,
+} from '../../config/staffAccess';
+import { LogOut, User } from 'lucide-react';
 
 import '../../styles/adminDashboard.scss';
 
@@ -27,7 +24,7 @@ const AdminDashboard = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
-    const { user, isAuthorized } = useRequireRole(ADMIN_ROLES);
+    const { user, isAuthorized } = useRequireRole(STAFF_SHELL_ROLES);
     const { unreadCount, openChat } = useChatUnread('/admin/chat');
     const navigate = useNavigate();
     const location = useLocation();
@@ -43,6 +40,14 @@ const AdminDashboard = () => {
         resetProfileState,
         submitProfile,
     } = useProfileUpdate(user);
+
+    const menuItems = useMemo(
+        () => getMenuItemsForRole(user?.type, t),
+        [user?.type, t]
+    );
+
+    const roleLabel = t(getRoleLabelKey(user?.type));
+    const roleSubtitle = t(getRoleSubtitleKey(user?.type));
 
     useEffect(() => {
         if (location.pathname === '/admin/dashboard/profile') {
@@ -81,30 +86,18 @@ const AdminDashboard = () => {
         resetProfileState();
     };
 
-    const menuItems = [
-        { icon: LayoutDashboard, label: t('navigation.dashboard'), path: '/admin/dashboard' },
-        { icon: Users, label: t('admin.userManagement'), path: '/admin/users' },
-        { icon: FileText, label: t('navigation.reports'), path: '/admin/reports' },
-        { icon: Settings, label: t('navigation.settings'), path: '/admin/settings' },
-        { icon: AlertTriangle, label: t('valet.flaggedCustomers'), path: '/admin/flagged-customers' },
-    ];
-
     const isActive = (path) => location.pathname === path;
 
     if (!isAuthorized) {
         return null;
     }
 
-    const mobileRoleLabel = user?.type === 'system_admin'
-        ? 'System Admin'
-        : (user?.type === 'admin' ? 'Admin' : 'Manager');
-
     return (
         <>
             <DashboardShell
                 shellClassName="admin-dashboard"
                 logoText="tana parking"
-                mobileSidebarLogoText={mobileRoleLabel}
+                mobileSidebarLogoText={roleLabel}
                 menuItems={menuItems}
                 isActive={isActive}
                 onNavigate={navigate}
@@ -113,14 +106,19 @@ const AdminDashboard = () => {
                 mobileMenuOpen={mobileMenuOpen}
                 onMobileMenuOpenChange={setMobileMenuOpen}
                 user={user}
-                userDisplayName={user?.name || 'Admin'}
+                userDisplayName={user?.name || roleLabel}
                 profileDropdownOpen={profileDropdownOpen}
                 onProfileDropdownToggle={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 onProfileUpdate={handleProfileUpdate}
                 onLogout={handleLogout}
                 unreadCount={unreadCount}
                 onOpenChat={openChat}
-                welcomeContent={<span>{t('dashboard.welcome')}, {user?.name || 'Admin'}</span>}
+                welcomeContent={(
+                    <span className="admin-welcome">
+                        <span>{t('dashboard.welcome')}, {user?.name || roleLabel}</span>
+                        <small className="admin-role-responsibility">{roleSubtitle}</small>
+                    </span>
+                )}
                 mobileNavExtra={(
                     <>
                         <button

@@ -6,6 +6,7 @@ import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { loginUser } from '../../api/api';
 import { getApiError } from '../../api/client';
 import { setUser } from '../../store';
+import { getDashboardPathForUser } from '../../utils/authRouting';
 import tanaLogo from '../../assets/Tana.png';
 import '../../styles/home.scss';
 import '../../styles/splashScreen.scss';
@@ -106,13 +107,7 @@ function Home() {
     try {
       const data = await loginUser({ phoneNumber, password });
       dispatch(setUser({ ...data?.user, token: data?.token }));
-      if (data?.user?.type === 'system_admin' || data?.user?.type === 'manager') {
-        navigate('/admin/dashboard');
-      } else if (data?.user?.type === 'valet') {
-        navigate('/valet/dashboard');
-      } else {
-        navigate('/');
-      }
+      navigate(getDashboardPathForUser(data?.user));
     } catch (err) {
       setError(getApiError(err, t('auth.failedToLogin')));
       setIsSubmitting(false);

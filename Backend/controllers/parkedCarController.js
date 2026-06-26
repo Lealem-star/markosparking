@@ -59,7 +59,8 @@ const list = async (req, res) => {
 };
 
 const listFlagged = async (req, res) => {
-    const cars = await getFlaggedCars();
+    const currentUser = await loadCurrentUser(req);
+    const cars = await getFlaggedCars(currentUser);
     res.json(cars);
 };
 

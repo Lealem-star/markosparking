@@ -17,7 +17,7 @@ const chatMessageSchema = new mongoose.Schema({
     },
     senderType: {
         type: String,
-        enum: ["system_admin", "manager", "admin", "valet"],
+        enum: ["system_admin", "director", "supervisor", "finance_officer", "valet"],
         required: true
     },
     senderParkZoneCode: {

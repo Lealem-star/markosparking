@@ -6,6 +6,8 @@ import { usePricingSettingsQuery, useUsersQuery, useInvalidateUsers } from '../.
 import { useTranslation } from 'react-i18next';
 import { DeleteModal } from '../../components';
 import { Shield, Car } from 'lucide-react';
+import { canCreateUsers, requiresZoneCode, requiresPriceLevel } from '../../constants/roles';
+import { getStaffManagementMode } from '../../config/staffAccess';
 import {
     StaffStatCards,
     StaffFilterBar,
@@ -17,6 +19,7 @@ import {
     getUniqueZones,
     groupValetsByZone,
     isManagerial,
+    filterUsersForStaffMode,
 } from './staffManagement';
 import '../../styles/userManagement.scss';
 
@@ -57,12 +60,26 @@ const UserManagement = () => {
 
     const refreshUsers = () => invalidateUsers();
 
-    const filteredUsers = useMemo(
-        () => filterStaff(users, { searchQuery, roleFilter, zoneFilter, statusFilter }),
-        [users, searchQuery, roleFilter, zoneFilter, statusFilter]
+    const staffMode = getStaffManagementMode(user?.type);
+    const scopedUsers = useMemo(
+        () => filterUsersForStaffMode(users, user, staffMode),
+        [users, user, staffMode]
     );
 
-    const stats = useMemo(() => getStaffStats(users), [users]);
+    const filteredUsers = useMemo(
+        () => filterStaff(scopedUsers, { searchQuery, roleFilter, zoneFilter, statusFilter }),
+        [scopedUsers, searchQuery, roleFilter, zoneFilter, statusFilter]
+    );
+
+    const stats = useMemo(() => {
+        const base = getStaffStats(scopedUsers);
+        return {
+            totalStaff: base.total,
+            officeStaff: base.officeStaff,
+            valets: base.valets,
+            activeZones: base.zones,
+        };
+    }, [scopedUsers]);
     const zones = useMemo(() => getUniqueZones(users), [users]);
     const managerialStaff = useMemo(
         () => filteredUsers.filter(isManagerial),
@@ -73,7 +90,8 @@ const UserManagement = () => {
         [filteredUsers]
     );
 
-    const canCreateUsers = user?.type === 'system_admin' || user?.type === 'manager';
+    const canCreateUsersFlag = canCreateUsers(user?.type);
+    const showOfficeStaffSection = staffMode === 'full';
 
     const handleFormChange = (field, value) => {
         setFormData({ ...formData, [field]: value });
@@ -95,15 +113,14 @@ const UserManagement = () => {
             return;
         }
 
-        if (formData.type === 'valet') {
-            if (!formData.parkZoneCode) {
-                setError('Park Zone Code is required for valet users');
-                return;
-            }
-            if (!formData.priceLevel) {
-                setError('Price Level is required for valet users');
-                return;
-            }
+        if (requiresZoneCode(formData.type) && !formData.parkZoneCode) {
+            setError('Park Zone Code is required for this role');
+            return;
+        }
+
+        if (requiresPriceLevel(formData.type) && !formData.priceLevel) {
+            setError('Price Level is required for valet users');
+            return;
         }
 
         createUserRecord(formData, user?.token)
@@ -194,15 +211,14 @@ const UserManagement = () => {
             return;
         }
 
-        if (formData.type === 'valet') {
-            if (!formData.parkZoneCode) {
-                setError('Park Zone Code is required for valet users');
-                return;
-            }
-            if (!formData.priceLevel) {
-                setError('Price Level is required for valet users');
-                return;
-            }
+        if (requiresZoneCode(formData.type) && !formData.parkZoneCode) {
+            setError('Park Zone Code is required for this role');
+            return;
+        }
+
+        if (requiresPriceLevel(formData.type) && !formData.priceLevel) {
+            setError('Price Level is required for valet users');
+            return;
         }
 
         const updateBody = {
@@ -260,17 +276,18 @@ const UserManagement = () => {
                 statusFilter={statusFilter}
                 onStatusChange={setStatusFilter}
                 zones={zones}
-                canCreateUsers={canCreateUsers}
+                canCreateUsers={canCreateUsersFlag}
                 onAddStaff={() => {
                     resetForm();
                     setShowCreateModal(true);
                 }}
             />
 
+            {showOfficeStaffSection && (
             <section className="staff-section-card">
                 <header className="staff-section-header">
                     <Shield size={20} />
-                    <h2>{t('admin.managerialStaff')}</h2>
+                    <h2>{t('admin.officeStaff')}</h2>
                     <span className="staff-section-count">{managerialStaff.length}</span>
                 </header>
                 <StaffTable
@@ -279,14 +296,15 @@ const UserManagement = () => {
                     onEdit={handleEdit}
                     onDeactivate={handleDeactivate}
                     onReactivate={handleReactivate}
-                    emptyMessage={t('admin.noManagerialStaff')}
+                    emptyMessage={t('admin.noOfficeStaff')}
                 />
             </section>
+            )}
 
             <section className="staff-section-card">
                 <header className="staff-section-header">
                     <Car size={20} />
-                    <h2>{t('admin.valetStaffByZones')}</h2>
+                    <h2>{staffMode === 'supervisor' ? t('admin.valetsInYourZone') : t('admin.valetStaffByZones')}</h2>
                 </header>
                 <ZoneAccordion
                     zones={valetsByZone}
@@ -304,6 +322,7 @@ const UserManagement = () => {
                 formData={formData}
                 priceLevels={priceLevels}
                 error={error}
+                actorType={user?.type}
                 onClose={() => setShowCreateModal(false)}
                 onChange={handleFormChange}
                 onSubmit={handleCreateUser}
@@ -318,6 +337,7 @@ const UserManagement = () => {
                 formData={formData}
                 priceLevels={priceLevels}
                 error={error}
+                actorType={user?.type}
                 onClose={() => setShowEditModal(false)}
                 onChange={handleFormChange}
                 onSubmit={handleUpdateUser}

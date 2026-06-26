@@ -13,6 +13,7 @@ import RegisterCar from './pages/valet/RegisterCar';
 import ParkedCarsList from './pages/valet/ParkedCarsList';
 import Profile from './pages/valet/Profile';
 import PaymentSuccessHost from './components/PaymentSuccessHost/PaymentSuccessHost';
+import StaffRouteGuard from './components/auth/StaffRouteGuard';
 import { syncLanguageWithUser } from './utils/languageSync';
 import { useCurrentUser } from './hooks/useAuth';
 import { LegacyPaymentRedirect, PublicRoute, RootRedirect } from './routes/AppRoutes';
@@ -36,14 +37,42 @@ function App() {
           <Route path="users" element={<Navigate to="/admin/users" replace />} />
         </Route>
         <Route path="/admin" element={<AdminDashboard />}>
-          <Route index element={<DashboardOverview />} />
-          <Route path="dashboard" element={<DashboardOverview />} />
-          <Route path="dashboard/profile" element={<DashboardOverview />} />
-          <Route path="users" element={<UserManagement />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="chat" element={<GroupChat />} />
-          <Route path="flagged-customers" element={<FlaggedCustomers />} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={
+            <StaffRouteGuard permission="dashboard">
+              <DashboardOverview />
+            </StaffRouteGuard>
+          } />
+          <Route path="dashboard/profile" element={
+            <StaffRouteGuard permission="dashboard">
+              <DashboardOverview />
+            </StaffRouteGuard>
+          } />
+          <Route path="users" element={
+            <StaffRouteGuard permission="users">
+              <UserManagement />
+            </StaffRouteGuard>
+          } />
+          <Route path="reports" element={
+            <StaffRouteGuard permission="reports">
+              <Reports />
+            </StaffRouteGuard>
+          } />
+          <Route path="settings" element={
+            <StaffRouteGuard permission="settings">
+              <Settings />
+            </StaffRouteGuard>
+          } />
+          <Route path="chat" element={
+            <StaffRouteGuard permission="chat">
+              <GroupChat />
+            </StaffRouteGuard>
+          } />
+          <Route path="flagged-customers" element={
+            <StaffRouteGuard permission="flagged">
+              <FlaggedCustomers />
+            </StaffRouteGuard>
+          } />
         </Route>
         <Route path="/valet" element={<ValetDashboard />}>
           <Route index element={<ParkedCarsList />} />

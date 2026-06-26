@@ -36,10 +36,10 @@ export const partitionUsersReport = (usersByType = []) => {
     usersByType.forEach((typeGroup) => {
         if (typeGroup.type === 'valet') {
             valetUsers.push(...typeGroup.users);
-        } else if (typeGroup.type === 'system_admin' || typeGroup.type === 'manager') {
+        } else if (['system_admin', 'director', 'supervisor', 'finance_officer'].includes(typeGroup.type)) {
             administrativeUsers.push(...typeGroup.users.map((entry) => ({
                 ...entry,
-                role: typeGroup.type === 'system_admin' ? 'System Admin' : 'Manager',
+                role: typeGroup.type.replace(/_/g, ' '),
             })));
         }
     });

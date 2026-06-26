@@ -4,6 +4,7 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { clearUser } from '../../store';
+import { isStaffShellRole, isValetRole } from '../../constants/roles';
 import { Mail } from "lucide-react";
 import tanaLogo from '../../assets/Tana.png';
 import partnerLogo from '../../assets/image.png';
@@ -39,19 +40,14 @@ const Layout = () => {
 
                     {user && (
                         <ul className="nav-links">
-                            {(user.type === 'system_admin' || user.type === 'manager') && (
+                            {isStaffShellRole(user.type) && (
                                 <li>
                                     <Link to="/admin/dashboard">{t('navigation.adminDashboard')}</Link>
                                 </li>
                             )}
-                            {user.type === 'valet' && (
+                            {isValetRole(user.type) && (
                                 <li>
                                     <Link to="/valet/dashboard">{t('navigation.valetDashboard')}</Link>
-                                </li>
-                            )}
-                            {user.type === 'admin' && (
-                                <li>
-                                    <Link to="/users">{t('navigation.users')}</Link>
                                 </li>
                             )}
                             <li>

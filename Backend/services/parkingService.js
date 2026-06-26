@@ -11,9 +11,13 @@ const {
     getVATRate,
 } = require('./pricingService');
 
-const ADMIN_ROLES = ['system_admin', 'manager', 'admin'];
+const {
+    ROLES,
+    STAFF_SHELL_ROLES,
+    hasOfficeWideDataAccess,
+} = require('../constants/roles');
 
-const isAdminRole = (user) => ADMIN_ROLES.includes(user?.type);
+const isStaffShellRole = (user) => STAFF_SHELL_ROLES.includes(user?.type);
 
 const assertValet = (user) => {
     if (!user || user.type !== 'valet') {
@@ -22,8 +26,26 @@ const assertValet = (user) => {
 };
 
 const canManageCar = (currentUser, car) => {
-    return isAdminRole(currentUser)
-        || car.valet_id.toString() === currentUser._id.toString();
+    if (isStaffShellRole(currentUser)) {
+        if (hasOfficeWideDataAccess(currentUser.type)) {
+            return true;
+        }
+        if (currentUser.type === ROLES.SUPERVISOR) {
+            return car.location === currentUser.parkZoneCode;
+        }
+    }
+    return car.valet_id.toString() === currentUser._id.toString();
+};
+
+const applyCarVisibilityFilter = (query, currentUser) => {
+    if (currentUser.type === ROLES.VALET) {
+        query.valet_id = currentUser._id;
+        return;
+    }
+
+    if (currentUser.type === ROLES.SUPERVISOR && currentUser.parkZoneCode) {
+        query.location = currentUser.parkZoneCode;
+    }
 };
 
 const populateCarQuery = (query) => query
@@ -142,9 +164,9 @@ const registerParkedCar = async (valetUser, data) => {
 const listParkedCars = async (currentUser, { status, valet_id, date } = {}) => {
     const query = {};
 
-    if (!isAdminRole(currentUser)) {
-        query.valet_id = currentUser._id;
-    } else if (valet_id) {
+    applyCarVisibilityFilter(query, currentUser);
+
+    if (hasOfficeWideDataAccess(currentUser.type) && valet_id) {
         query.valet_id = valet_id;
     }
 
@@ -163,7 +185,7 @@ const listParkedCars = async (currentUser, { status, valet_id, date } = {}) => {
     return populateCarQuery(ParkedCar.find(query)).sort({ parkedAt: -1 });
 };
 
-const getFlaggedCars = async () => {
+const getFlaggedCars = async (currentUser) => {
     const query = {
         status: 'checked_out',
         $or: [
@@ -172,6 +194,10 @@ const getFlaggedCars = async () => {
             { totalPaidAmount: { $lte: 0 } },
         ],
     };
+
+    if (currentUser?.type === ROLES.SUPERVISOR && currentUser.parkZoneCode) {
+        query.location = currentUser.parkZoneCode;
+    }
 
     const cars = await ParkedCar.find(query)
         .populate('valet_id', 'name phoneNumber priceLevel parkZoneCode')
@@ -397,9 +423,7 @@ const getDailyStatsForDate = async (targetDate, currentUser) => {
 
     let query = { parkedAt: { $gte: startDate, $lte: endDate } };
 
-    if (!isAdminRole(currentUser)) {
-        query.valet_id = currentUser._id;
-    }
+    applyCarVisibilityFilter(query, currentUser);
 
     const totalParked = await ParkedCar.countDocuments(query);
     const checkedOut = await ParkedCar.countDocuments({ ...query, status: 'checked_out' });
@@ -411,9 +435,7 @@ const getDailyStatsForDate = async (targetDate, currentUser) => {
         status: 'checked_out',
     };
 
-    if (!isAdminRole(currentUser)) {
-        paymentQuery.valet_id = currentUser._id;
-    }
+    applyCarVisibilityFilter(paymentQuery, currentUser);
 
     const manualPayments = await ParkedCar.aggregate([
         {

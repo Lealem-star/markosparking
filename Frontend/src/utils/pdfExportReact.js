@@ -502,7 +502,7 @@ const AdministrativeReportPDF = ({ title, subtitle, data, logoBase64, type = 'us
         (data.usersByType || []).forEach(typeGroup => {
             if (typeGroup.type === 'valet') {
                 valetUsers.push(...typeGroup.users);
-            } else if (typeGroup.type === 'system_admin' || typeGroup.type === 'manager') {
+            } else if (['system_admin', 'director', 'supervisor', 'finance_officer'].includes(typeGroup.type)) {
                 administrativeUsers.push(...typeGroup.users);
             }
         });
@@ -559,7 +559,7 @@ const AdministrativeReportPDF = ({ title, subtitle, data, logoBase64, type = 'us
                                     <Text style={[styles.tableCell, { flex: 1 }]}>{user.name || 'N/A'}</Text>
                                     <Text style={[styles.tableCell, { flex: 1 }]}>{user.phoneNumber || 'N/A'}</Text>
                                     <Text style={[styles.tableCell, { flex: 0.8 }]}>
-                                        {user.role || (data.usersByType?.find(t => t.type === 'system_admin' || t.type === 'manager')?.type || 'N/A')}
+                                        {user.role || 'N/A'}
                                     </Text>
                                 </View>
                             ))}

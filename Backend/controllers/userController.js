@@ -8,17 +8,25 @@ const userService = require('../services/userService');
 const phonePattern = /^(\+?251|0)?[0-9]{9}$|^(\+)?[0-9]{10,15}$/;
 const passwordPattern = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,1024}$/;
 
+const { ALL_USER_TYPES, ROLES, requiresZoneCode } = require('../constants/roles');
+
+const zoneRequiredTypes = [ROLES.VALET, ROLES.SUPERVISOR];
+
 const createUserSchema = Joi.object({
     name: Joi.string().trim().required(),
     phoneNumber: Joi.string().trim().required().pattern(phonePattern),
     password: Joi.string().min(8).required().max(20).regex(passwordPattern),
-    type: Joi.string().valid('system_admin', 'manager', 'admin', 'valet').required(),
+    type: Joi.string().valid(...ALL_USER_TYPES).required(),
     parkZoneCode: Joi.string().trim().when('type', {
-        is: Joi.string().valid('valet'),
+        is: Joi.string().valid(...zoneRequiredTypes),
         then: Joi.string().required().min(1),
         otherwise: Joi.string().optional().allow('', null),
     }),
-    priceLevel: Joi.string().trim().optional().allow('', null),
+    priceLevel: Joi.string().trim().when('type', {
+        is: ROLES.VALET,
+        then: Joi.string().required().min(1),
+        otherwise: Joi.string().optional().allow('', null),
+    }),
 });
 
 const loginSchema = Joi.object({
@@ -37,7 +45,7 @@ const updateUserSchema = Joi.object({
     phoneNumber: Joi.string().trim().optional().allow(''),
     parkZoneCode: Joi.string().trim().optional().allow(''),
     language: Joi.string().valid('en', 'am').optional(),
-    type: Joi.string().valid('system_admin', 'manager', 'admin', 'valet').optional(),
+    type: Joi.string().valid(...ALL_USER_TYPES).optional(),
     password: Joi.string().min(8).max(20).regex(passwordPattern).optional().allow(''),
     priceLevel: Joi.string().trim().optional().allow('', null),
     isActive: Joi.boolean().optional(),
@@ -57,7 +65,7 @@ const createUser = async (req, res) => {
 };
 
 const listUsers = async (req, res) => {
-    const users = await userService.listUsers();
+    const users = await userService.listUsers(req.currentUser);
     res.json(users);
 };
 

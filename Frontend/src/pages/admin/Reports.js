@@ -1,27 +1,32 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText, DollarSign, Users } from 'lucide-react';
 import { useCurrentUser } from '../../hooks/useAuth';
-import { REPORT_ROLES } from '../../constants/roles';
+import { getReportTabsForRole } from '../../config/staffAccess';
 import FinancialReports from './reports/FinancialReports';
 import CustomerReports from './reports/CustomerReports';
 import AdministrativeReports from './reports/AdministrativeReports';
 import '../../styles/reports.scss';
 
+const ALL_TABS = [
+    { id: 'financial', labelKey: 'reports.financialReports', icon: DollarSign, component: FinancialReports },
+    { id: 'customer', labelKey: 'reports.customerReports', icon: Users, component: CustomerReports },
+    { id: 'administrative', labelKey: 'reports.administrativeReports', icon: FileText, component: AdministrativeReports },
+];
+
 const Reports = () => {
     const { t } = useTranslation();
     const user = useCurrentUser();
-    const [activeTab, setActiveTab] = useState('financial');
+    const allowedTabIds = useMemo(() => getReportTabsForRole(user?.type), [user?.type]);
+    const tabs = useMemo(
+        () => ALL_TABS.filter((tab) => allowedTabIds.includes(tab.id)),
+        [allowedTabIds]
+    );
+    const [activeTab, setActiveTab] = useState(() => tabs[0]?.id || 'financial');
 
-    const tabs = [
-        { id: 'financial', label: t('reports.financialReports'), icon: DollarSign, component: FinancialReports },
-        { id: 'customer', label: t('reports.customerReports'), icon: Users, component: CustomerReports },
-        { id: 'administrative', label: t('reports.administrativeReports'), icon: FileText, component: AdministrativeReports },
-    ];
+    const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || FinancialReports;
 
-    const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || FinancialReports;
-
-    if (!user || !REPORT_ROLES.includes(user.type)) {
+    if (!user || tabs.length === 0) {
         return (
             <div className="reports-container">
                 <div className="access-denied">
@@ -34,18 +39,18 @@ const Reports = () => {
 
     return (
         <div className="reports-container">
-
             <div className="reports-tabs">
-                {tabs.map(tab => {
+                {tabs.map((tab) => {
                     const Icon = tab.icon;
                     return (
                         <button
                             key={tab.id}
+                            type="button"
                             className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
                             onClick={() => setActiveTab(tab.id)}
                         >
                             <Icon size={20} />
-                            <span>{tab.label}</span>
+                            <span>{t(tab.labelKey)}</span>
                         </button>
                     );
                 })}

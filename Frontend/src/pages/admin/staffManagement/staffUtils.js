@@ -1,7 +1,9 @@
+import { OFFICE_STAFF_TYPES, ROLES, VALET_ROLE, normalizeRole } from '../../../constants/roles';
+
 export const isStaffActive = (staffMember) => staffMember?.isActive !== false;
 
-export const MANAGERIAL_TYPES = ['system_admin', 'manager', 'admin'];
-export const VALET_TYPE = 'valet';
+export const MANAGERIAL_TYPES = [...OFFICE_STAFF_TYPES];
+export const VALET_TYPE = VALET_ROLE;
 
 export const getInitials = (name = '') => {
     const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -11,14 +13,16 @@ export const getInitials = (name = '') => {
 };
 
 export const getRoleLabel = (type, t) => {
-    switch (type) {
-        case 'system_admin':
+    switch (normalizeRole(type)) {
+        case ROLES.SYSTEM_ADMIN:
             return t('admin.systemAdmin');
-        case 'manager':
-            return t('admin.manager');
-        case 'admin':
-            return t('admin.admin');
-        case 'valet':
+        case ROLES.DIRECTOR:
+            return t('admin.director');
+        case ROLES.SUPERVISOR:
+            return t('admin.supervisor');
+        case ROLES.FINANCE_OFFICER:
+            return t('admin.financeOfficer');
+        case ROLES.VALET:
             return t('admin.valet');
         default:
             return type || '—';
@@ -26,14 +30,16 @@ export const getRoleLabel = (type, t) => {
 };
 
 export const getRoleSubtitle = (type, t) => {
-    switch (type) {
-        case 'system_admin':
-            return t('admin.systemAdminSubtitle');
-        case 'manager':
-            return t('admin.managerSubtitle');
-        case 'admin':
-            return t('admin.adminSubtitle');
-        case 'valet':
+    switch (normalizeRole(type)) {
+        case ROLES.SYSTEM_ADMIN:
+            return t('admin.systemAdminResponsibility');
+        case ROLES.DIRECTOR:
+            return t('admin.directorResponsibility');
+        case ROLES.SUPERVISOR:
+            return t('admin.supervisorResponsibility');
+        case ROLES.FINANCE_OFFICER:
+            return t('admin.financeOfficerResponsibility');
+        case ROLES.VALET:
             return t('admin.valetSubtitle');
         default:
             return '';
@@ -41,13 +47,14 @@ export const getRoleSubtitle = (type, t) => {
 };
 
 export const getZoneLabel = (staffMember, t) => {
-    if (staffMember?.type === VALET_TYPE) {
+    const role = normalizeRole(staffMember?.type);
+    if (role === ROLES.VALET || role === ROLES.SUPERVISOR) {
         return staffMember?.parkZoneCode || t('admin.unknownZone');
     }
     return t('admin.allZonesLabel');
 };
 
-export const isManagerial = (user) => MANAGERIAL_TYPES.includes(user?.type);
+export const isManagerial = (user) => MANAGERIAL_TYPES.includes(normalizeRole(user?.type));
 
 export const filterStaff = (users, { searchQuery, roleFilter, zoneFilter, statusFilter }) => {
     const query = searchQuery.trim().toLowerCase();
@@ -58,7 +65,7 @@ export const filterStaff = (users, { searchQuery, roleFilter, zoneFilter, status
             (item?.name || '').toLowerCase().includes(query) ||
             (item?.phoneNumber || '').toLowerCase().includes(query);
 
-        const matchesRole = roleFilter === 'all' || item?.type === roleFilter;
+        const matchesRole = roleFilter === 'all' || normalizeRole(item?.type) === roleFilter;
 
         const zone = item?.parkZoneCode || '';
         const matchesZone =
@@ -83,31 +90,40 @@ export const groupValetsByZone = (valets) => {
         return acc;
     }, {});
 
-    return Object.keys(grouped)
-        .sort((a, b) => a.localeCompare(b))
-        .map((zoneCode) => ({ zoneCode, staff: grouped[zoneCode] }));
+    return Object.entries(grouped)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([zoneCode, zoneValets]) => ({ zoneCode, staff: zoneValets }));
+};
+
+export const getUniqueZones = (users) => {
+    const zones = new Set(
+        users
+            .map((u) => u?.parkZoneCode)
+            .filter(Boolean)
+    );
+    return Array.from(zones).sort();
 };
 
 export const getStaffStats = (users) => {
     const activeUsers = users.filter(isStaffActive);
-    const valets = activeUsers.filter((u) => u?.type === VALET_TYPE);
-    const managers = activeUsers.filter((u) => MANAGERIAL_TYPES.includes(u?.type));
-    const zoneSet = new Set(
-        valets.map((v) => v?.parkZoneCode).filter(Boolean)
-    );
+    const officeStaff = activeUsers.filter((u) => isManagerial(u));
+    const valets = activeUsers.filter((u) => normalizeRole(u?.type) === ROLES.VALET);
+    const zones = new Set(valets.map((v) => v?.parkZoneCode).filter(Boolean));
 
     return {
-        totalStaff: activeUsers.length,
-        managers: managers.length,
+        total: activeUsers.length,
+        officeStaff: officeStaff.length,
         valets: valets.length,
-        activeZones: zoneSet.size,
+        zones: zones.size,
     };
 };
 
-export const getUniqueZones = (users) => {
-    return [...new Set(
-        users
-            .filter((u) => u?.type === VALET_TYPE && u?.parkZoneCode && isStaffActive(u))
-            .map((u) => u.parkZoneCode)
-    )].sort();
+export const filterUsersForStaffMode = (users, currentUser, mode) => {
+    if (mode === 'supervisor') {
+        const zone = currentUser?.parkZoneCode;
+        return users.filter(
+            (u) => normalizeRole(u?.type) === ROLES.VALET && u?.parkZoneCode === zone
+        );
+    }
+    return users;
 };

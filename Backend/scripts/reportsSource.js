@@ -17,7 +17,7 @@ const getDateRange = (startDate, endDate) => {
 
 // Helper to check user permissions
 const checkAdminAccess = (userType) => {
-    return ['system_admin', 'manager', 'admin'].includes(userType);
+    return ['system_admin', 'director', 'supervisor', 'finance_officer'].includes(userType);
 };
 
 // ==================== FINANCIAL REPORTS ====================
