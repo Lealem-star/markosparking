@@ -31,16 +31,48 @@ export const formatDateTime = (dateString) => {
     });
 };
 
-export const canParkIn = (car) => {
+export const isSameVehicle = (a, b) => {
+    if (!a || !b) return false;
+    if (a._id && b._id && a._id.toString() === b._id.toString()) return true;
+
+    const plateA = (a.licensePlate || '').toUpperCase();
+    const plateB = (b.licensePlate || '').toUpperCase();
+    if (plateA && plateB && plateA === plateB) return true;
+
+    const numA = (a.licensePlateNumber || '').toUpperCase();
+    const numB = (b.licensePlateNumber || '').toUpperCase();
+    return Boolean(
+        a.plateCode && b.plateCode
+        && a.region && b.region
+        && numA && numB
+        && a.plateCode === b.plateCode
+        && a.region === b.region
+        && numA === numB
+    );
+};
+
+export const hasActiveParkedVisit = (car, allCars = []) =>
+    allCars.some(
+        (other) => other.status === 'parked'
+            && other._id?.toString() !== car._id?.toString()
+            && isSameVehicle(other, car)
+    );
+
+export const canParkIn = (car, allCars = []) => {
     if (car.status !== 'checked_out') return false;
+    if (hasActiveParkedVisit(car, allCars)) return false;
     if (car.serviceType === 'package' && car.packageEndDate) {
         return new Date(car.packageEndDate) > new Date();
     }
     return true;
 };
 
-export const filterParkedCars = (cars, { serviceFilter, searchQuery }) => {
+export const filterParkedCars = (cars, { serviceFilter, searchQuery, statusFilter = 'all' }) => {
     let result = cars;
+
+    if (statusFilter && statusFilter !== 'all') {
+        result = result.filter((car) => car.status === statusFilter);
+    }
 
     if (serviceFilter === 'hourly') {
         result = result.filter((car) => car.serviceType !== 'package');

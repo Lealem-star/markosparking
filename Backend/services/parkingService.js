@@ -222,7 +222,31 @@ const getParkedCarById = async (id) => {
     return car;
 };
 
+const assertNoActiveParkedVisit = async (car) => {
+    const plateQueries = [{ licensePlate: car.licensePlate }];
+
+    if (car.plateCode && car.region && car.licensePlateNumber) {
+        plateQueries.push({
+            plateCode: car.plateCode,
+            region: car.region,
+            licensePlateNumber: car.licensePlateNumber.toUpperCase(),
+        });
+    }
+
+    const existingCar = await ParkedCar.findOne({
+        status: 'parked',
+        _id: { $ne: car._id },
+        $or: plateQueries,
+    });
+
+    if (existingCar) {
+        throw new AppError('This car is already parked. Check out the active visit first.', 400);
+    }
+};
+
 const createHourlyVisit = async (car, currentUser, notes) => {
+    await assertNoActiveParkedVisit(car);
+
     const newVisit = await ParkedCar.create({
         licensePlate: car.licensePlate,
         plateCode: car.plateCode,
@@ -247,6 +271,8 @@ const createHourlyVisit = async (car, currentUser, notes) => {
 };
 
 const createPackageVisit = async (car, currentUser, notes) => {
+    await assertNoActiveParkedVisit(car);
+
     const newVisit = await ParkedCar.create({
         licensePlate: car.licensePlate,
         plateCode: car.plateCode,

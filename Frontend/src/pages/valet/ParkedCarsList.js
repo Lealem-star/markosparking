@@ -59,9 +59,8 @@ const ParkedCarsList = () => {
     const [parkInLoadingId, setParkInLoadingId] = useState(null);
 
     const parkedCarsParams = useMemo(() => ({
-        status: filter !== 'all' ? filter : null,
         date: selectedDate,
-    }), [filter, selectedDate]);
+    }), [selectedDate]);
 
     const {
         data: rawCars = [],
@@ -89,8 +88,8 @@ const ParkedCarsList = () => {
     );
 
     const filteredCars = useMemo(
-        () => filterParkedCars(cars, { serviceFilter, searchQuery }),
-        [cars, serviceFilter, searchQuery]
+        () => filterParkedCars(cars, { serviceFilter, searchQuery, statusFilter: filter }),
+        [cars, serviceFilter, searchQuery, filter]
     );
 
     const refreshParkingData = useCallback(() => {
@@ -148,7 +147,7 @@ const ParkedCarsList = () => {
     };
 
     const handleParkIn = async (car) => {
-        if (!car?._id || !user?.token || !canParkIn(car)) return;
+        if (!car?._id || !user?.token || !canParkIn(car, cars)) return;
 
         setParkInLoadingId(car._id);
         try {
@@ -240,6 +239,7 @@ const ParkedCarsList = () => {
                 t={t}
                 loading={loading}
                 filteredCars={filteredCars}
+                allCars={cars}
                 searchQuery={searchQuery}
                 serviceFilter={serviceFilter}
                 parkInLoadingId={parkInLoadingId}

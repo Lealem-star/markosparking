@@ -5,6 +5,7 @@ const ParkedCarsTable = ({
     t,
     loading,
     filteredCars,
+    allCars = [],
     searchQuery,
     serviceFilter,
     parkInLoadingId,
@@ -49,7 +50,7 @@ const ParkedCarsTable = ({
                                             <button type="button" className="btn-action btn-checkout" onClick={() => onCheckOut(car)}>
                                                 {t('valet.checkOut')}
                                             </button>
-                                        ) : canParkIn(car) ? (
+                                        ) : canParkIn(car, allCars) ? (
                                             <button
                                                 type="button"
                                                 className="btn-action btn-park-in"
@@ -106,7 +107,7 @@ const ParkedCarsTable = ({
                                                     <button type="button" className="btn-action btn-checkout" onClick={() => onCheckOut(car)}>
                                                         {t('valet.checkOut')}
                                                     </button>
-                                                ) : canParkIn(car) ? (
+                                                ) : canParkIn(car, allCars) ? (
                                                     <button
                                                         type="button"
                                                         className="btn-action btn-park-in"
