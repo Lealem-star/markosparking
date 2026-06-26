@@ -222,6 +222,30 @@ const getParkedCarById = async (id) => {
     return car;
 };
 
+const createHourlyVisit = async (car, currentUser, notes) => {
+    const newVisit = await ParkedCar.create({
+        licensePlate: car.licensePlate,
+        plateCode: car.plateCode,
+        region: car.region,
+        licensePlateNumber: car.licensePlateNumber,
+        carType: car.carType,
+        model: car.model,
+        color: car.color,
+        phoneNumber: car.phoneNumber,
+        location: car.location,
+        notes: notes !== undefined ? notes : car.notes,
+        serviceType: 'hourly',
+        valet_id: currentUser._id,
+        status: 'parked',
+        parkedAt: new Date(),
+        totalPaidAmount: 0,
+        baseAmount: 0,
+        vatAmount: 0,
+    });
+
+    return populateCarQuery(ParkedCar.findById(newVisit._id));
+};
+
 const createPackageVisit = async (car, currentUser, notes) => {
     const newVisit = await ParkedCar.create({
         licensePlate: car.licensePlate,
@@ -352,6 +376,12 @@ const updateParkedCar = async (id, currentUser, updates) => {
         if (!isPackage) {
             if (status === 'checked_out') {
                 await applyHourlyCheckout(car, currentUser, { totalPaidAmount, paymentMethod });
+            } else if (status === 'parked' && car.status === 'checked_out') {
+                const newVisit = await createHourlyVisit(car, currentUser, notes);
+                return {
+                    message: 'New hourly visit parked successfully',
+                    car: newVisit,
+                };
             } else {
                 car.status = status;
             }

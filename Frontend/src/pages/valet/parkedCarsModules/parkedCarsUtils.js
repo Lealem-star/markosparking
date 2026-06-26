@@ -13,11 +13,9 @@ export { getLicensePlate };
 export const dedupeCars = (list) => {
     const seen = new Set();
     return list.filter((car) => {
-        const plate = getLicensePlate(car);
-        const parkedMin = car.parkedAt ? new Date(car.parkedAt).setSeconds(0, 0) : 0;
-        const key = `${plate}|${parkedMin}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
+        const id = car?._id?.toString();
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
         return true;
     });
 };
