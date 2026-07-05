@@ -5,6 +5,7 @@ import {
     VatRateConfiguration,
     CarTypePricingConfiguration,
     AddPriceLevelModal,
+    EditPriceLevelModal,
     DeletePriceLevelModal,
     SettingsSectionToggle,
     useSettingsPage,
@@ -59,16 +60,9 @@ const Settings = () => {
                     loading={settings.loading}
                     success={settings.success}
                     error={settings.error}
-                    editingPriceLevel={settings.editingPriceLevel}
-                    editingCarType={settings.editingCarType}
-                    editPrices={settings.editPrices}
-                    onEditPricesChange={settings.setEditPrices}
-                    onEdit={settings.handleEditCarTypePricing}
-                    onSaveEdit={settings.handleSaveEdit}
-                    onCancelEdit={settings.handleCancelEdit}
-                    onDeleteCarType={settings.handleDeleteCarType}
                     onDeletePriceLevel={settings.handleDelete}
                     onAddPriceLevel={() => settings.setShowAddModal(true)}
+                    onOpenEditPriceLevel={settings.handleOpenEditPriceLevel}
                 />
             )}
 
@@ -91,6 +85,18 @@ const Settings = () => {
                     });
                 }}
                 onSubmit={settings.handleAddPriceLevel}
+            />
+
+            <EditPriceLevelModal
+                t={t}
+                isOpen={settings.showEditModal}
+                priceLevelName={settings.editingPriceLevelName}
+                pricing={settings.editPriceLevelPricing}
+                error={settings.error}
+                loading={settings.loading}
+                onClose={settings.closeEditModal}
+                onPricingChange={settings.handleEditPriceLevelPricingChange}
+                onSubmit={settings.handleSavePriceLevelEdit}
             />
 
             <DeletePriceLevelModal

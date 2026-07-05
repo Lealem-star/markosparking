@@ -10,6 +10,33 @@ export const getPriceLevelColor = (index) => {
     return colors[index % colors.length];
 };
 
+export const buildZonePriceLevelMappings = (users = []) => {
+    const map = {};
+
+    users
+        .filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false)
+        .forEach((u) => {
+            const zoneCode = u.parkZoneCode;
+            if (!map[zoneCode]) {
+                map[zoneCode] = {
+                    zoneCode,
+                    priceLevelName: u.priceLevel || null,
+                    valetCount: 0,
+                };
+            }
+            map[zoneCode].valetCount += 1;
+            if (
+                u.priceLevel
+                && map[zoneCode].priceLevelName
+                && map[zoneCode].priceLevelName !== u.priceLevel
+            ) {
+                map[zoneCode].hasConflict = true;
+            }
+        });
+
+    return Object.values(map).sort((a, b) => a.zoneCode.localeCompare(b.zoneCode));
+};
+
 export const buildPricingGroups = (priceLevels, users = []) => {
     const zoneMap = {};
 

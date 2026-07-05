@@ -31,6 +31,9 @@ export const useSettingsPage = (user, t) => {
     const [editingPriceLevel, setEditingPriceLevel] = useState(null);
     const [editingCarType, setEditingCarType] = useState(null);
     const [editPrices, setEditPrices] = useState(EMPTY_EDIT_PRICES);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingPriceLevelName, setEditingPriceLevelName] = useState(null);
+    const [editPriceLevelPricing, setEditPriceLevelPricing] = useState(emptyPricing());
     const [showAddModal, setShowAddModal] = useState(false);
     const [newPriceLevelName, setNewPriceLevelName] = useState('');
     const [newPriceLevelPricing, setNewPriceLevelPricing] = useState(emptyPricing());
@@ -215,6 +218,40 @@ export const useSettingsPage = (user, t) => {
         window.alert(t('settings.vatHelpText'));
     }, [t]);
 
+    const closeEditModal = useCallback(() => {
+        setShowEditModal(false);
+        setEditingPriceLevelName(null);
+        setEditPriceLevelPricing(emptyPricing());
+        setError('');
+    }, []);
+
+    const handleOpenEditPriceLevel = useCallback((priceLevelName) => {
+        setEditingPriceLevelName(priceLevelName);
+        setEditPriceLevelPricing(JSON.parse(JSON.stringify(priceLevels[priceLevelName] || emptyPricing())));
+        setShowEditModal(true);
+        setError('');
+    }, [priceLevels]);
+
+    const handleEditPriceLevelPricingChange = useCallback((carType, field, value) => {
+        setEditPriceLevelPricing((prev) => ({
+            ...prev,
+            [carType]: { ...prev[carType], [field]: value },
+        }));
+    }, []);
+
+    const handleSavePriceLevelEdit = useCallback(() => {
+        if (!editingPriceLevelName) return;
+
+        const updatedPriceLevels = {
+            ...priceLevels,
+            [editingPriceLevelName]: editPriceLevelPricing,
+        };
+
+        setPriceLevels(updatedPriceLevels);
+        closeEditModal();
+        savePriceLevels(updatedPriceLevels);
+    }, [editPriceLevelPricing, editingPriceLevelName, priceLevels, closeEditModal, savePriceLevels]);
+
     const closeAddModal = useCallback(() => {
         setShowAddModal(false);
         setNewPriceLevelName('');
@@ -239,6 +276,13 @@ export const useSettingsPage = (user, t) => {
         editingCarType,
         editPrices,
         setEditPrices,
+        showEditModal,
+        editingPriceLevelName,
+        editPriceLevelPricing,
+        handleOpenEditPriceLevel,
+        handleEditPriceLevelPricingChange,
+        handleSavePriceLevelEdit,
+        closeEditModal,
         showAddModal,
         setShowAddModal,
         newPriceLevelName,

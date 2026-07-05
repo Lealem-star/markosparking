@@ -158,7 +158,17 @@
     "deleting": "Deleting...",
     "priceLevelSaved": "Price level saved successfully!",
     "vatRateUpdated": "VAT rate updated successfully!",
-    "vatRateMustBeValid": "VAT rate must be between 0 and 100"
+    "vatRateMustBeValid": "VAT rate must be between 0 and 100",
+    "viewDetails": "View Details",
+    "priceLevelDetails": "Price Level Details",
+    "editPriceLevel": "Edit Price Level",
+    "priceLevelListHint": "Manage hourly and package rates for each price level.",
+    "zonePriceLevelMapping": "Zone & Price Level Mapping",
+    "zonePriceLevelMappingHint": "Shows which price level is assigned to each parking zone via valet staff.",
+    "assignedValets": "Assigned Valets",
+    "noZoneMappings": "No zones configured yet. Assign park zone codes to valets in Staff Management.",
+    "unassigned": "Unassigned",
+    "zoneMappingConflict": "Mixed assignments"
   },
   "valet": {
     "registerCar": "Register Car",

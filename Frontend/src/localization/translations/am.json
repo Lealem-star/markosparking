@@ -158,7 +158,17 @@
     "deleting": "በመሰረዝ ላይ...",
     "priceLevelSaved": "የዋጋ ደረጃ በትክክል ተቀመጠ!",
     "vatRateUpdated": "የግብር መጠን በትክክል ተዘመነ!",
-    "vatRateMustBeValid": "የግብር መጠን በ0 እና 100 መካከል መሆን አለበት"
+    "vatRateMustBeValid": "የግብር መጠን በ0 እና 100 መካከል መሆን አለበት",
+    "viewDetails": "ዝርዝር ይመልከቱ",
+    "priceLevelDetails": "የዋጋ ደረጃ ዝርዝር",
+    "editPriceLevel": "የዋጋ ደረጃ አርትዕ",
+    "priceLevelListHint": "ለእያንዳንዱ የዋጋ ደረጃ የሰዓት እና የጥቅል ዋጋዎችን ያስተዳድሩ።",
+    "zonePriceLevelMapping": "ዞን እና የዋጋ ደረጃ ግንኙነት",
+    "zonePriceLevelMappingHint": "እያንዳንዱ ዞን በቫሌት ሰራተኞች የተመደበውን የዋጋ ደረጃ ያሳያል።",
+    "assignedValets": "የተመደቡ ቫሌቶች",
+    "noZoneMappings": "ዞኖች ገና አልተዋቀሩም። በሰራተኞች አስተዳደር ዞን ያስመድቡ።",
+    "unassigned": "ያልተመደበ",
+    "zoneMappingConflict": "የተቀላቀሉ መደቦች"
   },
   "valet": {
     "registerCar": "መኪና ምዝግብ",

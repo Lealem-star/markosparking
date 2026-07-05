@@ -23,6 +23,7 @@ const PricingTable = ({
     onCancel,
     onDeleteCarType,
     loading,
+    readOnly = false,
 }) => (
     <div className="pricing-table-wrap">
         <table className="pricing-table">
@@ -33,13 +34,13 @@ const PricingTable = ({
                     <th>{t('settings.weeklyPackage')}</th>
                     <th>{t('settings.monthlyPackage')}</th>
                     <th>{t('settings.yearlyPackage')}</th>
-                    <th>{t('settings.actions')}</th>
+                    {!readOnly && <th>{t('settings.actions')}</th>}
                 </tr>
             </thead>
             <tbody>
                 {CAR_TYPES.map((carType) => {
                     const carPricing = pricing[carType] || {};
-                    const isEditing = editingPriceLevel === priceLevelName && editingCarType === carType;
+                    const isEditing = !readOnly && editingPriceLevel === priceLevelName && editingCarType === carType;
                     const Icon = carTypeIcons[carType] || Car;
 
                     const renderCell = (field) => (
@@ -70,41 +71,43 @@ const PricingTable = ({
                             <td>{renderCell('weekly')}</td>
                             <td>{renderCell('monthly')}</td>
                             <td>{renderCell('yearly')}</td>
-                            <td>
-                                <div className="pricing-row-actions">
-                                    {isEditing ? (
-                                        <>
-                                            <button type="button" className="pricing-action-btn pricing-action-btn--save" onClick={onSave} disabled={loading}>
-                                                <Check size={14} />
-                                            </button>
-                                            <button type="button" className="pricing-action-btn pricing-action-btn--cancel" onClick={onCancel} disabled={loading}>
-                                                <XIcon size={14} />
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button
-                                                type="button"
-                                                className="pricing-action-btn pricing-action-btn--edit"
-                                                onClick={() => onEdit(priceLevelName, carType)}
-                                                disabled={loading}
-                                                aria-label={t('common.edit')}
-                                            >
-                                                <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="pricing-action-btn pricing-action-btn--delete"
-                                                onClick={() => onDeleteCarType(priceLevelName, carType)}
-                                                disabled={loading}
-                                                aria-label={t('common.delete')}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </td>
+                            {!readOnly && (
+                                <td>
+                                    <div className="pricing-row-actions">
+                                        {isEditing ? (
+                                            <>
+                                                <button type="button" className="pricing-action-btn pricing-action-btn--save" onClick={onSave} disabled={loading}>
+                                                    <Check size={14} />
+                                                </button>
+                                                <button type="button" className="pricing-action-btn pricing-action-btn--cancel" onClick={onCancel} disabled={loading}>
+                                                    <XIcon size={14} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="pricing-action-btn pricing-action-btn--edit"
+                                                    onClick={() => onEdit(priceLevelName, carType)}
+                                                    disabled={loading}
+                                                    aria-label={t('common.edit')}
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="pricing-action-btn pricing-action-btn--delete"
+                                                    onClick={() => onDeleteCarType(priceLevelName, carType)}
+                                                    disabled={loading}
+                                                    aria-label={t('common.delete')}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
+                            )}
                         </tr>
                     );
                 })}

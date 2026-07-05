@@ -592,6 +592,212 @@
     }
 }
 
+.pricing-level-list-section,
+.pricing-zone-mapping-section {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid #e8ecf1;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.pricing-level-list-section h3,
+.pricing-zone-mapping-section h3 {
+    margin: 0 0 6px;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.pricing-section-desc,
+.pricing-section-subtitle {
+    margin: 0 0 16px;
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.pricing-level-list-section .pricing-section-header,
+.pricing-zone-mapping-section .pricing-section-header {
+    margin-bottom: 16px;
+}
+
+.pricing-level-badge--table {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pricing-zone-mapping-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.pricing-unassigned {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.pricing-conflict-tag {
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.pricing-level-action-btn--delete {
+    color: #dc2626;
+    border-color: #fecaca;
+
+    &:hover:not(:disabled) {
+        background: #fef2f2;
+        border-color: #f87171;
+    }
+}
+
+.pricing-details-modal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.pricing-level-list-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e8ecf1;
+    border-radius: 12px;
+}
+
+.pricing-level-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+
+    th,
+    td {
+        padding: 12px 14px;
+        text-align: left;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.875rem;
+    }
+
+    th {
+        background: #f8fafc;
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    tbody tr:hover {
+        background: #fafbfc;
+    }
+}
+
+.pricing-level-name-cell {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.pricing-level-actions-cell {
+    white-space: nowrap;
+}
+
+.pricing-level-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    margin-right: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    &.danger {
+        color: #dc2626;
+        border-color: #fecaca;
+
+        &:hover {
+            background: #fef2f2;
+            border-color: #f87171;
+        }
+    }
+}
+
+.pricing-zone-mapping-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e8ecf1;
+    border-radius: 12px;
+}
+
+.pricing-zone-mapping-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 480px;
+
+    th,
+    td {
+        padding: 12px 14px;
+        text-align: left;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.875rem;
+    }
+
+    th {
+        background: #f8fafc;
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+}
+
+.pricing-zone-code-cell {
+    font-weight: 700;
+    color: #0f172a;
+    font-family: ui-monospace, monospace;
+}
+
+.pricing-zone-name-cell {
+    color: #334155;
+}
+
+.pricing-zone-level-cell {
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.pricing-details-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
 @media (max-width: 1100px) {
     .pricing-configuration .pricing-stats-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
