@@ -15,6 +15,9 @@ const {
     ROLES,
     STAFF_SHELL_ROLES,
     hasOfficeWideDataAccess,
+    isAllZonesCode,
+    supervisorCoversZone,
+    getSupervisorZoneList,
 } = require('../constants/roles');
 
 const isStaffShellRole = (user) => STAFF_SHELL_ROLES.includes(user?.type);
@@ -31,7 +34,7 @@ const canManageCar = (currentUser, car) => {
             return true;
         }
         if (currentUser.type === ROLES.SUPERVISOR) {
-            return car.location === currentUser.parkZoneCode;
+            return supervisorCoversZone(currentUser.parkZoneCode, car.location);
         }
     }
     return car.valet_id.toString() === currentUser._id.toString();
@@ -43,8 +46,13 @@ const applyCarVisibilityFilter = (query, currentUser) => {
         return;
     }
 
-    if (currentUser.type === ROLES.SUPERVISOR && currentUser.parkZoneCode) {
-        query.location = currentUser.parkZoneCode;
+    if (currentUser.type === ROLES.SUPERVISOR && currentUser.parkZoneCode && !isAllZonesCode(currentUser.parkZoneCode)) {
+        const zones = getSupervisorZoneList(currentUser.parkZoneCode);
+        if (zones.length === 1) {
+            query.location = zones[0];
+        } else if (zones.length > 1) {
+            query.location = { $in: zones };
+        }
     }
 };
 
@@ -195,8 +203,13 @@ const getFlaggedCars = async (currentUser) => {
         ],
     };
 
-    if (currentUser?.type === ROLES.SUPERVISOR && currentUser.parkZoneCode) {
-        query.location = currentUser.parkZoneCode;
+    if (currentUser?.type === ROLES.SUPERVISOR && currentUser.parkZoneCode && !isAllZonesCode(currentUser.parkZoneCode)) {
+        const zones = getSupervisorZoneList(currentUser.parkZoneCode);
+        if (zones.length === 1) {
+            query.location = zones[0];
+        } else if (zones.length > 1) {
+            query.location = { $in: zones };
+        }
     }
 
     const cars = await ParkedCar.find(query)

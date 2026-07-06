@@ -65,6 +65,37 @@ const CREATABLE_BY = Object.freeze({
     ],
 });
 
+const VALET_ROLE = ROLES.VALET;
+
+/** Wildcard park zone code — supervisors with this value can access all zones */
+const ALL_ZONES_CODE = '*';
+
+const ZONE_SEPARATOR = ',';
+
+const parseSupervisorZones = (code = '') => {
+    const trimmed = code?.trim();
+    if (!trimmed) return [];
+    if (trimmed === ALL_ZONES_CODE) return [ALL_ZONES_CODE];
+    return trimmed.split(ZONE_SEPARATOR).map((zone) => zone.trim()).filter(Boolean);
+};
+
+const serializeSupervisorZones = (zones = []) => {
+    const cleaned = [...new Set(zones.map((zone) => zone?.trim()).filter(Boolean))];
+    if (cleaned.includes(ALL_ZONES_CODE)) return ALL_ZONES_CODE;
+    return cleaned.join(ZONE_SEPARATOR);
+};
+
+const getSupervisorZoneList = (code = '') =>
+    parseSupervisorZones(code).filter((zone) => zone !== ALL_ZONES_CODE);
+
+const isAllZonesCode = (code) => code?.trim() === ALL_ZONES_CODE;
+
+const supervisorCoversZone = (supervisorZone, targetZone) => {
+    const zones = parseSupervisorZones(supervisorZone);
+    if (zones.includes(ALL_ZONES_CODE)) return true;
+    return zones.includes(targetZone);
+};
+
 const LEGACY_ROLE_MAP = Object.freeze({
     manager: ROLES.DIRECTOR,
     admin: ROLES.FINANCE_OFFICER,
@@ -129,7 +160,7 @@ const canManageUser = (actor, target) => {
         actorType === ROLES.SUPERVISOR
         && targetType === ROLES.VALET
         && actor.parkZoneCode
-        && target.parkZoneCode === actor.parkZoneCode
+        && supervisorCoversZone(actor.parkZoneCode, target.parkZoneCode)
     ) {
         return true;
     }
@@ -145,6 +176,12 @@ const assertCanManageUser = (actor, target) => {
 
 module.exports = {
     ROLES,
+    ALL_ZONES_CODE,
+    parseSupervisorZones,
+    serializeSupervisorZones,
+    getSupervisorZoneList,
+    isAllZonesCode,
+    supervisorCoversZone,
     ALL_USER_TYPES,
     STAFF_SHELL_ROLES,
     OFFICE_STAFF_TYPES,

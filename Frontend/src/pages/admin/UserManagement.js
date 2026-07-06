@@ -6,7 +6,7 @@ import { usePricingSettingsQuery, useUsersQuery, useInvalidateUsers } from '../.
 import { useTranslation } from 'react-i18next';
 import { DeleteModal } from '../../components';
 import { Shield, Car } from 'lucide-react';
-import { canCreateUsers, requiresZoneCode, requiresPriceLevel } from '../../constants/roles';
+import { canCreateUsers, requiresZoneCode, requiresPriceLevel, ROLES, isAllZonesCode, getSupervisorZoneList } from '../../constants/roles';
 import { getStaffManagementMode } from '../../config/staffAccess';
 import {
     StaffStatCards,
@@ -92,6 +92,33 @@ const UserManagement = () => {
 
     const canCreateUsersFlag = canCreateUsers(user?.type);
     const showOfficeStaffSection = staffMode === 'full';
+    const supervisorZoneScoped = staffMode === 'supervisor' && getSupervisorZoneList(user?.parkZoneCode).length === 1;
+
+    const validateZoneAssignment = () => {
+        if (!requiresZoneCode(formData.type)) {
+            return true;
+        }
+
+        if (formData.type === ROLES.SUPERVISOR) {
+            if (isAllZonesCode(formData.parkZoneCode) || getSupervisorZoneList(formData.parkZoneCode).length > 0) {
+                return true;
+            }
+            setError(t('admin.supervisorZoneRequired'));
+            return false;
+        }
+
+        if (!formData.parkZoneCode) {
+            setError('Park Zone Code is required for this role');
+            return false;
+        }
+
+        if (formData.type === ROLES.VALET && (isAllZonesCode(formData.parkZoneCode) || formData.parkZoneCode.includes(','))) {
+            setError('Valets must be assigned to a specific park zone');
+            return false;
+        }
+
+        return true;
+    };
 
     const handleFormChange = (field, value) => {
         setFormData({ ...formData, [field]: value });
@@ -113,10 +140,7 @@ const UserManagement = () => {
             return;
         }
 
-        if (requiresZoneCode(formData.type) && !formData.parkZoneCode) {
-            setError('Park Zone Code is required for this role');
-            return;
-        }
+        if (!validateZoneAssignment()) return;
 
         if (requiresPriceLevel(formData.type) && !formData.priceLevel) {
             setError('Price Level is required for valet users');
@@ -211,10 +235,7 @@ const UserManagement = () => {
             return;
         }
 
-        if (requiresZoneCode(formData.type) && !formData.parkZoneCode) {
-            setError('Park Zone Code is required for this role');
-            return;
-        }
+        if (!validateZoneAssignment()) return;
 
         if (requiresPriceLevel(formData.type) && !formData.priceLevel) {
             setError('Price Level is required for valet users');
@@ -304,7 +325,7 @@ const UserManagement = () => {
             <section className="staff-section-card">
                 <header className="staff-section-header">
                     <Car size={20} />
-                    <h2>{staffMode === 'supervisor' ? t('admin.valetsInYourZone') : t('admin.valetStaffByZones')}</h2>
+                    <h2>{supervisorZoneScoped ? t('admin.valetsInYourZone') : t('admin.valetStaffByZones')}</h2>
                 </header>
                 <ZoneAccordion
                     zones={valetsByZone}
@@ -321,6 +342,7 @@ const UserManagement = () => {
                 title="Create New User"
                 formData={formData}
                 priceLevels={priceLevels}
+                zones={zones}
                 error={error}
                 actorType={user?.type}
                 onClose={() => setShowCreateModal(false)}
@@ -336,6 +358,7 @@ const UserManagement = () => {
                 title="Edit User"
                 formData={formData}
                 priceLevels={priceLevels}
+                zones={zones}
                 error={error}
                 actorType={user?.type}
                 onClose={() => setShowEditModal(false)}

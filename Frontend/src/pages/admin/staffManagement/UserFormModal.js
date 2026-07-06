@@ -1,6 +1,16 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { canCreateRole, requiresZoneCode, requiresPriceLevel } from '../../../constants/roles';
+import {
+    ALL_ZONES_CODE,
+    ROLES,
+    canCreateRole,
+    requiresZoneCode,
+    requiresPriceLevel,
+    isAllZonesCode,
+    parseSupervisorZones,
+    serializeSupervisorZones,
+    getSupervisorZoneList,
+} from '../../../constants/roles';
 import { getRoleLabel } from './staffUtils';
 
 const UserFormModal = ({
@@ -8,6 +18,7 @@ const UserFormModal = ({
     title,
     formData,
     priceLevels,
+    zones = [],
     error,
     actorType,
     onClose,
@@ -26,6 +37,33 @@ const UserFormModal = ({
         }
         return allowed;
     }, [actorType, formData.type]);
+
+    const selectedSupervisorZones = useMemo(
+        () => parseSupervisorZones(formData.parkZoneCode),
+        [formData.parkZoneCode]
+    );
+
+    const zoneOptions = useMemo(() => {
+        const optionSet = new Set(zones);
+        getSupervisorZoneList(formData.parkZoneCode).forEach((zone) => optionSet.add(zone));
+        return Array.from(optionSet).sort();
+    }, [zones, formData.parkZoneCode]);
+
+    const allZonesSelected = isAllZonesCode(formData.parkZoneCode);
+
+    const handleToggleAllZones = (checked) => {
+        onChange('parkZoneCode', checked ? ALL_ZONES_CODE : '');
+    };
+
+    const handleToggleSupervisorZone = (zone, checked) => {
+        const current = new Set(getSupervisorZoneList(formData.parkZoneCode));
+        if (checked) {
+            current.add(zone);
+        } else {
+            current.delete(zone);
+        }
+        onChange('parkZoneCode', serializeSupervisorZones([...current]));
+    };
 
     if (!isOpen) return null;
 
@@ -86,14 +124,50 @@ const UserFormModal = ({
                     </div>
                     {requiresZoneCode(formData.type) && (
                         <div className="form-group">
-                            <label>Park Zone Code *</label>
-                            <input
-                                type="text"
-                                value={formData.parkZoneCode}
-                                onChange={(e) => onChange('parkZoneCode', e.target.value)}
-                                placeholder="Enter park zone code"
-                                required
-                            />
+                            <label>{t('admin.parkZoneCode')} *</label>
+                            {formData.type === ROLES.SUPERVISOR ? (
+                                <div className="supervisor-zone-picker">
+                                    <label className="supervisor-zone-option supervisor-zone-option--all">
+                                        <input
+                                            type="checkbox"
+                                            checked={allZonesSelected}
+                                            onChange={(e) => handleToggleAllZones(e.target.checked)}
+                                        />
+                                        <span>
+                                            {t('admin.allZonesLabel')} ({ALL_ZONES_CODE})
+                                        </span>
+                                    </label>
+                                    {!allZonesSelected && (
+                                        <div className="supervisor-zone-list">
+                                            {zoneOptions.length === 0 ? (
+                                                <p className="supervisor-zone-empty">{t('admin.noZonesAvailable')}</p>
+                                            ) : (
+                                                zoneOptions.map((zone) => (
+                                                    <label key={zone} className="supervisor-zone-option">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedSupervisorZones.includes(zone)}
+                                                            onChange={(e) => handleToggleSupervisorZone(zone, e.target.checked)}
+                                                        />
+                                                        <span>{zone}</span>
+                                                    </label>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={formData.parkZoneCode}
+                                    onChange={(e) => onChange('parkZoneCode', e.target.value)}
+                                    placeholder={t('admin.parkZonePlaceholder')}
+                                    required
+                                />
+                            )}
+                            {formData.type === ROLES.SUPERVISOR && (
+                                <small>{t('admin.supervisorZoneHint')}</small>
+                            )}
                         </div>
                     )}
                     {requiresPriceLevel(formData.type) && (

@@ -17,6 +17,35 @@ export const OFFICE_STAFF_TYPES = [...STAFF_SHELL_ROLES];
 
 export const VALET_ROLE = ROLES.VALET;
 
+/** Wildcard park zone code — supervisors with this value can access all zones */
+export const ALL_ZONES_CODE = '*';
+
+const ZONE_SEPARATOR = ',';
+
+export const parseSupervisorZones = (code = '') => {
+    const trimmed = code?.trim();
+    if (!trimmed) return [];
+    if (trimmed === ALL_ZONES_CODE) return [ALL_ZONES_CODE];
+    return trimmed.split(ZONE_SEPARATOR).map((zone) => zone.trim()).filter(Boolean);
+};
+
+export const serializeSupervisorZones = (zones = []) => {
+    const cleaned = [...new Set(zones.map((zone) => zone?.trim()).filter(Boolean))];
+    if (cleaned.includes(ALL_ZONES_CODE)) return ALL_ZONES_CODE;
+    return cleaned.join(ZONE_SEPARATOR);
+};
+
+export const getSupervisorZoneList = (code = '') =>
+    parseSupervisorZones(code).filter((zone) => zone !== ALL_ZONES_CODE);
+
+export const isAllZonesCode = (code) => code?.trim() === ALL_ZONES_CODE;
+
+export const supervisorCoversZone = (supervisorZone, targetZone) => {
+    const zones = parseSupervisorZones(supervisorZone);
+    if (zones.includes(ALL_ZONES_CODE)) return true;
+    return zones.includes(targetZone);
+};
+
 export const LEGACY_ROLE_MAP = Object.freeze({
     manager: ROLES.DIRECTOR,
     admin: ROLES.FINANCE_OFFICER,

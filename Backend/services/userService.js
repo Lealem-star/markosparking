@@ -15,6 +15,10 @@ const {
     canManageUser,
     requiresZoneCode,
     requiresPriceLevel,
+    isAllZonesCode,
+    getSupervisorZoneList,
+    parseSupervisorZones,
+    serializeSupervisorZones,
 } = require('../constants/roles');
 
 const sanitizeUser = (user) => {
@@ -39,12 +43,30 @@ const assertCanModifyTarget = (currentUser, targetUser, { isSelf }) => {
     }
 };
 
+const normalizeParkZoneCode = (type, parkZoneCode) => {
+    const trimmed = parkZoneCode?.trim() || '';
+    if (!requiresZoneCode(type)) return '';
+    if (type === ROLES.SUPERVISOR) {
+        return serializeSupervisorZones(parseSupervisorZones(trimmed));
+    }
+    return trimmed;
+};
+
 const assertZoneRequirements = (type, parkZoneCode, priceLevel) => {
     if (requiresZoneCode(type) && !parkZoneCode?.trim()) {
         throw new AppError('Park Zone Code is required for this role', 400);
     }
     if (requiresPriceLevel(type) && !priceLevel?.trim()) {
         throw new AppError('Price Level is required for valet users', 400);
+    }
+    if (type === ROLES.SUPERVISOR) {
+        const zones = getSupervisorZoneList(parkZoneCode);
+        if (!isAllZonesCode(parkZoneCode) && zones.length === 0) {
+            throw new AppError('Supervisors must be assigned at least one park zone', 400);
+        }
+    }
+    if (type === ROLES.VALET && (isAllZonesCode(parkZoneCode) || parkZoneCode?.includes(','))) {
+        throw new AppError('Valets must be assigned to a specific park zone', 400);
     }
 };
 
@@ -76,7 +98,7 @@ const createUser = async (actor, data) => {
         phoneNumber: phoneToUse,
         password: hashedPassword,
         type,
-        parkZoneCode: requiresZoneCode(type) ? parkZoneCode.trim() : '',
+        parkZoneCode: normalizeParkZoneCode(type, parkZoneCode),
         priceLevel: requiresPriceLevel(type) ? priceLevel.trim() : null,
     });
 
@@ -92,10 +114,16 @@ const createUser = async (actor, data) => {
 
 const buildUserListQuery = (currentUser) => {
     if (currentUser.type === ROLES.SUPERVISOR) {
-        return {
-            type: ROLES.VALET,
-            parkZoneCode: currentUser.parkZoneCode,
-        };
+        const query = { type: ROLES.VALET };
+        if (!isAllZonesCode(currentUser.parkZoneCode)) {
+            const zones = getSupervisorZoneList(currentUser.parkZoneCode);
+            if (zones.length === 1) {
+                query.parkZoneCode = zones[0];
+            } else if (zones.length > 1) {
+                query.parkZoneCode = { $in: zones };
+            }
+        }
+        return query;
     }
     return {};
 };
@@ -262,7 +290,7 @@ const updateUser = async (currentUser, targetId, updates) => {
     }
 
     if (parkZoneCode !== undefined && parkZoneCode.trim() !== '') {
-        user.parkZoneCode = parkZoneCode.trim();
+        user.parkZoneCode = normalizeParkZoneCode(user.type, parkZoneCode);
         hasUpdates = true;
     }
 

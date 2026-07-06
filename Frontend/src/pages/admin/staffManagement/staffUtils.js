@@ -1,4 +1,12 @@
-import { OFFICE_STAFF_TYPES, ROLES, VALET_ROLE, normalizeRole } from '../../../constants/roles';
+import {
+    OFFICE_STAFF_TYPES,
+    ROLES,
+    VALET_ROLE,
+    normalizeRole,
+    isAllZonesCode,
+    parseSupervisorZones,
+    supervisorCoversZone,
+} from '../../../constants/roles';
 
 export const isStaffActive = (staffMember) => staffMember?.isActive !== false;
 
@@ -49,7 +57,14 @@ export const getRoleSubtitle = (type, t) => {
 export const getZoneLabel = (staffMember, t) => {
     const role = normalizeRole(staffMember?.type);
     if (role === ROLES.VALET || role === ROLES.SUPERVISOR) {
-        return staffMember?.parkZoneCode || t('admin.unknownZone');
+        const zones = parseSupervisorZones(staffMember?.parkZoneCode);
+        if (isAllZonesCode(staffMember?.parkZoneCode)) {
+            return t('admin.allZonesLabel');
+        }
+        if (zones.length > 1) {
+            return zones.join(', ');
+        }
+        return zones[0] || staffMember?.parkZoneCode || t('admin.unknownZone');
     }
     return t('admin.allZonesLabel');
 };
@@ -68,10 +83,12 @@ export const filterStaff = (users, { searchQuery, roleFilter, zoneFilter, status
         const matchesRole = roleFilter === 'all' || normalizeRole(item?.type) === roleFilter;
 
         const zone = item?.parkZoneCode || '';
+        const itemZones = parseSupervisorZones(zone);
         const matchesZone =
             zoneFilter === 'all' ||
             (zoneFilter === 'all_zones' && isManagerial(item)) ||
-            zone === zoneFilter;
+            zone === zoneFilter ||
+            itemZones.includes(zoneFilter);
 
         const matchesStatus =
             statusFilter === 'all' ||
@@ -98,6 +115,7 @@ export const groupValetsByZone = (valets) => {
 export const getUniqueZones = (users) => {
     const zones = new Set(
         users
+            .filter((u) => normalizeRole(u?.type) === ROLES.VALET)
             .map((u) => u?.parkZoneCode)
             .filter(Boolean)
     );
@@ -120,10 +138,11 @@ export const getStaffStats = (users) => {
 
 export const filterUsersForStaffMode = (users, currentUser, mode) => {
     if (mode === 'supervisor') {
-        const zone = currentUser?.parkZoneCode;
-        return users.filter(
-            (u) => normalizeRole(u?.type) === ROLES.VALET && u?.parkZoneCode === zone
-        );
+        const supervisorZones = currentUser?.parkZoneCode;
+        return users.filter((u) => {
+            if (normalizeRole(u?.type) !== ROLES.VALET) return false;
+            return supervisorCoversZone(supervisorZones, u?.parkZoneCode);
+        });
     }
     return users;
 };
