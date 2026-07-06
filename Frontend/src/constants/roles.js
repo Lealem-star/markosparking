@@ -22,7 +22,21 @@ export const LEGACY_ROLE_MAP = Object.freeze({
     admin: ROLES.FINANCE_OFFICER,
 });
 
+/** English display names for reports, PDFs, and non-i18n contexts */
+export const ROLE_DISPLAY_NAMES = Object.freeze({
+    [ROLES.SYSTEM_ADMIN]: 'System Admin',
+    [ROLES.DIRECTOR]: 'Bahir Dar City Administration',
+    [ROLES.SUPERVISOR]: 'Parking Supervisor',
+    [ROLES.FINANCE_OFFICER]: 'Finance Officer',
+    [ROLES.VALET]: 'Valet Attendant',
+});
+
 export const normalizeRole = (type) => LEGACY_ROLE_MAP[type] || type;
+
+export const getRoleDisplayName = (type) => {
+    const role = normalizeRole(type);
+    return ROLE_DISPLAY_NAMES[role] || role || '—';
+};
 
 export const isStaffShellRole = (type) => STAFF_SHELL_ROLES.includes(normalizeRole(type));
 export const isValetRole = (type) => normalizeRole(type) === ROLES.VALET;

@@ -2,6 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { pdf } from '@react-pdf/renderer';
 import { EthiopianDateUtil } from 'habesha-datepicker';
+import { getRoleDisplayName } from '../constants/roles';
 
 // Register fonts for Amharic (Ethiopic script) support
 // @react-pdf/renderer requires TTF or OTF format fonts (not WOFF/WOFF2)
@@ -503,7 +504,12 @@ const AdministrativeReportPDF = ({ title, subtitle, data, logoBase64, type = 'us
             if (typeGroup.type === 'valet') {
                 valetUsers.push(...typeGroup.users);
             } else if (['system_admin', 'director', 'supervisor', 'finance_officer'].includes(typeGroup.type)) {
-                administrativeUsers.push(...typeGroup.users);
+                administrativeUsers.push(
+                    ...typeGroup.users.map((user) => ({
+                        ...user,
+                        role: getRoleDisplayName(typeGroup.type),
+                    }))
+                );
             }
         });
 

@@ -70,7 +70,21 @@ const LEGACY_ROLE_MAP = Object.freeze({
     admin: ROLES.FINANCE_OFFICER,
 });
 
+/** English display names for API errors and logs */
+const ROLE_DISPLAY_NAMES = Object.freeze({
+    [ROLES.SYSTEM_ADMIN]: 'System Admin',
+    [ROLES.DIRECTOR]: 'Bahir Dar City Administration',
+    [ROLES.SUPERVISOR]: 'Parking Supervisor',
+    [ROLES.FINANCE_OFFICER]: 'Finance Officer',
+    [ROLES.VALET]: 'Valet Attendant',
+});
+
 const normalizeRole = (type) => LEGACY_ROLE_MAP[type] || type;
+
+const getRoleDisplayName = (type) => {
+    const role = normalizeRole(type);
+    return ROLE_DISPLAY_NAMES[role] || role || 'Unknown';
+};
 
 const isStaffShellRole = (type) => STAFF_SHELL_ROLES.includes(normalizeRole(type));
 
@@ -141,7 +155,9 @@ module.exports = {
     SMS_SENDER_ROLES,
     CREATABLE_BY,
     LEGACY_ROLE_MAP,
+    ROLE_DISPLAY_NAMES,
     normalizeRole,
+    getRoleDisplayName,
     isStaffShellRole,
     isOfficeStaff,
     isStaffManager,

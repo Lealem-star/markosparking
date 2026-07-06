@@ -1,6 +1,6 @@
 /**
  * Migrates legacy staff roles to the new role model:
- *   manager -> director
+ *   manager -> director (Bahir Dar City Administration)
  *   admin   -> finance_officer
  *
  * Run from repo root: node Backend/scripts/migrateStaffRoles.js

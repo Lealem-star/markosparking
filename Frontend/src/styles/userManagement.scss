@@ -312,7 +312,10 @@
         flex-shrink: 0;
 
         &--system_admin { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+        &--director,
         &--manager { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        &--supervisor { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+        &--finance_officer,
         &--admin { background: linear-gradient(135deg, #f97316, #ea580c); }
         &--valet { background: linear-gradient(135deg, #3b82f6, #2563eb); }
     }
@@ -349,11 +352,18 @@
             color: #7c3aed;
         }
 
+        &--director,
         &--manager {
             background: #dcfce7;
             color: #15803d;
         }
 
+        &--supervisor {
+            background: #ccfbf1;
+            color: #0f766e;
+        }
+
+        &--finance_officer,
         &--admin {
             background: #ffedd5;
             color: #c2410c;

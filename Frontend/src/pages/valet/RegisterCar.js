@@ -150,7 +150,7 @@ const RegisterCar = () => {
                 );
             }
 
-            resetForm();
+                                        resetForm();
             setTimeout(() => navigate('/valet/dashboard'), 1500);
         } catch (err) {
             setError(getApiError(err, 'Failed to register car'));
@@ -173,8 +173,8 @@ const RegisterCar = () => {
                     onChange={handleChange}
                     onSubmit={handleSubmit}
                     onCancel={() => navigate('/valet/dashboard')}
-                />
-            </div>
+                            />
+                        </div>
 
             <RegisterCarServiceModal
                 t={t}
@@ -188,9 +188,9 @@ const RegisterCar = () => {
                 isOpen={showPackageModal}
                 onClose={() => setShowPackageModal(false)}
                 onBack={() => {
-                    setShowPackageModal(false);
-                    setShowServiceModal(true);
-                }}
+                                    setShowPackageModal(false);
+                                    setShowServiceModal(true);
+                                }}
                 onSelectDuration={handlePackageDurationSelect}
             />
 

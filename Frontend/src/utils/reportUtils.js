@@ -1,4 +1,5 @@
 import { EthiopianDateUtil } from 'habesha-datepicker';
+import { getRoleDisplayName } from '../constants/roles';
 
 export const formatReportCurrency = (amount) =>
     new Intl.NumberFormat('en-ET', {
@@ -39,7 +40,7 @@ export const partitionUsersReport = (usersByType = []) => {
         } else if (['system_admin', 'director', 'supervisor', 'finance_officer'].includes(typeGroup.type)) {
             administrativeUsers.push(...typeGroup.users.map((entry) => ({
                 ...entry,
-                role: typeGroup.type.replace(/_/g, ' '),
+                role: getRoleDisplayName(typeGroup.type),
             })));
         }
     });

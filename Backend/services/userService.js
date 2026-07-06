@@ -50,7 +50,7 @@ const assertZoneRequirements = (type, parkZoneCode, priceLevel) => {
 
 const createUser = async (actor, data) => {
     if (!actor || ![ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR].includes(actor.type)) {
-        throw new AppError('Only system admin or parking director can create users', 403);
+        throw new AppError('Only system admin or Bahir Dar City Administration can create users', 403);
     }
 
     let { name, phoneNumber, password, type, parkZoneCode, priceLevel } = data;
@@ -325,7 +325,7 @@ const deactivateUser = async (currentUser, targetId) => {
     assertObjectId(targetId, 'Invalid user id');
 
     if (!currentUser || !isStaffManager(currentUser.type)) {
-        throw new AppError('Only authorized staff managers can deactivate users', 403);
+        throw new AppError('Only system admin or Bahir Dar City Administration staff can deactivate users', 403);
     }
 
     if (currentUser._id.toString() === targetId) {
