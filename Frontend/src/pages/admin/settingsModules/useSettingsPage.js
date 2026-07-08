@@ -179,13 +179,26 @@ export const useSettingsPage = (user, t) => {
     const confirmDelete = useCallback(() => {
         if (!priceLevelToDelete) return;
 
+        const zonesUsingLevel = parkZones.filter(
+            (zone) => zone?.priceLevel?.trim() === priceLevelToDelete
+        );
+        if (zonesUsingLevel.length > 0) {
+            setError(t('settings.priceLevelInUseByZones', {
+                zones: zonesUsingLevel.map((zone) => zone.name).join(', '),
+            }));
+            setShowDeleteModal(false);
+            setPriceLevelToDelete(null);
+            return;
+        }
+
         const updatedPriceLevels = { ...priceLevels };
         delete updatedPriceLevels[priceLevelToDelete];
         setPriceLevels(updatedPriceLevels);
         setShowDeleteModal(false);
         setPriceLevelToDelete(null);
+        setError('');
         savePriceLevels(updatedPriceLevels);
-    }, [priceLevelToDelete, priceLevels, savePriceLevels]);
+    }, [priceLevelToDelete, priceLevels, parkZones, savePriceLevels, t]);
 
     const cancelDelete = useCallback(() => {
         setShowDeleteModal(false);

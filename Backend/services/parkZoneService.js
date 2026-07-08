@@ -31,6 +31,18 @@ const generateUniqueZoneCode = async (name) => {
     return code;
 };
 
+const syncValetPriceLevelsForZone = async (zoneCode, priceLevel) => {
+    if (!zoneCode?.trim() || !priceLevel?.trim()) return;
+
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const zonePattern = new RegExp(`^${escapeRegex(zoneCode.trim())}$`, 'i');
+
+    await User.updateMany(
+        { type: ROLES.VALET, parkZoneCode: zonePattern },
+        { $set: { priceLevel: priceLevel.trim(), parkZoneCode: zoneCode.trim().toUpperCase() } }
+    );
+};
+
 const assertSystemAdmin = (user) => {
     if (!user || user.type !== ROLES.SYSTEM_ADMIN) {
         throw new AppError('Only system admin can manage parking zones', 403);
@@ -88,6 +100,8 @@ const updateParkZone = async (actor, zoneId, data) => {
         throw new AppError('Parking zone not found', 404);
     }
 
+    const previousPriceLevel = zone.priceLevel?.trim() || '';
+
     if (data.name?.trim()) zone.name = data.name.trim();
     if (data.location?.trim()) zone.location = data.location.trim();
     if (data.description !== undefined) zone.description = data.description?.trim() || '';
@@ -95,6 +109,12 @@ const updateParkZone = async (actor, zoneId, data) => {
     if (typeof data.isActive === 'boolean') zone.isActive = data.isActive;
 
     await zone.save();
+
+    const nextPriceLevel = zone.priceLevel?.trim() || '';
+    if (nextPriceLevel && nextPriceLevel !== previousPriceLevel) {
+        await syncValetPriceLevelsForZone(zone.code, nextPriceLevel);
+    }
+
     return zone;
 };
 

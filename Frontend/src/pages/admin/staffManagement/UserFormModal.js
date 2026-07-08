@@ -43,8 +43,8 @@ const UserFormModal = ({
     }, [actorType, formData.type]);
 
     const valetZoneOptions = useMemo(
-        () => buildValetZoneOptions(parkZones, formData.parkZoneCode),
-        [parkZones, formData.parkZoneCode]
+        () => buildValetZoneOptions(parkZones),
+        [parkZones]
     );
 
     const supervisorZoneOptions = useMemo(
@@ -182,9 +182,9 @@ const UserFormModal = ({
                                         <option value="">{t('admin.selectParkZone')}</option>
                                         {valetZoneOptions.map((zone) => (
                                             <option key={zone.code} value={zone.code}>
-                                                {zone.legacy
-                                                    ? `${zone.code} — ${t('admin.legacyParkZone')}`
-                                                    : `${zone.code} — ${zone.name}`}
+                                                {zone.priceLevel
+                                                    ? `${zone.name} (${zone.priceLevel})`
+                                                    : zone.name}
                                             </option>
                                         ))}
                                     </select>

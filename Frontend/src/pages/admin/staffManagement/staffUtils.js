@@ -22,27 +22,14 @@ export const resolveParkZoneCode = (code = '', parkZones = []) => {
     return match?.code || trimmed;
 };
 
-export const buildValetZoneOptions = (parkZones = [], currentCode = '') => {
-    const options = getActiveParkZones(parkZones).map((zone) => ({
-        code: zone.code,
-        name: zone.name,
-        legacy: false,
-    }));
-
-    const resolvedCurrent = resolveParkZoneCode(currentCode, parkZones);
-    if (
-        resolvedCurrent
-        && !options.some((option) => option.code.toUpperCase() === resolvedCurrent.toUpperCase())
-    ) {
-        options.push({
-            code: resolvedCurrent,
-            name: resolvedCurrent,
-            legacy: true,
-        });
-    }
-
-    return options.sort((a, b) => a.code.localeCompare(b.code));
-};
+export const buildValetZoneOptions = (parkZones = []) =>
+    getActiveParkZones(parkZones)
+        .map((zone) => ({
+            code: zone.code,
+            name: zone.name,
+            priceLevel: zone.priceLevel?.trim() || '',
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
 export const getPriceLevelForParkZone = (parkZoneCode = '', parkZones = []) => {
     const resolved = resolveParkZoneCode(parkZoneCode, parkZones);

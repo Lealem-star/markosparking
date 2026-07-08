@@ -64,11 +64,6 @@ const ZonePriceLevelMapping = ({ t, mappings, priceLevelNames }) => {
                                                     } : undefined}
                                                 >
                                                     {row.priceLevelName}
-                                                    {row.hasConflict && (
-                                                        <span className="pricing-conflict-tag">
-                                                            {t('settings.zoneMappingConflict')}
-                                                        </span>
-                                                    )}
                                                 </span>
                                             ) : (
                                                 <span className="pricing-unassigned">{t('settings.unassigned')}</span>

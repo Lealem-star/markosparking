@@ -16,38 +16,20 @@ export const normalizeZoneCodeKey = (code = '') => code?.trim().toUpperCase() ||
 
 export const buildZonePriceLevelMappings = (users = [], parkZones = []) => {
     const activeZones = parkZones.filter((zone) => zone?.code && zone?.isActive !== false);
-    const map = {};
 
-    activeZones.forEach((zone) => {
-        map[normalizeZoneCodeKey(zone.code)] = {
+    return activeZones
+        .map((zone) => ({
             zoneCode: zone.code,
             zoneName: zone.name,
             location: zone.location,
-            priceLevelName: zone.priceLevel || null,
-            valetCount: 0,
-        };
-    });
-
-    users
-        .filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false)
-        .forEach((u) => {
-            const zoneKey = normalizeZoneCodeKey(u.parkZoneCode);
-            const entry = map[zoneKey];
-            if (!entry) return;
-
-            entry.valetCount += 1;
-            if (
-                u.priceLevel
-                && entry.priceLevelName
-                && entry.priceLevelName !== u.priceLevel
-            ) {
-                entry.hasConflict = true;
-            } else if (!entry.priceLevelName && u.priceLevel) {
-                entry.priceLevelName = u.priceLevel;
-            }
-        });
-
-    return Object.values(map).sort((a, b) => a.zoneName.localeCompare(b.zoneName));
+            priceLevelName: zone.priceLevel?.trim() || null,
+            valetCount: users.filter(
+                (u) => u?.type === 'valet'
+                    && u?.isActive !== false
+                    && normalizeZoneCodeKey(u.parkZoneCode) === normalizeZoneCodeKey(zone.code)
+            ).length,
+        }))
+        .sort((a, b) => a.zoneName.localeCompare(b.zoneName));
 };
 
 export const buildPricingGroups = (priceLevels, users = []) => {

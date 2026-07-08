@@ -315,6 +315,17 @@ const updateUser = async (currentUser, targetId, updates) => {
         hasUpdates = true;
     }
 
+    if (staffManager && !isSelf && type !== undefined) {
+        user.type = type;
+        if (!requiresZoneCode(type)) {
+            user.parkZoneCode = '';
+        }
+        if (!requiresPriceLevel(type)) {
+            user.priceLevel = null;
+        }
+        hasUpdates = true;
+    }
+
     if (parkZoneCode !== undefined && parkZoneCode.trim() !== '') {
         user.parkZoneCode = normalizeParkZoneCode(user.type, parkZoneCode);
         hasUpdates = true;
@@ -326,17 +337,6 @@ const updateUser = async (currentUser, targetId, updates) => {
     }
 
     if (staffManager && !isSelf) {
-        if (type !== undefined) {
-            user.type = type;
-            if (!requiresZoneCode(type)) {
-                user.parkZoneCode = '';
-            }
-            if (!requiresPriceLevel(type)) {
-                user.priceLevel = null;
-            }
-            hasUpdates = true;
-        }
-
         if (priceLevel !== undefined && !requiresPriceLevel(user.type)) {
             user.priceLevel = priceLevel?.trim() || null;
             hasUpdates = true;
