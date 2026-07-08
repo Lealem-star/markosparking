@@ -66,3 +66,21 @@ const DEFAULT_ADMIN = {
 - The script detected an existing system admin
 - To create a new one, delete the existing admin from the database first
 
+---
+
+## Parking Zone Migration
+
+Imports legacy zone codes (from staff `parkZoneCode` and car `location` fields) into the `ParkZone` collection so they appear in Settings.
+
+```bash
+npm run migrate:park-zones
+```
+
+Or directly:
+
+```bash
+node scripts/migrateParkZones.js
+```
+
+Safe to run multiple times — existing zones are skipped. After migration, open **Settings → Pricing** to review names and locations.
+

@@ -5,4 +5,5 @@ export {
 } from './useParkedCarsQuery';
 export { useFlaggedCarsQuery, useInvalidateFlaggedCars } from './useFlaggedCarsQuery';
 export { usePricingSettingsQuery } from './usePricingSettingsQuery';
+export { useParkZonesQuery, useInvalidateParkZones } from './useParkZonesQuery';
 export { useUsersQuery, useInvalidateUsers } from './useUsersQuery';

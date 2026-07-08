@@ -7,7 +7,8 @@
     "dev": "nodemon app.js",
     "start": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed:admin": "node scripts/seedAdmin.js"
+    "seed:admin": "node scripts/seedAdmin.js",
+    "migrate:park-zones": "node scripts/migrateParkZones.js"
   },
   "author": "Harshadkumar Patel",
   "license": "ISC",

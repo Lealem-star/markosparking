@@ -5,8 +5,82 @@ import {
     normalizeRole,
     isAllZonesCode,
     parseSupervisorZones,
+    getSupervisorZoneList,
     supervisorCoversZone,
 } from '../../../constants/roles';
+
+export const getActiveParkZones = (parkZones = []) =>
+    parkZones.filter((zone) => zone?.code && zone?.isActive !== false);
+
+export const resolveParkZoneCode = (code = '', parkZones = []) => {
+    const trimmed = code?.trim();
+    if (!trimmed) return '';
+
+    const match = getActiveParkZones(parkZones).find(
+        (zone) => zone.code.toUpperCase() === trimmed.toUpperCase()
+    );
+    return match?.code || trimmed;
+};
+
+export const buildValetZoneOptions = (parkZones = [], currentCode = '') => {
+    const options = getActiveParkZones(parkZones).map((zone) => ({
+        code: zone.code,
+        name: zone.name,
+        legacy: false,
+    }));
+
+    const resolvedCurrent = resolveParkZoneCode(currentCode, parkZones);
+    if (
+        resolvedCurrent
+        && !options.some((option) => option.code.toUpperCase() === resolvedCurrent.toUpperCase())
+    ) {
+        options.push({
+            code: resolvedCurrent,
+            name: resolvedCurrent,
+            legacy: true,
+        });
+    }
+
+    return options.sort((a, b) => a.code.localeCompare(b.code));
+};
+
+export const getPriceLevelForParkZone = (parkZoneCode = '', parkZones = []) => {
+    const resolved = resolveParkZoneCode(parkZoneCode, parkZones);
+    if (!resolved) return '';
+
+    const zone = getActiveParkZones(parkZones).find(
+        (entry) => entry.code.toUpperCase() === resolved.toUpperCase()
+    );
+    return zone?.priceLevel?.trim() || '';
+};
+
+export const buildSupervisorZoneOptions = (parkZones = [], legacyZones = [], currentCode = '') => {
+    const optionsMap = new Map();
+
+    getActiveParkZones(parkZones).forEach((zone) => {
+        optionsMap.set(zone.code.toUpperCase(), {
+            code: zone.code,
+            name: zone.name,
+            legacy: false,
+        });
+    });
+
+    [...legacyZones, ...getSupervisorZoneList(currentCode)].forEach((code) => {
+        const trimmed = code?.trim();
+        if (!trimmed || isAllZonesCode(trimmed)) return;
+
+        const key = trimmed.toUpperCase();
+        if (!optionsMap.has(key)) {
+            optionsMap.set(key, {
+                code: resolveParkZoneCode(trimmed, parkZones) || trimmed,
+                name: trimmed,
+                legacy: true,
+            });
+        }
+    });
+
+    return Array.from(optionsMap.values()).sort((a, b) => a.code.localeCompare(b.code));
+};
 
 export const isStaffActive = (staffMember) => staffMember?.isActive !== false;
 
@@ -112,14 +186,21 @@ export const groupValetsByZone = (valets) => {
         .map(([zoneCode, zoneValets]) => ({ zoneCode, staff: zoneValets }));
 };
 
-export const getUniqueZones = (users) => {
-    const zones = new Set(
+export const getUniqueZones = (users, parkZones = []) => {
+    const fromApi = parkZones
+        .filter((zone) => zone?.code && zone?.isActive !== false)
+        .map((zone) => zone.code);
+
+    if (fromApi.length > 0) {
+        return [...new Set(fromApi)].sort();
+    }
+
+    return [...new Set(
         users
             .filter((u) => normalizeRole(u?.type) === ROLES.VALET)
             .map((u) => u?.parkZoneCode)
             .filter(Boolean)
-    );
-    return Array.from(zones).sort();
+    )].sort();
 };
 
 export const getStaffStats = (users) => {

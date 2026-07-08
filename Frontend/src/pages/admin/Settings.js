@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrentUser } from '../../hooks/useAuth';
 import {
     VatRateConfiguration,
     CarTypePricingConfiguration,
     AddPriceLevelModal,
+    AddParkingZoneModal,
+    EditParkingZoneModal,
+    DeleteParkingZoneModal,
     EditPriceLevelModal,
     DeletePriceLevelModal,
     SettingsSectionToggle,
@@ -18,6 +21,10 @@ const Settings = () => {
     const { t } = useTranslation();
     const user = useCurrentUser();
     const settings = useSettingsPage(user, t);
+    const priceLevelNames = useMemo(
+        () => Object.keys(settings.priceLevels || {}).sort(),
+        [settings.priceLevels]
+    );
 
     return (
         <div className="settings-page">
@@ -55,6 +62,7 @@ const Settings = () => {
                 <CarTypePricingConfiguration
                     t={t}
                     priceLevels={settings.priceLevels}
+                    parkZones={settings.parkZones}
                     users={settings.users}
                     lastUpdated={settings.lastUpdated}
                     loading={settings.loading}
@@ -62,9 +70,52 @@ const Settings = () => {
                     error={settings.error}
                     onDeletePriceLevel={settings.handleDelete}
                     onAddPriceLevel={() => settings.setShowAddModal(true)}
+                    onAddParkingZone={() => settings.setShowAddZoneModal(true)}
+                    onEditParkingZone={settings.handleOpenEditParkingZone}
+                    onToggleParkingZoneStatus={settings.handleToggleParkingZoneStatus}
                     onOpenEditPriceLevel={settings.handleOpenEditPriceLevel}
                 />
             )}
+
+            <AddParkingZoneModal
+                t={t}
+                isOpen={settings.showAddZoneModal}
+                form={settings.newZoneForm}
+                priceLevelNames={priceLevelNames}
+                error={settings.error}
+                loading={settings.loading}
+                onClose={settings.closeAddZoneModal}
+                onChange={(field, value) => {
+                    settings.setNewZoneForm({ ...settings.newZoneForm, [field]: value });
+                    settings.setError('');
+                }}
+                onSubmit={settings.handleAddParkingZone}
+            />
+
+            <EditParkingZoneModal
+                t={t}
+                isOpen={settings.showEditZoneModal}
+                zone={settings.editingZone}
+                form={settings.editZoneForm}
+                priceLevelNames={priceLevelNames}
+                error={settings.error}
+                loading={settings.loading}
+                onClose={settings.closeEditZoneModal}
+                onChange={(field, value) => {
+                    settings.setEditZoneForm({ ...settings.editZoneForm, [field]: value });
+                    settings.setError('');
+                }}
+                onSubmit={settings.handleSaveParkingZoneEdit}
+            />
+
+            <DeleteParkingZoneModal
+                t={t}
+                isOpen={settings.showDeleteZoneModal}
+                zone={settings.zoneToDelete}
+                loading={settings.loading}
+                onCancel={settings.cancelDeleteParkingZone}
+                onConfirm={settings.confirmDeleteParkingZone}
+            />
 
             <AddPriceLevelModal
                 t={t}

@@ -10,6 +10,7 @@ const smsRoutes = require('./sms.routes');
 const pricingSettingsRoutes = require('./pricingSettings.routes');
 const reportsRoutes = require('./reports.routes');
 const chatRoutes = require('./chat.routes');
+const parkZoneRoutes = require('./parkZone.routes');
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use('/sms', smsRoutes);
 router.use('/pricingSettings', pricingSettingsRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/chat', chatRoutes);
+router.use('/parkZone', parkZoneRoutes);
 
 module.exports = router;

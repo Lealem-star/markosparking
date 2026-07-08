@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, MapPin } from 'lucide-react';
 import PricingStatCards from './PricingStatCards';
+import ParkingZoneListTable from './ParkingZoneListTable';
 import PriceLevelListTable from './PriceLevelListTable';
 import PriceLevelDetailsModal from './PriceLevelDetailsModal';
+import ParkZoneValetsModal from './ParkZoneValetsModal';
 import ZonePriceLevelMapping from './ZonePriceLevelMapping';
 import {
     buildZonePriceLevelMappings,
@@ -13,6 +15,7 @@ import {
 const CarTypePricingConfiguration = ({
     t,
     priceLevels,
+    parkZones,
     users,
     lastUpdated,
     loading,
@@ -20,15 +23,23 @@ const CarTypePricingConfiguration = ({
     error,
     onDeletePriceLevel,
     onAddPriceLevel,
+    onAddParkingZone,
+    onEditParkingZone,
+    onToggleParkingZoneStatus,
     onOpenEditPriceLevel,
 }) => {
     const [viewPriceLevel, setViewPriceLevel] = useState(null);
+    const [viewZoneValets, setViewZoneValets] = useState(null);
+    const [zoneValets, setZoneValets] = useState([]);
 
     const priceLevelNames = useMemo(() => getUniquePriceLevels(priceLevels), [priceLevels]);
-    const zoneMappings = useMemo(() => buildZonePriceLevelMappings(users), [users]);
+    const zoneMappings = useMemo(
+        () => buildZonePriceLevelMappings(users, parkZones),
+        [users, parkZones]
+    );
     const stats = useMemo(
-        () => getPricingStats(priceLevels, users, lastUpdated),
-        [priceLevels, users, lastUpdated]
+        () => getPricingStats(priceLevels, users, lastUpdated, parkZones),
+        [priceLevels, users, lastUpdated, parkZones]
     );
 
     return (
@@ -39,6 +50,15 @@ const CarTypePricingConfiguration = ({
                     <p>{t('settings.pricingConfigSubtitle')}</p>
                 </div>
                 <div className="pricing-header-actions">
+                    <button
+                        type="button"
+                        className="pricing-btn pricing-btn--ghost"
+                        onClick={onAddParkingZone}
+                        disabled={loading}
+                    >
+                        <MapPin size={18} />
+                        {t('settings.addParkingZone')}
+                    </button>
                     <button
                         type="button"
                         className="pricing-btn pricing-btn--primary"
@@ -55,6 +75,28 @@ const CarTypePricingConfiguration = ({
             {error && <div className="alert alert-danger">{error}</div>}
 
             <PricingStatCards stats={stats} t={t} />
+
+            <section className="pricing-zone-list-section">
+                <div className="pricing-section-header">
+                    <div>
+                        <h3>{t('settings.parkingZones')}</h3>
+                        <p className="pricing-section-subtitle">{t('settings.parkingZonesHint')}</p>
+                    </div>
+                </div>
+
+                <ParkingZoneListTable
+                    t={t}
+                    zones={parkZones}
+                    users={users}
+                    loading={loading}
+                    onEdit={onEditParkingZone}
+                    onToggleStatus={onToggleParkingZoneStatus}
+                    onViewValets={(zone, valets) => {
+                        setViewZoneValets(zone);
+                        setZoneValets(valets);
+                    }}
+                />
+            </section>
 
             <section className="pricing-level-list-section">
                 <div className="pricing-section-header">
@@ -86,6 +128,17 @@ const CarTypePricingConfiguration = ({
                 priceLevelName={viewPriceLevel}
                 pricing={viewPriceLevel ? priceLevels[viewPriceLevel] || {} : {}}
                 onClose={() => setViewPriceLevel(null)}
+            />
+
+            <ParkZoneValetsModal
+                t={t}
+                isOpen={Boolean(viewZoneValets)}
+                zone={viewZoneValets}
+                valets={zoneValets}
+                onClose={() => {
+                    setViewZoneValets(null);
+                    setZoneValets([]);
+                }}
             />
         </div>
     );

@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { Types } = require('mongoose');
 const User = require('../models/userSchema');
+const ParkZone = require('../models/parkZoneSchema');
 const AppError = require('../errors/AppError');
 const { JWT_SECRET, DOMAIN_NAME } = require('../config/env');
 const { normalizePhoneNumber } = require('../utils/phoneUtils');
@@ -52,12 +53,9 @@ const normalizeParkZoneCode = (type, parkZoneCode) => {
     return trimmed;
 };
 
-const assertZoneRequirements = (type, parkZoneCode, priceLevel) => {
+const assertZoneRequirements = (type, parkZoneCode) => {
     if (requiresZoneCode(type) && !parkZoneCode?.trim()) {
         throw new AppError('Park Zone Code is required for this role', 400);
-    }
-    if (requiresPriceLevel(type) && !priceLevel?.trim()) {
-        throw new AppError('Price Level is required for valet users', 400);
     }
     if (type === ROLES.SUPERVISOR) {
         const zones = getSupervisorZoneList(parkZoneCode);
@@ -70,12 +68,33 @@ const assertZoneRequirements = (type, parkZoneCode, priceLevel) => {
     }
 };
 
+const resolveValetPriceLevel = async (parkZoneCode) => {
+    const normalized = normalizeParkZoneCode(ROLES.VALET, parkZoneCode);
+    if (!normalized) {
+        throw new AppError('Park zone is required for valet users', 400);
+    }
+
+    const zones = await ParkZone.find({ isActive: { $ne: false } });
+    const zone = zones.find((entry) => entry.code.toUpperCase() === normalized.toUpperCase());
+
+    if (!zone) {
+        throw new AppError('Selected parking zone was not found. Choose a zone from Settings.', 400);
+    }
+
+    const priceLevel = zone.priceLevel?.trim();
+    if (!priceLevel) {
+        throw new AppError('Selected parking zone has no price level configured. Update the zone in Settings first.', 400);
+    }
+
+    return { zoneCode: zone.code, priceLevel };
+};
+
 const createUser = async (actor, data) => {
     if (!actor || ![ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR].includes(actor.type)) {
         throw new AppError('Only system admin or Bahir Dar City Administration can create users', 403);
     }
 
-    let { name, phoneNumber, password, type, parkZoneCode, priceLevel } = data;
+    let { name, phoneNumber, password, type, parkZoneCode } = data;
 
     if (!canCreateRole(actor.type, type)) {
         throw new AppError('You are not allowed to create this user role', 403);
@@ -84,7 +103,14 @@ const createUser = async (actor, data) => {
     phoneNumber = stripPhoneFormatting(phoneNumber);
     const phoneToUse = normalizePhoneNumber(phoneNumber);
 
-    assertZoneRequirements(type, parkZoneCode, priceLevel);
+    let resolvedPriceLevel = null;
+    if (type === ROLES.VALET) {
+        const resolved = await resolveValetPriceLevel(parkZoneCode);
+        parkZoneCode = resolved.zoneCode;
+        resolvedPriceLevel = resolved.priceLevel;
+    }
+
+    assertZoneRequirements(type, parkZoneCode);
 
     const existing = await User.findOne({ phoneNumber: phoneToUse });
     if (existing) {
@@ -99,7 +125,7 @@ const createUser = async (actor, data) => {
         password: hashedPassword,
         type,
         parkZoneCode: normalizeParkZoneCode(type, parkZoneCode),
-        priceLevel: requiresPriceLevel(type) ? priceLevel.trim() : null,
+        priceLevel: type === ROLES.VALET ? resolvedPriceLevel : null,
     });
 
     try {
@@ -311,7 +337,7 @@ const updateUser = async (currentUser, targetId, updates) => {
             hasUpdates = true;
         }
 
-        if (priceLevel !== undefined) {
+        if (priceLevel !== undefined && !requiresPriceLevel(user.type)) {
             user.priceLevel = priceLevel?.trim() || null;
             hasUpdates = true;
         }
@@ -335,11 +361,15 @@ const updateUser = async (currentUser, targetId, updates) => {
     }
 
     const effectiveType = type !== undefined ? type : user.type;
-    assertZoneRequirements(
-        effectiveType,
-        parkZoneCode !== undefined ? parkZoneCode : user.parkZoneCode,
-        priceLevel !== undefined ? priceLevel : user.priceLevel
-    );
+
+    if (effectiveType === ROLES.VALET && user.parkZoneCode) {
+        const resolved = await resolveValetPriceLevel(user.parkZoneCode);
+        user.parkZoneCode = resolved.zoneCode;
+        user.priceLevel = resolved.priceLevel;
+        hasUpdates = true;
+    }
+
+    assertZoneRequirements(effectiveType, user.parkZoneCode);
 
     if (!hasUpdates) {
         throw new AppError('Must provide at least one field to update', 400);

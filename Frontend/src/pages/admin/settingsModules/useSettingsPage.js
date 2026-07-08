@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { savePricingSettings } from '../../../api/paymentApi';
+import { createParkZone, updateParkZone, deleteParkZone } from '../../../api/parkZoneApi';
 import { getApiError } from '../../../api/client';
 import { queryKeys } from '../../../api/queryKeys';
-import { usePricingSettingsQuery, useUsersQuery } from '../../../hooks/queries';
-import { CAR_TYPES, emptyPricing } from './pricing';
+import { usePricingSettingsQuery, useUsersQuery, useParkZonesQuery } from '../../../hooks/queries';
+import { CAR_TYPES, emptyPricing, emptyParkZoneForm } from './pricing';
 import {
     buildPriceLevelsPayload,
     formatLastUpdated,
@@ -18,6 +19,7 @@ const EMPTY_EDIT_PRICES = { hourly: '', weekly: '', monthly: '', yearly: '' };
 export const useSettingsPage = (user, t) => {
     const queryClient = useQueryClient();
     const { data: users = [] } = useUsersQuery(user?.token);
+    const { data: parkZones = [] } = useParkZonesQuery(user?.token);
     const { data: pricingData } = usePricingSettingsQuery();
     const [priceLevels, setPriceLevels] = useState({});
     const [lastUpdated, setLastUpdated] = useState(formatLastUpdated());
@@ -41,6 +43,13 @@ export const useSettingsPage = (user, t) => {
     const [priceLevelToDelete, setPriceLevelToDelete] = useState(null);
     const [editingVAT, setEditingVAT] = useState(false);
     const [vatInput, setVatInput] = useState('15.00');
+    const [showAddZoneModal, setShowAddZoneModal] = useState(false);
+    const [showEditZoneModal, setShowEditZoneModal] = useState(false);
+    const [showDeleteZoneModal, setShowDeleteZoneModal] = useState(false);
+    const [newZoneForm, setNewZoneForm] = useState(emptyParkZoneForm());
+    const [editZoneForm, setEditZoneForm] = useState(emptyParkZoneForm());
+    const [editingZone, setEditingZone] = useState(null);
+    const [zoneToDelete, setZoneToDelete] = useState(null);
 
     const applySavedSettings = useCallback((saved) => {
         if (saved?.vatRateHistory) setVatHistory(saved.vatRateHistory);
@@ -259,10 +268,145 @@ export const useSettingsPage = (user, t) => {
         setError('');
     }, []);
 
+    const invalidateParkZones = useCallback(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.parkZones(user?.token) });
+    }, [queryClient, user?.token]);
+
+    const closeAddZoneModal = useCallback(() => {
+        setShowAddZoneModal(false);
+        setNewZoneForm(emptyParkZoneForm());
+        setError('');
+    }, []);
+
+    const closeEditZoneModal = useCallback(() => {
+        setShowEditZoneModal(false);
+        setEditingZone(null);
+        setEditZoneForm(emptyParkZoneForm());
+        setError('');
+    }, []);
+
+    const handleOpenEditParkingZone = useCallback((zone) => {
+        setEditingZone(zone);
+        setEditZoneForm({
+            name: zone?.name || '',
+            location: zone?.location || '',
+            priceLevel: zone?.priceLevel || '',
+            isActive: zone?.isActive !== false,
+        });
+        setShowEditZoneModal(true);
+        setError('');
+    }, []);
+
+    const handleAddParkingZone = useCallback(async () => {
+        if (!newZoneForm.name?.trim() || !newZoneForm.location?.trim()) {
+            setError('Zone name and location are required');
+            return;
+        }
+        if (!newZoneForm.priceLevel?.trim()) {
+            setError('Price level is required');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            await createParkZone(newZoneForm, user?.token);
+            invalidateParkZones();
+            closeAddZoneModal();
+            setSuccess(t('settings.parkingZoneSaved'));
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError(getApiError(err, 'Failed to create parking zone'));
+        } finally {
+            setLoading(false);
+        }
+    }, [newZoneForm, user?.token, invalidateParkZones, closeAddZoneModal, t]);
+
+    const handleSaveParkingZoneEdit = useCallback(async () => {
+        if (!editingZone?._id) return;
+        if (!editZoneForm.name?.trim() || !editZoneForm.location?.trim()) {
+            setError('Zone name and location are required');
+            return;
+        }
+        if (!editZoneForm.priceLevel?.trim()) {
+            setError('Price level is required');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            await updateParkZone(editingZone._id, editZoneForm, user?.token);
+            invalidateParkZones();
+            closeEditZoneModal();
+            setSuccess(t('settings.parkingZoneSaved'));
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError(getApiError(err, 'Failed to update parking zone'));
+        } finally {
+            setLoading(false);
+        }
+    }, [editingZone, editZoneForm, user?.token, invalidateParkZones, closeEditZoneModal, t]);
+
+    const handleToggleParkingZoneStatus = useCallback(async (zone) => {
+        if (!zone?._id) return;
+
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            await updateParkZone(zone._id, { isActive: zone.isActive === false }, user?.token);
+            invalidateParkZones();
+            setSuccess(t('settings.parkingZoneSaved'));
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError(getApiError(err, 'Failed to update parking zone status'));
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.token, invalidateParkZones, t]);
+
+    const handleDeleteParkingZone = useCallback((zone) => {
+        setZoneToDelete(zone);
+        setShowDeleteZoneModal(true);
+    }, []);
+
+    const confirmDeleteParkingZone = useCallback(async () => {
+        if (!zoneToDelete?._id) return;
+
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            await deleteParkZone(zoneToDelete._id, user?.token);
+            invalidateParkZones();
+            setShowDeleteZoneModal(false);
+            setZoneToDelete(null);
+            setSuccess(t('settings.parkingZoneDeleted'));
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError(getApiError(err, 'Failed to delete parking zone'));
+        } finally {
+            setLoading(false);
+        }
+    }, [zoneToDelete, user?.token, invalidateParkZones, t]);
+
+    const cancelDeleteParkingZone = useCallback(() => {
+        setShowDeleteZoneModal(false);
+        setZoneToDelete(null);
+    }, []);
+
     return {
         activeSection,
         setActiveSection,
         priceLevels,
+        parkZones,
         users,
         lastUpdated,
         vatRate,
@@ -308,5 +452,24 @@ export const useSettingsPage = (user, t) => {
         handleToggleVatEnabled,
         handleShowVatHelp,
         closeAddModal,
+        showAddZoneModal,
+        setShowAddZoneModal,
+        showEditZoneModal,
+        showDeleteZoneModal,
+        newZoneForm,
+        setNewZoneForm,
+        editZoneForm,
+        setEditZoneForm,
+        editingZone,
+        zoneToDelete,
+        closeAddZoneModal,
+        closeEditZoneModal,
+        handleAddParkingZone,
+        handleOpenEditParkingZone,
+        handleSaveParkingZoneEdit,
+        handleToggleParkingZoneStatus,
+        handleDeleteParkingZone,
+        confirmDeleteParkingZone,
+        cancelDeleteParkingZone,
     };
 };

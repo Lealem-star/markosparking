@@ -5,19 +5,23 @@ import {
     ROLES,
     canCreateRole,
     requiresZoneCode,
-    requiresPriceLevel,
     isAllZonesCode,
-    parseSupervisorZones,
     serializeSupervisorZones,
     getSupervisorZoneList,
 } from '../../../constants/roles';
-import { getRoleLabel } from './staffUtils';
+import {
+    getRoleLabel,
+    buildValetZoneOptions,
+    buildSupervisorZoneOptions,
+    resolveParkZoneCode,
+    getPriceLevelForParkZone,
+} from './staffUtils';
 
 const UserFormModal = ({
     isOpen,
     title,
     formData,
-    priceLevels,
+    parkZones = [],
     zones = [],
     error,
     actorType,
@@ -38,16 +42,18 @@ const UserFormModal = ({
         return allowed;
     }, [actorType, formData.type]);
 
-    const selectedSupervisorZones = useMemo(
-        () => parseSupervisorZones(formData.parkZoneCode),
-        [formData.parkZoneCode]
+    const valetZoneOptions = useMemo(
+        () => buildValetZoneOptions(parkZones, formData.parkZoneCode),
+        [parkZones, formData.parkZoneCode]
     );
 
-    const zoneOptions = useMemo(() => {
-        const optionSet = new Set(zones);
-        getSupervisorZoneList(formData.parkZoneCode).forEach((zone) => optionSet.add(zone));
-        return Array.from(optionSet).sort();
-    }, [zones, formData.parkZoneCode]);
+    const supervisorZoneOptions = useMemo(
+        () => buildSupervisorZoneOptions(parkZones, zones, formData.parkZoneCode),
+        [parkZones, zones, formData.parkZoneCode]
+    );
+
+    const selectedValetZoneCode = resolveParkZoneCode(formData.parkZoneCode, parkZones);
+    const selectedZonePriceLevel = getPriceLevelForParkZone(selectedValetZoneCode, parkZones);
 
     const allZonesSelected = isAllZonesCode(formData.parkZoneCode);
 
@@ -55,15 +61,20 @@ const UserFormModal = ({
         onChange('parkZoneCode', checked ? ALL_ZONES_CODE : '');
     };
 
-    const handleToggleSupervisorZone = (zone, checked) => {
-        const current = new Set(getSupervisorZoneList(formData.parkZoneCode));
+    const handleToggleSupervisorZone = (zoneCode, checked) => {
+        const current = getSupervisorZoneList(formData.parkZoneCode).filter(
+            (existing) => existing.toUpperCase() !== zoneCode.toUpperCase()
+        );
         if (checked) {
-            current.add(zone);
-        } else {
-            current.delete(zone);
+            current.push(zoneCode);
         }
-        onChange('parkZoneCode', serializeSupervisorZones([...current]));
+        onChange('parkZoneCode', serializeSupervisorZones(current));
     };
+
+    const isSupervisorZoneSelected = (zoneCode) =>
+        getSupervisorZoneList(formData.parkZoneCode).some(
+            (selected) => selected.toUpperCase() === zoneCode.toUpperCase()
+        );
 
     if (!isOpen) return null;
 
@@ -139,23 +150,54 @@ const UserFormModal = ({
                                     </label>
                                     {!allZonesSelected && (
                                         <div className="supervisor-zone-list">
-                                            {zoneOptions.length === 0 ? (
+                                            {supervisorZoneOptions.length === 0 ? (
                                                 <p className="supervisor-zone-empty">{t('admin.noZonesAvailable')}</p>
                                             ) : (
-                                                zoneOptions.map((zone) => (
-                                                    <label key={zone} className="supervisor-zone-option">
+                                                supervisorZoneOptions.map((zone) => (
+                                                    <label key={zone.code} className="supervisor-zone-option">
                                                         <input
                                                             type="checkbox"
-                                                            checked={selectedSupervisorZones.includes(zone)}
-                                                            onChange={(e) => handleToggleSupervisorZone(zone, e.target.checked)}
+                                                            checked={isSupervisorZoneSelected(zone.code)}
+                                                            onChange={(e) => handleToggleSupervisorZone(zone.code, e.target.checked)}
                                                         />
-                                                        <span>{zone}</span>
+                                                        <span>
+                                                            {zone.legacy
+                                                                ? `${zone.code} (${t('admin.legacyParkZone')})`
+                                                                : `${zone.code} — ${zone.name}`}
+                                                        </span>
                                                     </label>
                                                 ))
                                             )}
                                         </div>
                                     )}
                                 </div>
+                            ) : formData.type === ROLES.VALET ? (
+                                <>
+                                    <select
+                                        value={selectedValetZoneCode}
+                                        onChange={(e) => onChange('parkZoneCode', e.target.value)}
+                                        required
+                                        disabled={valetZoneOptions.length === 0}
+                                    >
+                                        <option value="">{t('admin.selectParkZone')}</option>
+                                        {valetZoneOptions.map((zone) => (
+                                            <option key={zone.code} value={zone.code}>
+                                                {zone.legacy
+                                                    ? `${zone.code} — ${t('admin.legacyParkZone')}`
+                                                    : `${zone.code} — ${zone.name}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {valetZoneOptions.length === 0 && (
+                                        <small className="form-warning">{t('admin.noParkingZonesConfigured')}</small>
+                                    )}
+                                    {selectedValetZoneCode && selectedZonePriceLevel && (
+                                        <small>{t('admin.valetPriceLevelFromZone', { priceLevel: selectedZonePriceLevel })}</small>
+                                    )}
+                                    {selectedValetZoneCode && !selectedZonePriceLevel && (
+                                        <small className="form-warning">{t('admin.zoneMissingPriceLevel')}</small>
+                                    )}
+                                </>
                             ) : (
                                 <input
                                     type="text"
@@ -167,26 +209,6 @@ const UserFormModal = ({
                             )}
                             {formData.type === ROLES.SUPERVISOR && (
                                 <small>{t('admin.supervisorZoneHint')}</small>
-                            )}
-                        </div>
-                    )}
-                    {requiresPriceLevel(formData.type) && (
-                        <div className="form-group">
-                            <label>Price Level *</label>
-                            <select
-                                value={formData.priceLevel}
-                                onChange={(e) => onChange('priceLevel', e.target.value)}
-                                required
-                            >
-                                <option value="">Select Price Level</option>
-                                {priceLevels.map((levelName) => (
-                                    <option key={levelName} value={levelName}>{levelName}</option>
-                                ))}
-                            </select>
-                            {priceLevels.length === 0 && (
-                                <small className="form-warning">
-                                    No price levels available. Please create price levels in Settings first.
-                                </small>
                             )}
                         </div>
                     )}

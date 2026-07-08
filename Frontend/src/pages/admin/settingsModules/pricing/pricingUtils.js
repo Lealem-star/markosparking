@@ -1,3 +1,5 @@
+import { isAllZonesCode, supervisorCoversZone } from '../../../../constants/roles';
+
 export const CAR_TYPES = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
 
 export const getPriceLevelColor = (index) => {
@@ -10,31 +12,42 @@ export const getPriceLevelColor = (index) => {
     return colors[index % colors.length];
 };
 
-export const buildZonePriceLevelMappings = (users = []) => {
+export const normalizeZoneCodeKey = (code = '') => code?.trim().toUpperCase() || '';
+
+export const buildZonePriceLevelMappings = (users = [], parkZones = []) => {
+    const activeZones = parkZones.filter((zone) => zone?.code && zone?.isActive !== false);
     const map = {};
+
+    activeZones.forEach((zone) => {
+        map[normalizeZoneCodeKey(zone.code)] = {
+            zoneCode: zone.code,
+            zoneName: zone.name,
+            location: zone.location,
+            priceLevelName: zone.priceLevel || null,
+            valetCount: 0,
+        };
+    });
 
     users
         .filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false)
         .forEach((u) => {
-            const zoneCode = u.parkZoneCode;
-            if (!map[zoneCode]) {
-                map[zoneCode] = {
-                    zoneCode,
-                    priceLevelName: u.priceLevel || null,
-                    valetCount: 0,
-                };
-            }
-            map[zoneCode].valetCount += 1;
+            const zoneKey = normalizeZoneCodeKey(u.parkZoneCode);
+            const entry = map[zoneKey];
+            if (!entry) return;
+
+            entry.valetCount += 1;
             if (
                 u.priceLevel
-                && map[zoneCode].priceLevelName
-                && map[zoneCode].priceLevelName !== u.priceLevel
+                && entry.priceLevelName
+                && entry.priceLevelName !== u.priceLevel
             ) {
-                map[zoneCode].hasConflict = true;
+                entry.hasConflict = true;
+            } else if (!entry.priceLevelName && u.priceLevel) {
+                entry.priceLevelName = u.priceLevel;
             }
         });
 
-    return Object.values(map).sort((a, b) => a.zoneCode.localeCompare(b.zoneCode));
+    return Object.values(map).sort((a, b) => a.zoneName.localeCompare(b.zoneName));
 };
 
 export const buildPricingGroups = (priceLevels, users = []) => {
@@ -69,13 +82,11 @@ export const buildPricingGroups = (priceLevels, users = []) => {
     }));
 };
 
-export const getPricingStats = (priceLevels, users = [], lastUpdated) => {
-    const zones = new Set(
-        users.filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false).map((u) => u.parkZoneCode)
-    );
+export const getPricingStats = (priceLevels, users = [], lastUpdated, parkZones = []) => {
+    const activeZones = parkZones.filter((zone) => zone?.isActive !== false);
 
     return {
-        totalZones: zones.size || Object.keys(priceLevels).length,
+        totalZones: activeZones.length,
         priceLevelCount: Object.keys(priceLevels).length,
         carTypeCount: CAR_TYPES.length,
         lastUpdated,
@@ -101,12 +112,61 @@ export const filterPricingGroups = (groups, { searchQuery, zoneFilter, priceLeve
 
 export const getUniquePriceLevels = (priceLevels) => Object.keys(priceLevels).sort();
 
-export const getUniqueZones = (users) => [
-    ...new Set(users.filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false).map((u) => u.parkZoneCode)),
-].sort();
+export const getUniqueZones = (users, parkZones = []) => {
+    const fromApi = parkZones
+        .filter((zone) => zone?.code && zone?.isActive !== false)
+        .map((zone) => zone.code);
+
+    if (fromApi.length > 0) {
+        return [...new Set(fromApi)].sort();
+    }
+
+    return [...new Set(
+        users
+            .filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false)
+            .map((u) => u.parkZoneCode)
+            .filter(Boolean)
+    )].sort();
+};
 
 export const formatPricingValue = (value) => {
     const num = parseFloat(value);
     if (Number.isNaN(num)) return '0.00';
     return num.toFixed(2);
+};
+
+export const getStaffForParkingZone = (users = [], zoneCode = '') => {
+    const normalized = zoneCode?.trim();
+    if (!normalized) {
+        return { supervisors: [], valets: [] };
+    }
+
+    const normalizedUpper = normalized.toUpperCase();
+
+    const supervisors = users.filter((user) => {
+        if (user?.type !== 'supervisor' || user?.isActive === false) return false;
+        return isAllZonesCode(user.parkZoneCode) || supervisorCoversZone(user.parkZoneCode, normalized);
+    });
+
+    const valets = users.filter((user) => {
+        if (user?.type !== 'valet' || user?.isActive === false) return false;
+        return user.parkZoneCode?.trim().toUpperCase() === normalizedUpper;
+    });
+
+    return { supervisors, valets };
+};
+
+export const formatSupervisorNames = (supervisors = [], t) => {
+    if (!supervisors.length) {
+        return t('settings.noSupervisorAssigned');
+    }
+
+    return supervisors
+        .map((supervisor) => {
+            if (isAllZonesCode(supervisor.parkZoneCode)) {
+                return `${supervisor.name} (${t('admin.allZonesLabel')})`;
+            }
+            return supervisor.name;
+        })
+        .join(', ');
 };

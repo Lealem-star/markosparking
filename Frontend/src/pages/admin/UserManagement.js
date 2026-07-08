@@ -2,11 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { deactivateUserRecord, createUserRecord, updateUserRecord } from '../../api/api';
 import { getApiError } from '../../api/client';
 import { useCurrentUser } from '../../hooks/useAuth';
-import { usePricingSettingsQuery, useUsersQuery, useInvalidateUsers } from '../../hooks/queries';
+import { useUsersQuery, useParkZonesQuery, useInvalidateUsers } from '../../hooks/queries';
 import { useTranslation } from 'react-i18next';
 import { DeleteModal } from '../../components';
 import { Shield, Car } from 'lucide-react';
-import { canCreateUsers, requiresZoneCode, requiresPriceLevel, ROLES, isAllZonesCode, getSupervisorZoneList } from '../../constants/roles';
+import { canCreateUsers, requiresZoneCode, ROLES, isAllZonesCode, getSupervisorZoneList } from '../../constants/roles';
 import { getStaffManagementMode } from '../../config/staffAccess';
 import {
     StaffStatCards,
@@ -20,6 +20,8 @@ import {
     groupValetsByZone,
     isManagerial,
     filterUsersForStaffMode,
+    resolveParkZoneCode,
+    getPriceLevelForParkZone,
 } from './staffManagement';
 import '../../styles/userManagement.scss';
 
@@ -29,7 +31,6 @@ const EMPTY_FORM = {
     password: '',
     type: '',
     parkZoneCode: '',
-    priceLevel: '',
 };
 
 const UserManagement = () => {
@@ -49,14 +50,7 @@ const UserManagement = () => {
     const user = useCurrentUser();
     const invalidateUsers = useInvalidateUsers();
     const { data: users = [] } = useUsersQuery(user?.token);
-    const { data: pricingData } = usePricingSettingsQuery();
-
-    const priceLevels = useMemo(() => {
-        if (pricingData?.priceLevels) {
-            return Object.keys(pricingData.priceLevels);
-        }
-        return [];
-    }, [pricingData]);
+    const { data: parkZones = [] } = useParkZonesQuery(user?.token);
 
     const refreshUsers = () => invalidateUsers();
 
@@ -80,7 +74,7 @@ const UserManagement = () => {
             activeZones: base.zones,
         };
     }, [scopedUsers]);
-    const zones = useMemo(() => getUniqueZones(users), [users]);
+    const zones = useMemo(() => getUniqueZones(users, parkZones), [users, parkZones]);
     const managerialStaff = useMemo(
         () => filteredUsers.filter(isManagerial),
         [filteredUsers]
@@ -117,6 +111,14 @@ const UserManagement = () => {
             return false;
         }
 
+        if (formData.type === ROLES.VALET && formData.parkZoneCode) {
+            const zoneCode = resolveParkZoneCode(formData.parkZoneCode, parkZones);
+            if (!getPriceLevelForParkZone(zoneCode, parkZones)) {
+                setError(t('admin.zoneMissingPriceLevel'));
+                return false;
+            }
+        }
+
         return true;
     };
 
@@ -141,11 +143,6 @@ const UserManagement = () => {
         }
 
         if (!validateZoneAssignment()) return;
-
-        if (requiresPriceLevel(formData.type) && !formData.priceLevel) {
-            setError('Price Level is required for valet users');
-            return;
-        }
 
         createUserRecord(formData, user?.token)
             .then(handleCreateUserSuccess)
@@ -218,8 +215,9 @@ const UserManagement = () => {
             phoneNumber: userToEdit?.phoneNumber || '',
             password: '',
             type: userToEdit?.type || '',
-            parkZoneCode: userToEdit?.parkZoneCode || '',
-            priceLevel: userToEdit?.priceLevel || ''
+            parkZoneCode: userToEdit?.type === ROLES.VALET
+                ? resolveParkZoneCode(userToEdit?.parkZoneCode, parkZones)
+                : userToEdit?.parkZoneCode || '',
         });
         setError('');
         setSuccess('');
@@ -237,17 +235,11 @@ const UserManagement = () => {
 
         if (!validateZoneAssignment()) return;
 
-        if (requiresPriceLevel(formData.type) && !formData.priceLevel) {
-            setError('Price Level is required for valet users');
-            return;
-        }
-
         const updateBody = {
             name: formData.name,
             phoneNumber: formData.phoneNumber,
             type: formData.type,
             parkZoneCode: formData.parkZoneCode || undefined,
-            priceLevel: formData.priceLevel || undefined
         };
 
         if (formData.password) {
@@ -341,7 +333,7 @@ const UserManagement = () => {
                 isOpen={showCreateModal}
                 title="Create New User"
                 formData={formData}
-                priceLevels={priceLevels}
+                parkZones={parkZones}
                 zones={zones}
                 error={error}
                 actorType={user?.type}
@@ -357,7 +349,7 @@ const UserManagement = () => {
                 isOpen={showEditModal}
                 title="Edit User"
                 formData={formData}
-                priceLevels={priceLevels}
+                parkZones={parkZones}
                 zones={zones}
                 error={error}
                 actorType={user?.type}

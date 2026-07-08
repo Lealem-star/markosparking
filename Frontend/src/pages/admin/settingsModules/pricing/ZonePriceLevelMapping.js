@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { getPriceLevelColor } from './pricingUtils';
 
 const ZonePriceLevelMapping = ({ t, mappings, priceLevelNames }) => {
@@ -40,9 +40,8 @@ const ZonePriceLevelMapping = ({ t, mappings, priceLevelNames }) => {
                     <table className="pricing-table pricing-zone-mapping-table">
                         <thead>
                             <tr>
-                                <th>{t('admin.zone')}</th>
+                                <th>{t('settings.zoneName')}</th>
                                 <th>{t('settings.priceLevelName')}</th>
-                                <th>{t('settings.assignedValets')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -53,12 +52,7 @@ const ZonePriceLevelMapping = ({ t, mappings, priceLevelNames }) => {
 
                                 return (
                                     <tr key={row.zoneCode}>
-                                        <td>
-                                            <span className="pricing-zone-mapping-cell">
-                                                <MapPin size={14} />
-                                                {row.zoneCode}
-                                            </span>
-                                        </td>
+                                        <td>{row.zoneName || row.zoneCode}</td>
                                         <td>
                                             {row.priceLevelName ? (
                                                 <span
@@ -80,7 +74,6 @@ const ZonePriceLevelMapping = ({ t, mappings, priceLevelNames }) => {
                                                 <span className="pricing-unassigned">{t('settings.unassigned')}</span>
                                             )}
                                         </td>
-                                        <td>{row.valetCount}</td>
                                     </tr>
                                 );
                             })}

@@ -38,3 +38,9 @@ export {
     getVehicleHistoryReport,
     getUsersReport,
 } from './reportsApi';
+export {
+    getParkZones,
+    createParkZone,
+    updateParkZone,
+    deleteParkZone,
+} from './parkZoneApi';

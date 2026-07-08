@@ -22,11 +22,7 @@ const createUserSchema = Joi.object({
         then: Joi.string().required().min(1),
         otherwise: Joi.string().optional().allow('', null),
     }),
-    priceLevel: Joi.string().trim().when('type', {
-        is: ROLES.VALET,
-        then: Joi.string().required().min(1),
-        otherwise: Joi.string().optional().allow('', null),
-    }),
+    priceLevel: Joi.string().trim().optional().allow('', null),
 });
 
 const loginSchema = Joi.object({

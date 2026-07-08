@@ -3,4 +3,4 @@ export { default as DeletePriceLevelModal } from './DeletePriceLevelModal';
 export { default as SettingsSectionToggle } from './SettingsSectionToggle';
 export { useSettingsPage } from './useSettingsPage';
 export * from './settingsUtils';
-export { CarTypePricingConfiguration, AddPriceLevelModal, EditPriceLevelModal, emptyPricing, CAR_TYPES } from './pricing';
+export { CarTypePricingConfiguration, AddPriceLevelModal, AddParkingZoneModal, EditParkingZoneModal, DeleteParkingZoneModal, EditPriceLevelModal, emptyPricing, emptyParkZoneForm, CAR_TYPES } from './pricing';
