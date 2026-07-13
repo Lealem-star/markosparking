@@ -54,7 +54,7 @@ export const LEGACY_ROLE_MAP = Object.freeze({
 /** English display names for reports, PDFs, and non-i18n contexts */
 export const ROLE_DISPLAY_NAMES = Object.freeze({
     [ROLES.SYSTEM_ADMIN]: 'System Admin',
-    [ROLES.DIRECTOR]: 'Bahir Dar City Administration',
+    [ROLES.DIRECTOR]: 'Parking Manager',
     [ROLES.SUPERVISOR]: 'Parking Supervisor',
     [ROLES.FINANCE_OFFICER]: 'Finance Officer',
     [ROLES.VALET]: 'Valet Attendant',

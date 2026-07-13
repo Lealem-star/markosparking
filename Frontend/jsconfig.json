@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-    "baseUrl": "src",
     "paths": {
-      "@/*": ["*"],
-      "@assets/*": ["assets/*"],
-      "@styles/*": ["styles/*"],
-      "@localization/*": ["localization/*"],
-      "@store/*": ["store/*"]
+      "@/*": ["src/*"],
+      "@assets/*": ["src/assets/*"],
+      "@styles/*": ["src/styles/*"],
+      "@localization/*": ["src/localization/*"],
+      "@store/*": ["src/store/*"]
     }
   },
   "include": ["src"]
