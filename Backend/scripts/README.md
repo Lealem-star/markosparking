@@ -84,3 +84,23 @@ node scripts/migrateParkZones.js
 
 Safe to run multiple times — existing zones are skipped. After migration, open **Settings → Pricing** to review names and locations.
 
+---
+
+## Staff Role Migration
+
+Migrates legacy staff role identifiers to the current model:
+
+| Legacy | Current |
+|--------|---------|
+| `manager` | `director` (Bahir Dar City Administration) |
+| `admin` | `finance_officer` |
+| `valet` | `parking_officer` |
+
+Also updates `senderType` on chat messages.
+
+```bash
+node Backend/scripts/migrateStaffRoles.js
+```
+
+Run this once after deploying the Phase 0 role rename if your database still has `valet` users.
+
