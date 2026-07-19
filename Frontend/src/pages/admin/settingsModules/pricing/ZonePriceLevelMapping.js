@@ -1,10 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
+import { useCurrentUser } from '../../../../hooks/useAuth';
+import { getStaffRoutePath } from '../../../../utils/rolePaths';
 import { getPriceLevelColor } from './pricingUtils';
 
 const ZonePriceLevelMapping = ({ t, mappings, priceLevelNames }) => {
     const navigate = useNavigate();
+    const user = useCurrentUser();
 
     const levelColorMap = React.useMemo(() => {
         const map = {};
@@ -24,7 +27,7 @@ const ZonePriceLevelMapping = ({ t, mappings, priceLevelNames }) => {
                 <button
                     type="button"
                     className="pricing-btn pricing-btn--ghost"
-                    onClick={() => navigate('/admin/users')}
+                    onClick={() => navigate(getStaffRoutePath(user?.type, 'users'))}
                 >
                     <ExternalLink size={16} />
                     {t('settings.manageZones')}

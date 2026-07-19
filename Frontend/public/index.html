@@ -4,41 +4,233 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#2563eb" />
     <meta
-      name="TanaPark"
+      name="description"
       content="Online parking management system for parking valets"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
     <title>TanaPark</title>
-    <script src="https://js.chapa.co/v1/inline.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #eef2ff;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+
+      .tp-initial-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.12), transparent 45%),
+          linear-gradient(180deg, #f8fafc 0%, #eef2ff 52%, #e0f2fe 100%);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      .tp-initial-loader__content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 2rem 1.5rem;
+        max-width: 420px;
+      }
+
+      .tp-initial-loader__logo-wrap {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        margin-bottom: 1.25rem;
+      }
+
+      .tp-initial-loader__logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        animation: tp-float 3s ease-in-out infinite;
+        filter: drop-shadow(0 8px 18px rgba(37, 99, 235, 0.22));
+      }
+
+      .tp-initial-loader__ring {
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        border: 2px solid rgba(37, 99, 235, 0.18);
+        border-top-color: #2563eb;
+        animation: tp-spin 1.1s linear infinite;
+      }
+
+      .tp-initial-loader__title {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #1e293b;
+      }
+
+      .tp-initial-loader__tagline {
+        margin: 0.35rem 0 1.5rem;
+        font-size: 0.95rem;
+        color: #64748b;
+      }
+
+      .tp-initial-loader__progress {
+        width: min(280px, 72vw);
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.12);
+        overflow: hidden;
+        margin-bottom: 0.85rem;
+      }
+
+      .tp-initial-loader__progress-bar {
+        display: block;
+        width: 42%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2563eb, #60a5fa, #2563eb);
+        background-size: 200% 100%;
+        animation: tp-progress 1.4s ease-in-out infinite;
+      }
+
+      .tp-initial-loader__message {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+      }
+
+      .tp-initial-loader__lanes {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.55;
+      }
+
+      .tp-initial-loader__car {
+        position: absolute;
+        width: 54px;
+        height: 18px;
+        border-radius: 6px;
+        background: #2563eb;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+      }
+
+      .tp-initial-loader__car::before,
+      .tp-initial-loader__car::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #0f172a;
+      }
+
+      .tp-initial-loader__car::before {
+        left: 10px;
+      }
+
+      .tp-initial-loader__car::after {
+        right: 10px;
+      }
+
+      .tp-initial-loader__car--one {
+        top: 72%;
+        left: -70px;
+        background: #2563eb;
+        animation: tp-drive-right 8s linear infinite;
+      }
+
+      .tp-initial-loader__car--two {
+        top: 78%;
+        right: -70px;
+        background: #059669;
+        animation: tp-drive-left 9s linear infinite 1s;
+      }
+
+      .tp-initial-loader__car--three {
+        top: 84%;
+        left: -70px;
+        background: #7c3aed;
+        animation: tp-drive-right 10s linear infinite 2s;
+      }
+
+      @keyframes tp-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+
+      @keyframes tp-spin {
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes tp-progress {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(320%); }
+      }
+
+      @keyframes tp-drive-right {
+        from { transform: translateX(0); }
+        to { transform: translateX(calc(100vw + 140px)); }
+      }
+
+      @keyframes tp-drive-left {
+        from { transform: translateX(0); }
+        to { transform: translateX(calc(-100vw - 140px)); }
+      }
+    </style>
+    <script defer src="https://js.chapa.co/v1/inline.js"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <div id="root">
+      <div class="tp-initial-loader" role="status" aria-live="polite" aria-busy="true">
+        <div class="tp-initial-loader__lanes" aria-hidden="true">
+          <span class="tp-initial-loader__car tp-initial-loader__car--one"></span>
+          <span class="tp-initial-loader__car tp-initial-loader__car--two"></span>
+          <span class="tp-initial-loader__car tp-initial-loader__car--three"></span>
+        </div>
+        <div class="tp-initial-loader__content">
+          <div class="tp-initial-loader__logo-wrap">
+            <img
+              class="tp-initial-loader__logo"
+              src="%PUBLIC_URL%/logo192.png"
+              alt=""
+              width="112"
+              height="112"
+            />
+            <span class="tp-initial-loader__ring" aria-hidden="true"></span>
+          </div>
+          <h1 class="tp-initial-loader__title">TanaPark</h1>
+          <p class="tp-initial-loader__tagline">Smart Parking Management System</p>
+          <div class="tp-initial-loader__progress" aria-hidden="true">
+            <span class="tp-initial-loader__progress-bar"></span>
+          </div>
+          <p class="tp-initial-loader__message">Starting TanaPark...</p>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

@@ -22,6 +22,12 @@
     "export": "ላክ",
     "refresh": "አድስ",
     "loading": "በመጫን ላይ...",
+    "loadingScreen": {
+      "title": "ታናፓርክ",
+      "startingApp": "ታናፓርክ በመጀመር ላይ...",
+      "loadingDashboard": "ዳሽቦርድ በመጫን ላይ...",
+      "preparingWorkspace": "የስራ ቦታዎን በማዘጋጀት ላይ..."
+    },
     "noData": "ዳታ የለም",
     "error": "ስህተት",
     "success": "በትክክል",

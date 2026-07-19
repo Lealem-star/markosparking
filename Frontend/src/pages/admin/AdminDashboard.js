@@ -14,6 +14,8 @@ import {
     getRoleLabelKey,
     getRoleSubtitleKey,
 } from '../../config/staffAccess';
+import { getRolePathPrefix, getStaffRoutePath } from '../../utils/rolePaths';
+import AppLoadingScreen from '../../components/loading/AppLoadingScreen';
 import { LogOut, User } from 'lucide-react';
 
 import '../../styles/adminDashboard.scss';
@@ -25,9 +27,14 @@ const AdminDashboard = () => {
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const { user, isAuthorized } = useRequireRole(STAFF_SHELL_ROLES);
-    const { unreadCount, openChat } = useChatUnread('/admin/chat');
     const navigate = useNavigate();
     const location = useLocation();
+    const chatPath = getStaffRoutePath(user?.type, 'chat');
+    const dashboardPath = getStaffRoutePath(user?.type, 'dashboard');
+    const profilePath = getStaffRoutePath(user?.type, 'dashboard', 'profile');
+    const urlPrefix = location.pathname.split('/').filter(Boolean)[0];
+    const userPrefix = getRolePathPrefix(user?.type);
+    const { unreadCount, openChat } = useChatUnread(chatPath);
     const dispatch = useDispatch();
     const {
         profileForm,
@@ -50,13 +57,18 @@ const AdminDashboard = () => {
     const roleSubtitle = t(getRoleSubtitleKey(user?.type));
 
     useEffect(() => {
-        if (location.pathname === '/admin/dashboard/profile') {
+        if (location.pathname === profilePath) {
             setShowProfileModal(true);
             initFormFromUser(user);
         } else {
             setShowProfileModal(false);
         }
-    }, [location.pathname, user, initFormFromUser]);
+    }, [location.pathname, profilePath, user, initFormFromUser]);
+
+    useEffect(() => {
+        if (!userPrefix || urlPrefix === userPrefix) return;
+        navigate(dashboardPath, { replace: true });
+    }, [dashboardPath, navigate, urlPrefix, userPrefix]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -76,12 +88,12 @@ const AdminDashboard = () => {
     };
 
     const handleProfileUpdate = () => {
-        navigate('/admin/dashboard/profile');
+        navigate(profilePath);
         setProfileDropdownOpen(false);
     };
 
     const handleCloseProfileModal = () => {
-        navigate('/admin/dashboard');
+        navigate(dashboardPath);
         setShowProfileModal(false);
         resetProfileState();
     };
@@ -89,7 +101,7 @@ const AdminDashboard = () => {
     const isActive = (path) => location.pathname === path;
 
     if (!isAuthorized) {
-        return null;
+        return <AppLoadingScreen messageKey="loadingScreen.loadingDashboard" />;
     }
 
     return (
@@ -123,9 +135,9 @@ const AdminDashboard = () => {
                     <>
                         <button
                             type="button"
-                            className={`nav-item ${isActive('/admin/dashboard/profile') ? 'active' : ''}`}
+                            className={`nav-item ${isActive(profilePath) ? 'active' : ''}`}
                             onClick={() => {
-                                navigate('/admin/dashboard/profile');
+                                navigate(profilePath);
                                 setMobileMenuOpen(false);
                             }}
                         >

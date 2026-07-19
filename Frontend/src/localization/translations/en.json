@@ -22,6 +22,12 @@
     "export": "Export",
     "refresh": "Refresh",
     "loading": "Loading...",
+    "loadingScreen": {
+      "title": "TanaPark",
+      "startingApp": "Starting TanaPark...",
+      "loadingDashboard": "Loading your dashboard...",
+      "preparingWorkspace": "Preparing your workspace..."
+    },
     "noData": "No data available",
     "error": "Error",
     "success": "Success",

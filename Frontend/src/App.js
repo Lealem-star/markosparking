@@ -16,7 +16,76 @@ import PaymentSuccessHost from './components/PaymentSuccessHost/PaymentSuccessHo
 import StaffRouteGuard from './components/auth/StaffRouteGuard';
 import { syncLanguageWithUser } from './utils/languageSync';
 import { useCurrentUser } from './hooks/useAuth';
-import { LegacyPaymentRedirect, PublicRoute, RootRedirect } from './routes/AppRoutes';
+import { STAFF_PORTAL_PREFIXES } from './utils/rolePaths';
+import {
+  LegacyPaymentRedirect,
+  LegacyStaffRedirect,
+  LegacyUsersRedirect,
+  PublicRoute,
+  RootRedirect,
+} from './routes/AppRoutes';
+
+const staffPortalRoutes = (prefix) => (
+  <>
+    <Route index element={<Navigate to={`/${prefix}/dashboard`} replace />} />
+    <Route
+      path="dashboard"
+      element={
+        <StaffRouteGuard permission="dashboard">
+          <DashboardOverview />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="dashboard/profile"
+      element={
+        <StaffRouteGuard permission="dashboard">
+          <DashboardOverview />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="users"
+      element={
+        <StaffRouteGuard permission="users">
+          <UserManagement />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="reports"
+      element={
+        <StaffRouteGuard permission="reports">
+          <Reports />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="settings"
+      element={
+        <StaffRouteGuard permission="settings">
+          <Settings />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="chat"
+      element={
+        <StaffRouteGuard permission="chat">
+          <GroupChat />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="flagged-customers"
+      element={
+        <StaffRouteGuard permission="flagged">
+          <FlaggedCustomers />
+        </StaffRouteGuard>
+      }
+    />
+  </>
+);
 
 function App() {
   const user = useCurrentUser();
@@ -34,46 +103,14 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<RootRedirect />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="users" element={<Navigate to="/admin/users" replace />} />
+          <Route path="users" element={<LegacyUsersRedirect />} />
         </Route>
-        <Route path="/admin" element={<AdminDashboard />}>
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="dashboard" element={
-            <StaffRouteGuard permission="dashboard">
-              <DashboardOverview />
-            </StaffRouteGuard>
-          } />
-          <Route path="dashboard/profile" element={
-            <StaffRouteGuard permission="dashboard">
-              <DashboardOverview />
-            </StaffRouteGuard>
-          } />
-          <Route path="users" element={
-            <StaffRouteGuard permission="users">
-              <UserManagement />
-            </StaffRouteGuard>
-          } />
-          <Route path="reports" element={
-            <StaffRouteGuard permission="reports">
-              <Reports />
-            </StaffRouteGuard>
-          } />
-          <Route path="settings" element={
-            <StaffRouteGuard permission="settings">
-              <Settings />
-            </StaffRouteGuard>
-          } />
-          <Route path="chat" element={
-            <StaffRouteGuard permission="chat">
-              <GroupChat />
-            </StaffRouteGuard>
-          } />
-          <Route path="flagged-customers" element={
-            <StaffRouteGuard permission="flagged">
-              <FlaggedCustomers />
-            </StaffRouteGuard>
-          } />
-        </Route>
+        {STAFF_PORTAL_PREFIXES.map((prefix) => (
+          <Route key={prefix} path={`/${prefix}`} element={<AdminDashboard />}>
+            {staffPortalRoutes(prefix)}
+          </Route>
+        ))}
+        <Route path="/admin/*" element={<LegacyStaffRedirect />} />
         <Route path="/valet" element={<ValetDashboard />}>
           <Route index element={<ParkedCarsList />} />
           <Route path="dashboard" element={<ParkedCarsList />} />

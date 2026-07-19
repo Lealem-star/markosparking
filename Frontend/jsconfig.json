@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "paths": {
-      "@/*": ["src/*"],
-      "@assets/*": ["src/assets/*"],
-      "@styles/*": ["src/styles/*"],
-      "@localization/*": ["src/localization/*"],
-      "@store/*": ["src/store/*"]
+      "@/*": ["./src/*"],
+      "@assets/*": ["./src/assets/*"],
+      "@styles/*": ["./src/styles/*"],
+      "@localization/*": ["./src/localization/*"],
+      "@store/*": ["./src/store/*"]
     }
   },
   "include": ["src"]

@@ -17,6 +17,7 @@ import {
     ChevronDown,
 } from 'lucide-react';
 import UserAvatar from '../../components/layout/UserAvatar';
+import AppLoadingScreen from '../../components/loading/AppLoadingScreen';
 import '../../styles/valetDashboard.scss';
 import '../../styles/valetTheme.scss';
 
@@ -84,7 +85,7 @@ const ValetDashboard = () => {
     );
 
     if (!isAuthorized) {
-        return null;
+        return <AppLoadingScreen messageKey="loadingScreen.loadingDashboard" />;
     }
 
     return (

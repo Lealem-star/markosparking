@@ -11,6 +11,7 @@ import {
     canAccessStaffManagement,
     normalizeRole,
 } from '../constants/roles';
+import { getStaffRoutePath } from '../utils/rolePaths';
 
 export const STAFF_PERMISSIONS = Object.freeze({
     dashboard: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
@@ -32,31 +33,31 @@ const MENU_DEFINITIONS = [
         id: 'dashboard',
         icon: LayoutDashboard,
         labelKey: 'navigation.dashboard',
-        path: '/admin/dashboard',
+        segment: 'dashboard',
     },
     {
         id: 'users',
         icon: Users,
         labelKey: 'admin.userManagement',
-        path: '/admin/users',
+        segment: 'users',
     },
     {
         id: 'reports',
         icon: FileText,
         labelKey: 'navigation.reports',
-        path: '/admin/reports',
+        segment: 'reports',
     },
     {
         id: 'settings',
         icon: Settings,
         labelKey: 'navigation.settings',
-        path: '/admin/settings',
+        segment: 'settings',
     },
     {
         id: 'flagged',
         icon: AlertTriangle,
         labelKey: 'valet.flaggedCustomers',
-        path: '/admin/flagged-customers',
+        segment: 'flagged-customers',
     },
 ];
 
@@ -73,7 +74,7 @@ export const getMenuItemsForRole = (userType, t) => {
         .map((item) => ({
             icon: item.icon,
             label: t(item.labelKey),
-            path: item.path,
+            path: getStaffRoutePath(userType, item.segment),
         }));
 };
 

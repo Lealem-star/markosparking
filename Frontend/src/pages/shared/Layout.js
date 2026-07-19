@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { clearUser } from '../../store';
 import { isStaffShellRole, isValetRole } from '../../constants/roles';
+import { getStaffRoutePath } from '../../utils/rolePaths';
 import { Mail } from "lucide-react";
 import tanaLogo from '../../assets/Tana.png';
 import partnerLogo from '../../assets/image.png';
@@ -42,7 +43,7 @@ const Layout = () => {
                         <ul className="nav-links">
                             {isStaffShellRole(user.type) && (
                                 <li>
-                                    <Link to="/admin/dashboard">{t('navigation.adminDashboard')}</Link>
+                                    <Link to={getStaffRoutePath(user.type, 'dashboard')}>{t('navigation.adminDashboard')}</Link>
                                 </li>
                             )}
                             {isValetRole(user.type) && (

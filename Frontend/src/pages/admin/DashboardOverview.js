@@ -5,6 +5,7 @@ import { useParkedCarsQuery } from '../../hooks/queries';
 import { getApiError } from '../../api/client';
 import { Car, DollarSign } from 'lucide-react';
 import { EthiopianDatePicker } from '../../components';
+import DashboardContentLoader from '../../components/loading/DashboardContentLoader';
 import '../../styles/dashboardOverview.scss';
 
 const StatSparkline = ({ color }) => (
@@ -71,6 +72,10 @@ const DashboardOverview = () => {
             totalDailyRevenue: totalRevenue,
         };
     }, [cars]);
+
+    if (loadingRevenue && !cars.length) {
+        return <DashboardContentLoader />;
+    }
 
     return (
         <div className="dashboard-overview">

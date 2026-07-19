@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { hasStaffPermission } from '../../config/staffAccess';
+import { getDashboardPathForUser } from '../../utils/authRouting';
 
 export function StaffRouteGuard({ permission, children }) {
     const user = useCurrentUser();
@@ -10,7 +11,7 @@ export function StaffRouteGuard({ permission, children }) {
     }
 
     if (!hasStaffPermission(user.type, permission)) {
-        return <Navigate to="/admin/dashboard" replace />;
+        return <Navigate to={getDashboardPathForUser(user)} replace />;
     }
 
     return children;

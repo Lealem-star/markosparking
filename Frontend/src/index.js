@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 // Bootstrap CSS
@@ -13,16 +13,17 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { store, persistor } from './store';
 import { queryClient } from './api/queryClient';
-
+import AppLoadingScreen from './components/loading/AppLoadingScreen';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    {/* Providing and persisting state through entire app by wrapping it */}
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
+      <PersistGate loading={<AppLoadingScreen messageKey="loadingScreen.startingApp" />} persistor={persistor}>
         <QueryClientProvider client={queryClient}>
-          <App />
+          <Suspense fallback={<AppLoadingScreen messageKey="loadingScreen.startingApp" />}>
+            <App />
+          </Suspense>
         </QueryClientProvider>
       </PersistGate>
     </Provider>
