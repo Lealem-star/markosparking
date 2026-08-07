@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CreditCard, Bell, MoreVertical, Phone, Calendar } from 'lucide-react';
+import { CreditCard, Bell, MoreVertical, Phone, Calendar, CheckCircle2 } from 'lucide-react';
 import {
     calculateFlaggedFee,
     formatFlaggedDateTime,
@@ -12,6 +12,7 @@ const FlaggedCustomerCards = ({
     loading,
     onPayNow,
     onNotify,
+    onResolve,
 }) => {
     const [openMenuId, setOpenMenuId] = useState(null);
     const menuRef = useRef(null);
@@ -85,6 +86,17 @@ const FlaggedCustomerCards = ({
                                     <Bell size={14} />
                                     {isNotified ? t('valet.notified') : t('valet.notify')}
                                 </button>
+                                {onResolve && (
+                                    <button
+                                        type="button"
+                                        className="flagged-action-btn flagged-action-btn--resolve"
+                                        onClick={() => onResolve(car)}
+                                        disabled={loading}
+                                    >
+                                        <CheckCircle2 size={14} />
+                                        {t('finance.markResolved')}
+                                    </button>
+                                )}
                                 <div
                                     className="flagged-menu-wrap"
                                     ref={openMenuId === car._id ? menuRef : null}

@@ -3,6 +3,7 @@ const User = require('../models/userSchema');
 const {
     registerParkedCar,
     listParkedCars,
+    listTransactions,
     getFlaggedCars,
     getParkedCarById,
     updateParkedCar,
@@ -11,6 +12,7 @@ const {
     getDailyStatsHistory,
     flagCar,
     notifyFlaggedCustomer,
+    resolveFlaggedCar,
 } = require('../services/parkingService');
 
 const createParkedCarSchema = Joi.object({
@@ -44,6 +46,22 @@ const updateParkedCarSchema = Joi.object({
     lastNotificationSentAt: Joi.date().allow(null).optional(),
 });
 
+const resolveFlaggedSchema = Joi.object({
+    resolutionNote: Joi.string().trim().required().min(3).max(500),
+    totalPaidAmount: Joi.number().min(0).optional(),
+    paymentMethod: Joi.string().valid('manual', 'online').optional(),
+});
+
+const listTransactionsSchema = Joi.object({
+    date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    startDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    endDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    paymentMethod: Joi.string().valid('all', 'manual', 'online').optional(),
+    zone: Joi.string().trim().allow('all', '').optional(),
+    page: Joi.number().integer().min(1).optional(),
+    limit: Joi.number().integer().min(1).max(100).optional(),
+});
+
 const loadCurrentUser = (req) => User.findOne({ phoneNumber: req.user?.phoneNumber });
 
 const create = async (req, res) => {
@@ -56,6 +74,12 @@ const list = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
     const cars = await listParkedCars(currentUser, req.query);
     res.json(cars);
+};
+
+const transactions = async (req, res) => {
+    const currentUser = await loadCurrentUser(req);
+    const result = await listTransactions(currentUser, req.validated?.query || req.query);
+    res.json(result);
 };
 
 const listFlagged = async (req, res) => {
@@ -105,11 +129,25 @@ const notify = async (req, res) => {
     res.json(result);
 };
 
+const resolve = async (req, res) => {
+    const currentUser = await loadCurrentUser(req);
+    const result = await resolveFlaggedCar(
+        currentUser,
+        req.params.id,
+        req.validated.body,
+        req
+    );
+    res.json(result);
+};
+
 module.exports = {
     createParkedCarSchema,
     updateParkedCarSchema,
+    resolveFlaggedSchema,
+    listTransactionsSchema,
     create,
     list,
+    transactions,
     listFlagged,
     getDaily,
     getDailyHistory,
@@ -118,4 +156,5 @@ module.exports = {
     remove,
     flag,
     notify,
+    resolve,
 };

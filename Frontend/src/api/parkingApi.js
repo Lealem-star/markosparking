@@ -84,3 +84,36 @@ export const getDailyStatsHistory = async (token, limit = 10) => {
     });
     return response.data || [];
 };
+
+export const getTransactions = async (token, filters = {}) => {
+    const query = buildQuery({
+        date: filters.date,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        paymentMethod: filters.paymentMethod,
+        zone: filters.zone,
+        page: filters.page,
+        limit: filters.limit,
+    });
+    const response = await axios.get(`${BASE_URL}parkedCar/transactions${query}`, {
+        headers: authHeaders(token),
+    });
+    return response.data || { items: [], total: 0, page: 1, limit: 50, totalPages: 1 };
+};
+
+export const resolveFlaggedCarRecord = async (id, body, token) => {
+    const result = await axios.post(
+        `${BASE_URL}parkedCar/${id}/resolve`,
+        body,
+        {
+            headers: {
+                ...authHeaders(token),
+                'Content-Type': 'application/json',
+            },
+        }
+    );
+    if (!result?.data?.car) {
+        throw new Error('Failed to resolve flagged account');
+    }
+    return result.data;
+};

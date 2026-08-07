@@ -20,7 +20,16 @@ const listAuditLogs = async (req, res) => {
     res.json(result);
 };
 
+const listFinanceAuditLogs = async (req, res) => {
+    const result = await auditLogService.listFinanceAuditLogs(
+        req.currentUser,
+        req.validated?.query || {}
+    );
+    res.json(result);
+};
+
 module.exports = {
     listSchema,
     listAuditLogs,
+    listFinanceAuditLogs,
 };

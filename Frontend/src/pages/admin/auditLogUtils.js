@@ -7,6 +7,8 @@ export const AUDIT_CATEGORIES = [
     'zone',
 ];
 
+export const FINANCE_AUDIT_CATEGORIES = ['payment', 'pricing'];
+
 export const AUDIT_ACTIONS = [
     'auth.login.success',
     'auth.login.failed',
@@ -24,6 +26,16 @@ export const AUDIT_ACTIONS = [
     'zone.created',
     'zone.updated',
     'zone.deleted',
+];
+
+export const FINANCE_AUDIT_ACTIONS = [
+    'payment.completed',
+    'pricing.updated',
+    'vat.updated',
+    'vat.toggled',
+    'reconciliation.submitted',
+    'reconciliation.approved',
+    'reconciliation.rejected',
 ];
 
 export const formatAuditTimestamp = (value, locale) => {

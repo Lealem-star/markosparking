@@ -13,6 +13,12 @@ router.post(
 );
 
 router.get('/', isLoggedIn, asyncHandler(parkedCarController.list));
+router.get(
+    '/transactions',
+    isLoggedIn,
+    validate(parkedCarController.listTransactionsSchema, 'query'),
+    asyncHandler(parkedCarController.transactions)
+);
 router.get('/flagged', isLoggedIn, asyncHandler(parkedCarController.listFlagged));
 router.get('/stats/daily', isLoggedIn, asyncHandler(parkedCarController.getDaily));
 router.get('/stats/daily/history', isLoggedIn, asyncHandler(parkedCarController.getDailyHistory));
@@ -27,6 +33,12 @@ router.put(
 
 router.delete('/:id', isLoggedIn, asyncHandler(parkedCarController.remove));
 router.put('/:id/flag', isLoggedIn, asyncHandler(parkedCarController.flag));
+router.post(
+    '/:id/resolve',
+    isLoggedIn,
+    validate(parkedCarController.resolveFlaggedSchema),
+    asyncHandler(parkedCarController.resolve)
+);
 router.post('/:id/notify', isLoggedIn, asyncHandler(parkedCarController.notify));
 
 module.exports = router;

@@ -119,3 +119,12 @@ export const requiresZoneCode = (type) => {
 };
 
 export const requiresPriceLevel = (type) => normalizeRole(type) === ROLES.VALET;
+
+export const isFinanceOfficerRole = (type) =>
+    normalizeRole(type) === ROLES.FINANCE_OFFICER;
+
+export const canResolveFlaggedAccounts = (type) =>
+    [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER].includes(normalizeRole(type));
+
+export const canAccessFinanceTransactions = (type) =>
+    [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER].includes(normalizeRole(type));

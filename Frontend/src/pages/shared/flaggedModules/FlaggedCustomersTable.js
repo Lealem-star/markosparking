@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CreditCard, Bell, MoreVertical } from 'lucide-react';
+import { CreditCard, Bell, MoreVertical, CheckCircle2 } from 'lucide-react';
 import {
     calculateFlaggedFee,
     formatFlaggedDateTime,
@@ -14,6 +14,7 @@ const FlaggedCustomersTable = ({
     loading,
     onPayNow,
     onNotify,
+    onResolve,
 }) => {
     const [openMenuId, setOpenMenuId] = useState(null);
     const menuRef = useRef(null);
@@ -46,6 +47,7 @@ const FlaggedCustomersTable = ({
                 loading={loading}
                 onPayNow={onPayNow}
                 onNotify={onNotify}
+                onResolve={onResolve}
             />
             <div className="flagged-table-wrap flagged-table-wrap--desktop">
             <table className="flagged-table">
@@ -99,6 +101,17 @@ const FlaggedCustomersTable = ({
                                             <Bell size={14} />
                                             {isNotified ? t('valet.notified') : t('valet.notify')}
                                         </button>
+                                        {onResolve && (
+                                            <button
+                                                type="button"
+                                                className="flagged-action-btn flagged-action-btn--resolve"
+                                                onClick={() => onResolve(car)}
+                                                disabled={loading}
+                                            >
+                                                <CheckCircle2 size={14} />
+                                                {t('finance.markResolved')}
+                                            </button>
+                                        )}
                                         <div className="flagged-menu-wrap" ref={openMenuId === car._id ? menuRef : null}>
                                             <button
                                                 type="button"

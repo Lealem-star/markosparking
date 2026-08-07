@@ -3,11 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { Search, ChevronLeft, ChevronRight, ScrollText } from 'lucide-react';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { useAuditLogsQuery } from '../../hooks/queries/useAuditLogsQuery';
+import { useFinanceAuditLogsQuery } from '../../hooks/queries/useFinanceAuditLogsQuery';
 import { getApiError } from '../../api/client';
 import DashboardContentLoader from '../../components/loading/DashboardContentLoader';
 import {
     AUDIT_ACTIONS,
     AUDIT_CATEGORIES,
+    FINANCE_AUDIT_ACTIONS,
+    FINANCE_AUDIT_CATEGORIES,
     formatAuditTimestamp,
     formatMetadataPreview,
 } from './auditLogUtils';
@@ -15,9 +18,13 @@ import '../../styles/auditLogs.scss';
 
 const PAGE_SIZE = 50;
 
-const AuditLogs = () => {
+const AuditLogs = ({ scope = 'full' }) => {
+    const isFinanceScope = scope === 'finance';
     const { t, i18n } = useTranslation();
     const user = useCurrentUser();
+
+    const categoryOptions = isFinanceScope ? FINANCE_AUDIT_CATEGORIES : AUDIT_CATEGORIES;
+    const actionOptions = isFinanceScope ? FINANCE_AUDIT_ACTIONS : AUDIT_ACTIONS;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
@@ -37,7 +44,9 @@ const AuditLogs = () => {
         limit: PAGE_SIZE,
     }), [searchQuery, categoryFilter, actionFilter, startDate, endDate, page]);
 
-    const { data, isLoading, error } = useAuditLogsQuery(user?.token, filters);
+    const fullQuery = useAuditLogsQuery(user?.token, filters, { enabled: !isFinanceScope });
+    const financeQuery = useFinanceAuditLogsQuery(user?.token, filters, { enabled: isFinanceScope });
+    const { data, isLoading, error } = isFinanceScope ? financeQuery : fullQuery;
 
     const items = data?.items || [];
     const total = data?.total || 0;
@@ -52,7 +61,9 @@ const AuditLogs = () => {
         return <DashboardContentLoader />;
     }
 
-    const errorMessage = error ? getApiError(error, t('auditLogs.loadFailed')) : '';
+    const errorMessage = error
+        ? getApiError(error, t(isFinanceScope ? 'financeAuditLogs.loadFailed' : 'auditLogs.loadFailed'))
+        : '';
 
     return (
         <div className="audit-logs-page">
@@ -60,9 +71,9 @@ const AuditLogs = () => {
                 <div>
                     <h1>
                         <ScrollText size={24} />
-                        {t('auditLogs.title')}
+                        {t(isFinanceScope ? 'financeAuditLogs.title' : 'auditLogs.title')}
                     </h1>
-                    <p>{t('auditLogs.subtitle')}</p>
+                    <p>{t(isFinanceScope ? 'financeAuditLogs.subtitle' : 'auditLogs.subtitle')}</p>
                 </div>
                 <span className="audit-logs-page__count">
                     {t('auditLogs.totalEntries', { count: total })}
@@ -86,7 +97,7 @@ const AuditLogs = () => {
 
                 <select value={categoryFilter} onChange={handleFilterChange(setCategoryFilter)}>
                     <option value="all">{t('auditLogs.allCategories')}</option>
-                    {AUDIT_CATEGORIES.map((category) => (
+                    {categoryOptions.map((category) => (
                         <option key={category} value={category}>
                             {t(`auditLogs.categories.${category}`)}
                         </option>
@@ -95,7 +106,7 @@ const AuditLogs = () => {
 
                 <select value={actionFilter} onChange={handleFilterChange(setActionFilter)}>
                     <option value="all">{t('auditLogs.allActions')}</option>
-                    {AUDIT_ACTIONS.map((action) => (
+                    {actionOptions.map((action) => (
                         <option key={action} value={action}>
                             {t(`auditLogs.actions.${action}`)}
                         </option>

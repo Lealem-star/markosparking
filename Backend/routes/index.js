@@ -14,6 +14,7 @@ const parkZoneRoutes = require('./parkZone.routes');
 const attendanceRoutes = require('./attendance.routes');
 const incidentRoutes = require('./incident.routes');
 const auditLogRoutes = require('./auditLog.routes');
+const shiftReconciliationRoutes = require('./shiftReconciliation.routes');
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use('/parkZone', parkZoneRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/incidents', incidentRoutes);
 router.use('/audit-logs', auditLogRoutes);
+router.use('/shift-reconciliations', shiftReconciliationRoutes);
 
 module.exports = router;

@@ -70,14 +70,29 @@ const assertSystemAdmin = (user) => {
     }
 };
 
-const listAuditLogs = async (currentUser, filters = {}) => {
-    assertSystemAdmin(currentUser);
+const FINANCE_AUDIT_CATEGORIES = ['payment', 'pricing'];
 
-    const page = Math.max(1, parseInt(filters.page, 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(filters.limit, 10) || 50));
+const FINANCE_AUDIT_ROLES = [
+    ROLES.SYSTEM_ADMIN,
+    ROLES.DIRECTOR,
+    ROLES.FINANCE_OFFICER,
+];
+
+const assertFinanceAuditAccess = (user) => {
+    if (!user || !FINANCE_AUDIT_ROLES.includes(user.type)) {
+        throw new AppError('Not authorized to view finance audit logs', 403);
+    }
+};
+
+const buildAuditLogQuery = (filters = {}, { restrictFinance = false } = {}) => {
     const query = {};
 
-    if (filters.category && filters.category !== 'all') {
+    if (restrictFinance) {
+        query.category = { $in: FINANCE_AUDIT_CATEGORIES };
+        if (filters.category && filters.category !== 'all' && FINANCE_AUDIT_CATEGORIES.includes(filters.category)) {
+            query.category = filters.category;
+        }
+    } else if (filters.category && filters.category !== 'all') {
         query.category = filters.category;
     }
 
@@ -116,6 +131,10 @@ const listAuditLogs = async (currentUser, filters = {}) => {
         }
     }
 
+    return query;
+};
+
+const paginateAuditLogs = async (query, page, limit) => {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
         AuditLog.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
@@ -131,9 +150,31 @@ const listAuditLogs = async (currentUser, filters = {}) => {
     };
 };
 
+const listAuditLogs = async (currentUser, filters = {}) => {
+    assertSystemAdmin(currentUser);
+
+    const page = Math.max(1, parseInt(filters.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(filters.limit, 10) || 50));
+    const query = buildAuditLogQuery(filters);
+
+    return paginateAuditLogs(query, page, limit);
+};
+
+const listFinanceAuditLogs = async (currentUser, filters = {}) => {
+    assertFinanceAuditAccess(currentUser);
+
+    const page = Math.max(1, parseInt(filters.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(filters.limit, 10) || 50));
+    const query = buildAuditLogQuery(filters, { restrictFinance: true });
+
+    return paginateAuditLogs(query, page, limit);
+};
+
 module.exports = {
     logAudit,
     listAuditLogs,
+    listFinanceAuditLogs,
+    FINANCE_AUDIT_CATEGORIES,
     actorFromUser,
     getClientIp,
 };

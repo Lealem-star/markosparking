@@ -153,6 +153,17 @@ const parkedCarSchema = new mongoose.Schema({
     },
     lastNotificationSentAt: {
         type: Date
+    },
+    financeResolutionNote: {
+        type: String,
+        default: ''
+    },
+    resolvedAt: {
+        type: Date
+    },
+    resolvedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 })
 

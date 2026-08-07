@@ -29,6 +29,10 @@ import {
   StaffAttendancePage,
   StaffIncidentsPage,
   StaffAuditLogsPage,
+  StaffTransactionsPage,
+  StaffFinanceAuditLogsPage,
+  StaffReconciliationsPage,
+  StaffShiftClosePage,
 } from './routes/staffPortalPages';
 
 const staffPortalRoutes = (prefix) => (
@@ -99,6 +103,38 @@ const staffPortalRoutes = (prefix) => (
       element={
         <StaffRouteGuard permission="auditLogs">
           <StaffAuditLogsPage />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="transactions"
+      element={
+        <StaffRouteGuard permission="transactions">
+          <StaffTransactionsPage />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="reconciliations"
+      element={
+        <StaffRouteGuard permission="reconciliations">
+          <StaffReconciliationsPage />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="finance-audit-logs"
+      element={
+        <StaffRouteGuard permission="financeAuditLogs">
+          <StaffFinanceAuditLogsPage />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="shift-close"
+      element={
+        <StaffRouteGuard permission="shiftClose">
+          <StaffShiftClosePage />
         </StaffRouteGuard>
       }
     />

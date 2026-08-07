@@ -60,7 +60,20 @@ const applyCarVisibilityFilter = (query, currentUser) => {
 
 const populateCarQuery = (query) => query
     .populate('valet_id', 'name phoneNumber priceLevel')
-    .populate('checkedOutBy', 'name phoneNumber');
+    .populate('checkedOutBy', 'name phoneNumber')
+    .populate('resolvedBy', 'name phoneNumber');
+
+const FINANCE_DATA_ROLES = [
+    ROLES.SYSTEM_ADMIN,
+    ROLES.DIRECTOR,
+    ROLES.FINANCE_OFFICER,
+];
+
+const assertFinanceDataAccess = (user) => {
+    if (!user || !FINANCE_DATA_ROLES.includes(user.type)) {
+        throw new AppError('Not authorized to access finance data', 403);
+    }
+};
 
 const isUnpaidCheckedOutCar = (car) => {
     if (!car || car.status !== 'checked_out') return false;
@@ -724,9 +737,140 @@ const notifyFlaggedCustomer = async (id) => {
     return { message: 'Notification sent successfully', car };
 };
 
+const listTransactions = async (currentUser, filters = {}) => {
+    assertFinanceDataAccess(currentUser);
+
+    const query = {
+        status: 'checked_out',
+        totalPaidAmount: { $gt: 0 },
+    };
+
+    applyCarVisibilityFilter(query, currentUser);
+
+    if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+        if (filters.paymentMethod === 'manual') {
+            query.$or = [
+                { paymentMethod: 'manual' },
+                { paymentMethod: { $exists: false } },
+                { paymentMethod: null },
+            ];
+        } else {
+            query.paymentMethod = filters.paymentMethod;
+        }
+    }
+
+    if (filters.zone && filters.zone !== 'all') {
+        query.location = filters.zone;
+    }
+
+    if (filters.startDate || filters.endDate || filters.date) {
+        query.checkedOutAt = {};
+        const start = filters.startDate || filters.date;
+        const end = filters.endDate || filters.date;
+        if (start) {
+            const startDate = new Date(start);
+            startDate.setHours(0, 0, 0, 0);
+            query.checkedOutAt.$gte = startDate;
+        }
+        if (end) {
+            const endDate = new Date(end);
+            endDate.setHours(23, 59, 59, 999);
+            query.checkedOutAt.$lte = endDate;
+        }
+        if (!Object.keys(query.checkedOutAt).length) {
+            delete query.checkedOutAt;
+        }
+    }
+
+    const page = Math.max(1, parseInt(filters.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(filters.limit, 10) || 50));
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+        populateCarQuery(ParkedCar.find(query))
+            .sort({ checkedOutAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        ParkedCar.countDocuments(query),
+    ]);
+
+    return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+    };
+};
+
+const resolveFlaggedCar = async (currentUser, id, { resolutionNote, totalPaidAmount, paymentMethod = 'manual' }, req) => {
+    assertFinanceDataAccess(currentUser);
+
+    if (!Types.ObjectId.isValid(id)) {
+        throw new AppError('Invalid car id', 400);
+    }
+
+    const note = resolutionNote?.trim();
+    if (!note) {
+        throw new AppError('Resolution note is required', 400);
+    }
+
+    const car = await ParkedCar.findById(id);
+    if (!car || !car.isFlagged || car.status !== 'checked_out') {
+        throw new AppError('Flagged record not found', 404);
+    }
+
+    let amount = totalPaidAmount;
+    if (amount === undefined || amount === null) {
+        const outstanding = await calculateOutstandingAmount(car);
+        amount = outstanding.totalWithVat;
+    }
+
+    if (amount > 0) {
+        const vatRate = await getVATRate();
+        const breakdown = reverseCalculateVAT(Number(amount), vatRate);
+        car.totalPaidAmount = breakdown.totalWithVat;
+        car.baseAmount = breakdown.baseAmount;
+        car.vatAmount = breakdown.vatAmount;
+        car.vatRate = vatRate;
+    }
+
+    car.paymentMethod = paymentMethod === 'online' ? 'online' : 'manual';
+    car.isFlagged = false;
+    car.flaggedAt = null;
+    car.flaggedBy = null;
+    car.notificationSent = false;
+    car.lastNotificationSentAt = null;
+    car.financeResolutionNote = note;
+    car.resolvedAt = new Date();
+    car.resolvedBy = currentUser._id;
+
+    await car.save();
+
+    await logAudit({
+        action: AUDIT_ACTIONS.PAYMENT_COMPLETED,
+        actor: currentUser,
+        targetType: 'car',
+        targetId: car._id,
+        summary: `Resolved flagged account for ${car.licensePlate}`,
+        metadata: {
+            licensePlate: car.licensePlate,
+            amount: car.totalPaidAmount,
+            paymentMethod: car.paymentMethod,
+            resolutionNote: note,
+            resolvedManually: true,
+        },
+        req,
+    });
+
+    const updatedCar = await populateCarQuery(ParkedCar.findById(id));
+    return { message: 'Flagged account resolved successfully', car: updatedCar };
+};
+
 module.exports = {
     registerParkedCar,
     listParkedCars,
+    listTransactions,
     getFlaggedCars,
     getParkedCarById,
     updateParkedCar,
@@ -735,4 +879,5 @@ module.exports = {
     getDailyStatsHistory,
     flagCar,
     notifyFlaggedCustomer,
+    resolveFlaggedCar,
 };

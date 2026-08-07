@@ -8,6 +8,7 @@ const FlaggedZoneAccordion = ({
     loading,
     onPayNow,
     onNotify,
+    onResolve,
 }) => {
     const [expandedIds, setExpandedIds] = useState(() => {
         if (groups.length > 0) return new Set([groups[0].zoneCode]);
@@ -75,6 +76,7 @@ const FlaggedZoneAccordion = ({
                                     loading={loading}
                                     onPayNow={onPayNow}
                                     onNotify={onNotify}
+                                    onResolve={onResolve}
                                 />
                             </div>
                         )}

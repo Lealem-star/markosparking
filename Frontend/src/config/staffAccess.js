@@ -7,6 +7,8 @@ import {
     ClipboardCheck,
     ShieldAlert,
     ScrollText,
+    Receipt,
+    Banknote,
 } from 'lucide-react';
 import {
     ROLES,
@@ -26,6 +28,10 @@ export const STAFF_PERMISSIONS = Object.freeze({
     settings: [ROLES.SYSTEM_ADMIN],
     auditLogs: [ROLES.SYSTEM_ADMIN],
     flagged: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
+    transactions: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER],
+    financeAuditLogs: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER],
+    reconciliations: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER],
+    shiftClose: [ROLES.SUPERVISOR],
     chat: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
 });
 
@@ -53,6 +59,24 @@ const MENU_DEFINITIONS = [
         icon: FileText,
         labelKey: 'navigation.reports',
         segment: 'reports',
+    },
+    {
+        id: 'transactions',
+        icon: Receipt,
+        labelKey: 'finance.transactionsTitle',
+        segment: 'transactions',
+    },
+    {
+        id: 'reconciliations',
+        icon: Banknote,
+        labelKey: 'reconciliation.reviewQueueTitle',
+        segment: 'reconciliations',
+    },
+    {
+        id: 'financeAuditLogs',
+        icon: ScrollText,
+        labelKey: 'financeAuditLogs.title',
+        segment: 'finance-audit-logs',
     },
     {
         id: 'settings',
@@ -103,6 +127,12 @@ const SUPERVISOR_MENU_DEFINITIONS = [
         icon: ShieldAlert,
         labelKey: 'supervisor.incidents',
         segment: 'incidents',
+    },
+    {
+        id: 'shiftClose',
+        icon: Banknote,
+        labelKey: 'reconciliation.shiftCloseTitle',
+        segment: 'shift-close',
     },
     {
         id: 'flagged',
