@@ -1,6 +1,8 @@
 const Joi = require('joi');
 const AppError = require('../errors/AppError');
 const PricingSettings = require('../models/pricingSettingsSchema');
+const { logAudit } = require('../services/auditLogService');
+const { AUDIT_ACTIONS } = require('../constants/auditActions');
 
 const updatePricingSchema = Joi.object({
     settings: Joi.object({
@@ -84,6 +86,45 @@ const updateSettings = async (req, res) => {
 
     pricingSettings.settings = mergedSettings;
     await pricingSettings.save();
+
+    if (settings.priceLevels !== undefined) {
+        await logAudit({
+            action: AUDIT_ACTIONS.PRICING_UPDATED,
+            actor: currentUser,
+            targetType: 'settings',
+            summary: 'Updated parking price levels',
+            metadata: { priceLevels: settings.priceLevels },
+            req,
+        });
+    }
+
+    if (settings.vatRate !== undefined && settings.vatRate !== previousSettings.vatRate) {
+        await logAudit({
+            action: AUDIT_ACTIONS.VAT_UPDATED,
+            actor: currentUser,
+            targetType: 'settings',
+            summary: `Changed VAT rate from ${((previousSettings.vatRate || 0) * 100).toFixed(1)}% to ${(settings.vatRate * 100).toFixed(1)}%`,
+            metadata: {
+                previousRate: previousSettings.vatRate,
+                newRate: settings.vatRate,
+            },
+            req,
+        });
+    }
+
+    if (settings.vatEnabled !== undefined && settings.vatEnabled !== previousSettings.vatEnabled) {
+        await logAudit({
+            action: AUDIT_ACTIONS.VAT_TOGGLED,
+            actor: currentUser,
+            targetType: 'settings',
+            summary: settings.vatEnabled ? 'Enabled VAT on parking fees' : 'Disabled VAT on parking fees',
+            metadata: {
+                previousEnabled: previousSettings.vatEnabled,
+                vatEnabled: settings.vatEnabled,
+            },
+            req,
+        });
+    }
 
     res.json({ message: 'Pricing settings updated successfully', settings: pricingSettings.settings });
 };

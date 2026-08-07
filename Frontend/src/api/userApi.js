@@ -59,6 +59,14 @@ export const getUsers = async (token = tokenFromStorage()) => {
     return Array.isArray(result?.data) ? result.data : [];
 };
 
+export const getCurrentUserProfile = async (token = tokenFromStorage()) => {
+    const result = await axios.get(`${BASE_URL}user/me`, { headers: authHeaders(token) });
+    if (!result?.data?.user) {
+        throw new Error('Failed to load profile');
+    }
+    return result.data.user;
+};
+
 export const deactivateUserRecord = async (id, token) => {
     const result = await axios.delete(`${BASE_URL}user/delete/${id}`, { headers: authHeaders(token) });
     if (!result?.data?.message) {

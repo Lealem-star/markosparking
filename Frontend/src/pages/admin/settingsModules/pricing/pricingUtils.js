@@ -1,4 +1,9 @@
-import { isAllZonesCode, supervisorCoversZone } from '../../../../constants/roles';
+import {
+    formatSupervisorNames,
+    getStaffForParkingZone,
+} from '../../staffManagement/staffUtils';
+
+export { getStaffForParkingZone, formatSupervisorNames };
 
 export const CAR_TYPES = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
 
@@ -115,40 +120,4 @@ export const formatPricingValue = (value) => {
     const num = parseFloat(value);
     if (Number.isNaN(num)) return '0.00';
     return num.toFixed(2);
-};
-
-export const getStaffForParkingZone = (users = [], zoneCode = '') => {
-    const normalized = zoneCode?.trim();
-    if (!normalized) {
-        return { supervisors: [], valets: [] };
-    }
-
-    const normalizedUpper = normalized.toUpperCase();
-
-    const supervisors = users.filter((user) => {
-        if (user?.type !== 'supervisor' || user?.isActive === false) return false;
-        return isAllZonesCode(user.parkZoneCode) || supervisorCoversZone(user.parkZoneCode, normalized);
-    });
-
-    const valets = users.filter((user) => {
-        if (user?.type !== 'valet' || user?.isActive === false) return false;
-        return user.parkZoneCode?.trim().toUpperCase() === normalizedUpper;
-    });
-
-    return { supervisors, valets };
-};
-
-export const formatSupervisorNames = (supervisors = [], t) => {
-    if (!supervisors.length) {
-        return t('settings.noSupervisorAssigned');
-    }
-
-    return supervisors
-        .map((supervisor) => {
-            if (isAllZonesCode(supervisor.parkZoneCode)) {
-                return `${supervisor.name} (${t('admin.allZonesLabel')})`;
-            }
-            return supervisor.name;
-        })
-        .join(', ');
 };

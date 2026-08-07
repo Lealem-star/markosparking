@@ -88,6 +88,7 @@ const CarTypePricingConfiguration = ({
                     t={t}
                     zones={parkZones}
                     users={users}
+                    parkZones={parkZones}
                     loading={loading}
                     onEdit={onEditParkingZone}
                     onToggleStatus={onToggleParkingZoneStatus}
@@ -120,6 +121,8 @@ const CarTypePricingConfiguration = ({
                 t={t}
                 mappings={zoneMappings}
                 priceLevelNames={priceLevelNames}
+                users={users}
+                parkZones={parkZones}
             />
 
             <PriceLevelDetailsModal

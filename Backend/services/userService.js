@@ -9,6 +9,8 @@ const AppError = require('../errors/AppError');
 const { JWT_SECRET, DOMAIN_NAME } = require('../config/env');
 const { normalizePhoneNumber } = require('../utils/phoneUtils');
 const { sendSms } = require('./smsService');
+const { logAudit } = require('./auditLogService');
+const { AUDIT_ACTIONS } = require('../constants/auditActions');
 const {
     ROLES,
     isStaffManager,
@@ -89,7 +91,7 @@ const resolveValetPriceLevel = async (parkZoneCode) => {
     return { zoneCode: zone.code, priceLevel };
 };
 
-const createUser = async (actor, data) => {
+const createUser = async (actor, data, req) => {
     if (!actor || ![ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR].includes(actor.type)) {
         throw new AppError('Only system admin or Bahir Dar City Administration can create users', 403);
     }
@@ -135,6 +137,21 @@ const createUser = async (actor, data) => {
         console.error('SMS sending failed (user still created):', smsError);
     }
 
+    await logAudit({
+        action: AUDIT_ACTIONS.USER_CREATED,
+        actor,
+        targetType: 'user',
+        targetId: newUser._id,
+        summary: `Created ${type} user ${name}`,
+        metadata: {
+            name,
+            type,
+            phoneNumber: phoneToUse,
+            parkZoneCode: newUser.parkZoneCode,
+        },
+        req,
+    });
+
     return { user: sanitizeUser(newUser), message: 'User created successfully' };
 };
 
@@ -162,7 +179,15 @@ const listUsers = async (currentUser) => {
     return User.find(buildUserListQuery(currentUser)).select('-password');
 };
 
-const login = async ({ phoneNumber, password }) => {
+const getCurrentUserProfile = async (currentUser) => {
+    if (!currentUser) {
+        throw new AppError('Unauthorized', 401);
+    }
+
+    return sanitizeUser(currentUser);
+};
+
+const login = async ({ phoneNumber, password }, req) => {
     phoneNumber = stripPhoneFormatting(phoneNumber);
     const normalizedPhone = normalizePhoneNumber(phoneNumber.trim());
 
@@ -172,15 +197,40 @@ const login = async ({ phoneNumber, password }) => {
     }
 
     if (!user) {
+        await logAudit({
+            action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+            actorPhone: normalizedPhone,
+            actorName: normalizedPhone,
+            summary: `Failed login attempt for ${normalizedPhone}`,
+            status: 'failure',
+            metadata: { reason: 'user_not_found', phoneNumber: normalizedPhone },
+            req,
+        });
         throw new AppError("User doesn't exist", 400);
     }
 
     if (user.isActive === false) {
+        await logAudit({
+            action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+            actor: user,
+            summary: `Failed login for deactivated account ${user.name}`,
+            status: 'failure',
+            metadata: { reason: 'account_deactivated' },
+            req,
+        });
         throw new AppError('This account has been deactivated. Please contact your administrator.', 403);
     }
 
     const result = await bcrypt.compare(password, user.password);
     if (!result) {
+        await logAudit({
+            action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+            actor: user,
+            summary: `Failed login: invalid password for ${user.name}`,
+            status: 'failure',
+            metadata: { reason: 'invalid_password' },
+            req,
+        });
         throw new AppError("password doesn't match", 400);
     }
 
@@ -189,10 +239,20 @@ const login = async ({ phoneNumber, password }) => {
         JWT_SECRET
     );
 
+    await logAudit({
+        action: AUDIT_ACTIONS.AUTH_LOGIN_SUCCESS,
+        actor: user,
+        targetType: 'user',
+        targetId: user._id,
+        summary: `${user.name} logged in`,
+        metadata: { role: user.type },
+        req,
+    });
+
     return { user: sanitizeUser(user), token };
 };
 
-const resetPassword = async (currentUser, targetId, password) => {
+const resetPassword = async (currentUser, targetId, password, req) => {
     assertObjectId(targetId);
 
     if (!currentUser) {
@@ -212,6 +272,17 @@ const resetPassword = async (currentUser, targetId, password) => {
 
     user.password = bcrypt.hashSync(password, 10);
     await user.save();
+
+    await logAudit({
+        action: AUDIT_ACTIONS.USER_PASSWORD_RESET,
+        actor: currentUser,
+        targetType: 'user',
+        targetId: user._id,
+        summary: `Password reset for ${user.name}`,
+        metadata: { targetName: user.name, isSelf },
+        req,
+    });
+
     return { user, message: 'Password updated successfully' };
 };
 
@@ -259,7 +330,7 @@ const updateProfilePhoto = async (currentUser, targetId, file) => {
     return { user: sanitizeUser(user), message: 'Profile photo uploaded successfully' };
 };
 
-const updateUser = async (currentUser, targetId, updates) => {
+const updateUser = async (currentUser, targetId, updates, req) => {
     assertObjectId(targetId);
 
     if (!currentUser) {
@@ -270,6 +341,13 @@ const updateUser = async (currentUser, targetId, updates) => {
     if (!user) {
         throw new AppError('Provide correct user id', 400);
     }
+
+    const beforeSnapshot = {
+        name: user.name,
+        type: user.type,
+        parkZoneCode: user.parkZoneCode,
+        isActive: user.isActive,
+    };
 
     const {
         cash, interac, name, phoneNumber, parkZoneCode, language,
@@ -376,10 +454,32 @@ const updateUser = async (currentUser, targetId, updates) => {
     }
 
     await user.save();
+
+    const afterSnapshot = {
+        name: user.name,
+        type: user.type,
+        parkZoneCode: user.parkZoneCode,
+        isActive: user.isActive,
+    };
+
+    await logAudit({
+        action: AUDIT_ACTIONS.USER_UPDATED,
+        actor: currentUser,
+        targetType: 'user',
+        targetId: user._id,
+        summary: `Updated user ${user.name}`,
+        metadata: {
+            before: beforeSnapshot,
+            after: afterSnapshot,
+            changedFields: Object.keys(updates),
+        },
+        req,
+    });
+
     return { user: sanitizeUser(user), message: 'User updated successfully' };
 };
 
-const deactivateUser = async (currentUser, targetId) => {
+const deactivateUser = async (currentUser, targetId, req) => {
     assertObjectId(targetId, 'Invalid user id');
 
     if (!currentUser || !isStaffManager(currentUser.type)) {
@@ -405,12 +505,24 @@ const deactivateUser = async (currentUser, targetId) => {
 
     user.isActive = false;
     await user.save();
+
+    await logAudit({
+        action: AUDIT_ACTIONS.USER_DEACTIVATED,
+        actor: currentUser,
+        targetType: 'user',
+        targetId: user._id,
+        summary: `Deactivated user ${user.name}`,
+        metadata: { targetName: user.name, role: user.type, parkZoneCode: user.parkZoneCode },
+        req,
+    });
+
     return { message: 'User deactivated successfully' };
 };
 
 module.exports = {
     createUser,
     listUsers,
+    getCurrentUserProfile,
     login,
     resetPassword,
     updateProfilePhoto,

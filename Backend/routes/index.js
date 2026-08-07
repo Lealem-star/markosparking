@@ -11,6 +11,9 @@ const pricingSettingsRoutes = require('./pricingSettings.routes');
 const reportsRoutes = require('./reports.routes');
 const chatRoutes = require('./chat.routes');
 const parkZoneRoutes = require('./parkZone.routes');
+const attendanceRoutes = require('./attendance.routes');
+const incidentRoutes = require('./incident.routes');
+const auditLogRoutes = require('./auditLog.routes');
 
 const router = Router();
 
@@ -27,5 +30,8 @@ router.use('/pricingSettings', pricingSettingsRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/chat', chatRoutes);
 router.use('/parkZone', parkZoneRoutes);
+router.use('/attendance', attendanceRoutes);
+router.use('/incidents', incidentRoutes);
+router.use('/audit-logs', auditLogRoutes);
 
 module.exports = router;

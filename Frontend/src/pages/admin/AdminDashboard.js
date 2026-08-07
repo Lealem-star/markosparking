@@ -7,6 +7,7 @@ import { STAFF_SHELL_ROLES } from '../../constants/roles';
 import { useRequireRole } from '../../hooks/useRequireRole';
 import { useChatUnread } from '../../hooks/useChatUnread';
 import { useProfileUpdate } from '../../hooks/useProfileUpdate';
+import { useSessionUserSync } from '../../hooks/useSessionUserSync';
 import DashboardShell from '../../components/layout/DashboardShell';
 import ProfileModal from '../../components/profile/ProfileModal';
 import {
@@ -27,6 +28,7 @@ const AdminDashboard = () => {
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const { user, isAuthorized } = useRequireRole(STAFF_SHELL_ROLES);
+    useSessionUserSync();
     const navigate = useNavigate();
     const location = useLocation();
     const chatPath = getStaffRoutePath(user?.type, 'chat');

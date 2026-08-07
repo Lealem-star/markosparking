@@ -2,6 +2,8 @@ const { Types } = require('mongoose');
 const ParkedCar = require('../models/parkedCarSchema');
 const AppError = require('../errors/AppError');
 const { sendSms } = require('./smsService');
+const { logAudit } = require('./auditLogService');
+const { AUDIT_ACTIONS } = require('../constants/auditActions');
 const {
     buildLicensePlate,
     getLicenseDisplay,
@@ -103,7 +105,7 @@ const sendPackageReParkSms = async (car) => {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-const registerParkedCar = async (valetUser, data) => {
+const registerParkedCar = async (valetUser, data, req) => {
     assertValet(valetUser);
 
     const {
@@ -164,6 +166,21 @@ const registerParkedCar = async (valetUser, data) => {
         packageDuration: serviceType === 'package' ? packageDuration : null,
         valet_id: valetUser._id,
         status: 'parked',
+    });
+
+    await logAudit({
+        action: AUDIT_ACTIONS.PARKING_REGISTERED,
+        actor: valetUser,
+        targetType: 'car',
+        targetId: parkedCar._id,
+        summary: `Registered ${licensePlate}`,
+        metadata: {
+            licensePlate,
+            serviceType,
+            location: parkedCar.location,
+            carType,
+        },
+        req,
     });
 
     return populateCarQuery(ParkedCar.findById(parkedCar._id));
@@ -388,7 +405,7 @@ const applyFlaggingFields = (car, updates) => {
     }
 };
 
-const updateParkedCar = async (id, currentUser, updates) => {
+const updateParkedCar = async (id, currentUser, updates, req) => {
     if (!Types.ObjectId.isValid(id)) {
         throw new AppError('Invalid car id', 400);
     }
@@ -397,6 +414,8 @@ const updateParkedCar = async (id, currentUser, updates) => {
     if (!car) {
         throw new AppError('Parked car not found', 404);
     }
+
+    const previousStatus = car.status;
 
     const isFlaggedPaymentUpdate =
         car.isFlagged
@@ -457,6 +476,39 @@ const updateParkedCar = async (id, currentUser, updates) => {
 
     await car.save();
 
+    if (previousStatus !== 'checked_out' && car.status === 'checked_out') {
+        await logAudit({
+            action: AUDIT_ACTIONS.PARKING_CHECKOUT,
+            actor: currentUser,
+            targetType: 'car',
+            targetId: car._id,
+            summary: `Checked out ${car.licensePlate}`,
+            metadata: {
+                licensePlate: car.licensePlate,
+                paymentMethod: car.paymentMethod,
+                totalPaidAmount: car.totalPaidAmount,
+                serviceType: car.serviceType,
+            },
+            req,
+        });
+
+        if ((car.totalPaidAmount || 0) > 0) {
+            await logAudit({
+                action: AUDIT_ACTIONS.PAYMENT_COMPLETED,
+                actor: currentUser,
+                targetType: 'car',
+                targetId: car._id,
+                summary: `Payment recorded for ${car.licensePlate}`,
+                metadata: {
+                    licensePlate: car.licensePlate,
+                    amount: car.totalPaidAmount,
+                    paymentMethod: car.paymentMethod || 'manual',
+                },
+                req,
+            });
+        }
+    }
+
     const updatedCar = await populateCarQuery(ParkedCar.findById(id));
     return {
         message: 'Parked car updated successfully',
@@ -464,7 +516,7 @@ const updateParkedCar = async (id, currentUser, updates) => {
     };
 };
 
-const deleteParkedCar = async (id, currentUser) => {
+const deleteParkedCar = async (id, currentUser, req) => {
     if (!Types.ObjectId.isValid(id)) {
         throw new AppError('Invalid car id', 400);
     }
@@ -477,6 +529,16 @@ const deleteParkedCar = async (id, currentUser) => {
     if (!canManageCar(currentUser, car)) {
         throw new AppError("You don't have permission to delete this car", 403);
     }
+
+    await logAudit({
+        action: AUDIT_ACTIONS.PARKING_DELETED,
+        actor: currentUser,
+        targetType: 'car',
+        targetId: car._id,
+        summary: `Deleted parked car record ${car.licensePlate}`,
+        metadata: { licensePlate: car.licensePlate, status: car.status },
+        req,
+    });
 
     await ParkedCar.findByIdAndDelete(id);
     return { message: 'Parked car deleted successfully' };

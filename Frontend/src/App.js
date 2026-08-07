@@ -3,8 +3,6 @@ import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Layout, NoPage, Register, GroupChat, FlaggedCustomers } from './pages/shared';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import DashboardOverview from './pages/admin/DashboardOverview';
-import UserManagement from './pages/admin/UserManagement';
 import Settings from './pages/admin/Settings';
 import Reports from './pages/admin/Reports';
 import ValetDashboard from './pages/valet/ValetDashboard';
@@ -24,6 +22,14 @@ import {
   PublicRoute,
   RootRedirect,
 } from './routes/AppRoutes';
+import {
+  StaffDashboardPage,
+  StaffUsersPage,
+  StaffValetsPage,
+  StaffAttendancePage,
+  StaffIncidentsPage,
+  StaffAuditLogsPage,
+} from './routes/staffPortalPages';
 
 const staffPortalRoutes = (prefix) => (
   <>
@@ -32,7 +38,7 @@ const staffPortalRoutes = (prefix) => (
       path="dashboard"
       element={
         <StaffRouteGuard permission="dashboard">
-          <DashboardOverview />
+          <StaffDashboardPage />
         </StaffRouteGuard>
       }
     />
@@ -40,15 +46,35 @@ const staffPortalRoutes = (prefix) => (
       path="dashboard/profile"
       element={
         <StaffRouteGuard permission="dashboard">
-          <DashboardOverview />
+          <StaffDashboardPage />
         </StaffRouteGuard>
       }
     />
     <Route
       path="users"
+      element={<StaffUsersPage />}
+    />
+    <Route
+      path="valets"
       element={
-        <StaffRouteGuard permission="users">
-          <UserManagement />
+        <StaffRouteGuard permission="valets">
+          <StaffValetsPage />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="attendance"
+      element={
+        <StaffRouteGuard permission="attendance">
+          <StaffAttendancePage />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="incidents"
+      element={
+        <StaffRouteGuard permission="incidents">
+          <StaffIncidentsPage />
         </StaffRouteGuard>
       }
     />
@@ -65,6 +91,14 @@ const staffPortalRoutes = (prefix) => (
       element={
         <StaffRouteGuard permission="settings">
           <Settings />
+        </StaffRouteGuard>
+      }
+    />
+    <Route
+      path="audit-logs"
+      element={
+        <StaffRouteGuard permission="auditLogs">
+          <StaffAuditLogsPage />
         </StaffRouteGuard>
       }
     />

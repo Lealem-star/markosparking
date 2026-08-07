@@ -144,12 +144,10 @@ export const filterStaff = (users, { searchQuery, roleFilter, zoneFilter, status
         const matchesRole = roleFilter === 'all' || normalizeRole(item?.type) === roleFilter;
 
         const zone = item?.parkZoneCode || '';
-        const itemZones = parseSupervisorZones(zone);
         const matchesZone =
             zoneFilter === 'all' ||
             (zoneFilter === 'all_zones' && isManagerial(item)) ||
-            zone === zoneFilter ||
-            itemZones.includes(zoneFilter);
+            supervisorCoversZone(zone, zoneFilter);
 
         const matchesStatus =
             statusFilter === 'all' ||
@@ -213,4 +211,41 @@ export const filterUsersForStaffMode = (users, currentUser, mode) => {
         });
     }
     return users;
+};
+
+export const getStaffForParkingZone = (users = [], zoneCode = '', parkZones = []) => {
+    const resolvedZone = resolveParkZoneCode(zoneCode, parkZones) || zoneCode?.trim();
+    if (!resolvedZone) {
+        return { supervisors: [], valets: [] };
+    }
+
+    const zoneUpper = resolvedZone.toUpperCase();
+
+    const supervisors = users.filter((user) => {
+        if (normalizeRole(user?.type) !== ROLES.SUPERVISOR || !isStaffActive(user)) return false;
+        return isAllZonesCode(user.parkZoneCode) || supervisorCoversZone(user.parkZoneCode, resolvedZone);
+    });
+
+    const valets = users.filter((user) => {
+        if (normalizeRole(user?.type) !== ROLES.VALET || !isStaffActive(user)) return false;
+        const valetZone = resolveParkZoneCode(user.parkZoneCode, parkZones) || user.parkZoneCode?.trim();
+        return valetZone?.toUpperCase() === zoneUpper;
+    });
+
+    return { supervisors, valets };
+};
+
+export const formatSupervisorNames = (supervisors = [], t) => {
+    if (!supervisors.length) {
+        return t('settings.noSupervisorAssigned');
+    }
+
+    return supervisors
+        .map((supervisor) => {
+            if (isAllZonesCode(supervisor.parkZoneCode)) {
+                return `${supervisor.name} (${t('admin.allZonesLabel')})`;
+            }
+            return supervisor.name;
+        })
+        .join(', ');
 };

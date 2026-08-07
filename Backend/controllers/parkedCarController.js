@@ -48,7 +48,7 @@ const loadCurrentUser = (req) => User.findOne({ phoneNumber: req.user?.phoneNumb
 
 const create = async (req, res) => {
     const valetUser = await loadCurrentUser(req);
-    const car = await registerParkedCar(valetUser, req.validated.body);
+    const car = await registerParkedCar(valetUser, req.validated.body, req);
     res.json({ message: 'Parked car registered successfully', car });
 };
 
@@ -83,13 +83,13 @@ const getById = async (req, res) => {
 
 const update = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const result = await updateParkedCar(req.params.id, currentUser, req.validated.body);
+    const result = await updateParkedCar(req.params.id, currentUser, req.validated.body, req);
     res.json(result);
 };
 
 const remove = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const result = await deleteParkedCar(req.params.id, currentUser);
+    const result = await deleteParkedCar(req.params.id, currentUser, req);
     res.json(result);
 };
 

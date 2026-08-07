@@ -21,6 +21,12 @@ router.get(
     requireRoles(...STAFF_MANAGEMENT_ROLES),
     asyncHandler(userController.listUsers)
 );
+router.get(
+    '/me',
+    isLoggedIn,
+    attachCurrentUser,
+    asyncHandler(userController.getCurrentUser)
+);
 router.post('/login', validate(userController.loginSchema), asyncHandler(userController.login));
 router.post(
     '/resetPassword/:id',

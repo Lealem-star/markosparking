@@ -93,7 +93,12 @@ const isAllZonesCode = (code) => code?.trim() === ALL_ZONES_CODE;
 const supervisorCoversZone = (supervisorZone, targetZone) => {
     const zones = parseSupervisorZones(supervisorZone);
     if (zones.includes(ALL_ZONES_CODE)) return true;
-    return zones.includes(targetZone);
+
+    const target = targetZone?.trim();
+    if (!target) return false;
+
+    const targetUpper = target.toUpperCase();
+    return zones.some((zone) => zone.toUpperCase() === targetUpper);
 };
 
 const LEGACY_ROLE_MAP = Object.freeze({

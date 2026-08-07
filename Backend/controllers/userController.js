@@ -56,7 +56,7 @@ const registerDisabled = (req, res) => {
 
 const createUser = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const result = await userService.createUser(currentUser, req.validated.body);
+    const result = await userService.createUser(currentUser, req.validated.body, req);
     res.json(result);
 };
 
@@ -65,14 +65,19 @@ const listUsers = async (req, res) => {
     res.json(users);
 };
 
+const getCurrentUser = async (req, res) => {
+    const user = await userService.getCurrentUserProfile(req.currentUser);
+    res.json({ user });
+};
+
 const login = async (req, res) => {
-    const result = await userService.login(req.validated.body);
+    const result = await userService.login(req.validated.body, req);
     res.json(result);
 };
 
 const resetPassword = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const result = await userService.resetPassword(currentUser, req.params.id, req.validated.body.password);
+    const result = await userService.resetPassword(currentUser, req.params.id, req.validated.body.password, req);
     res.json(result);
 };
 
@@ -99,13 +104,13 @@ const uploadPhoto = async (req, res) => {
 
 const updateUser = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const result = await userService.updateUser(currentUser, req.params.id, req.validated.body);
+    const result = await userService.updateUser(currentUser, req.params.id, req.validated.body, req);
     res.json(result);
 };
 
 const deactivateUser = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const result = await userService.deactivateUser(currentUser, req.params.id);
+    const result = await userService.deactivateUser(currentUser, req.params.id, req);
     res.json(result);
 };
 
@@ -117,6 +122,7 @@ module.exports = {
     registerDisabled,
     createUser,
     listUsers,
+    getCurrentUser,
     login,
     resetPassword,
     uploadPhotoMiddleware,

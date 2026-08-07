@@ -4,6 +4,8 @@ const PendingPackagePayment = require('../models/pendingPackagePaymentSchema');
 const AppError = require('../errors/AppError');
 const { buildFlaggedCustomerError } = require('./pricingService');
 const { reverseCalculateVAT, getVATRate } = require('../utils/vatCalculator');
+const { logAudit } = require('./auditLogService');
+const { AUDIT_ACTIONS } = require('../constants/auditActions');
 const {
     CHAPA_PUBLIC_KEY,
     isChapaConfigured,
@@ -84,6 +86,20 @@ const applySuccessfulOnlinePayment = async (car, txRef, amount) => {
     }
     car.pendingPaymentTxRef = null;
     await car.save();
+
+    await logAudit({
+        action: AUDIT_ACTIONS.PAYMENT_COMPLETED,
+        actorName: 'Online Payment',
+        summary: `Online payment completed for ${car.licensePlate}`,
+        targetType: 'car',
+        targetId: car._id,
+        metadata: {
+            licensePlate: car.licensePlate,
+            amount: car.totalPaidAmount,
+            paymentMethod: 'online',
+            txRef,
+        },
+    });
 };
 
 // ─── Package payment ──────────────────────────────────────────────────────────

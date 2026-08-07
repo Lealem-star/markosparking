@@ -6,6 +6,7 @@ const ParkingZoneListTable = ({
     t,
     zones,
     users = [],
+    parkZones = [],
     loading,
     onEdit,
     onToggleStatus,
@@ -35,7 +36,7 @@ const ParkingZoneListTable = ({
                 <tbody>
                     {zones.map((zone) => {
                         const isActive = zone.isActive !== false;
-                        const { supervisors, valets } = getStaffForParkingZone(users, zone.code);
+                        const { supervisors, valets } = getStaffForParkingZone(users, zone.code, parkZones);
                         const supervisorLabel = formatSupervisorNames(supervisors, t);
 
                         return (

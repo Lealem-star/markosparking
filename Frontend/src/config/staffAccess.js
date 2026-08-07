@@ -4,6 +4,9 @@ import {
     Settings,
     FileText,
     AlertTriangle,
+    ClipboardCheck,
+    ShieldAlert,
+    ScrollText,
 } from 'lucide-react';
 import {
     ROLES,
@@ -15,9 +18,13 @@ import { getStaffRoutePath } from '../utils/rolePaths';
 
 export const STAFF_PERMISSIONS = Object.freeze({
     dashboard: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
-    users: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR],
+    users: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR],
+    valets: [ROLES.SUPERVISOR],
+    attendance: [ROLES.SUPERVISOR],
+    incidents: [ROLES.SUPERVISOR],
     reports: REPORT_ROLES,
     settings: [ROLES.SYSTEM_ADMIN],
+    auditLogs: [ROLES.SYSTEM_ADMIN],
     flagged: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
     chat: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
 });
@@ -54,6 +61,12 @@ const MENU_DEFINITIONS = [
         segment: 'settings',
     },
     {
+        id: 'auditLogs',
+        icon: ScrollText,
+        labelKey: 'auditLogs.title',
+        segment: 'audit-logs',
+    },
+    {
         id: 'flagged',
         icon: AlertTriangle,
         labelKey: 'valet.flaggedCustomers',
@@ -66,10 +79,44 @@ export const hasStaffPermission = (userType, permission) => {
     return (STAFF_PERMISSIONS[permission] || []).includes(role);
 };
 
+const SUPERVISOR_MENU_DEFINITIONS = [
+    {
+        id: 'dashboard',
+        icon: LayoutDashboard,
+        labelKey: 'navigation.dashboard',
+        segment: 'dashboard',
+    },
+    {
+        id: 'valets',
+        icon: Users,
+        labelKey: 'supervisor.valetList',
+        segment: 'valets',
+    },
+    {
+        id: 'attendance',
+        icon: ClipboardCheck,
+        labelKey: 'supervisor.attendance',
+        segment: 'attendance',
+    },
+    {
+        id: 'incidents',
+        icon: ShieldAlert,
+        labelKey: 'supervisor.incidents',
+        segment: 'incidents',
+    },
+    {
+        id: 'flagged',
+        icon: AlertTriangle,
+        labelKey: 'valet.flaggedCustomers',
+        segment: 'flagged-customers',
+    },
+];
+
 export const getMenuItemsForRole = (userType, t) => {
     const role = normalizeRole(userType);
+    const definitions = role === ROLES.SUPERVISOR ? SUPERVISOR_MENU_DEFINITIONS : MENU_DEFINITIONS;
 
-    return MENU_DEFINITIONS
+    return definitions
         .filter((item) => hasStaffPermission(role, item.id))
         .map((item) => ({
             icon: item.icon,

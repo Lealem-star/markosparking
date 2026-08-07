@@ -3,7 +3,15 @@ import { useCurrentUser } from '../hooks/useAuth';
 import { getDashboardPathForUser } from '../utils/authRouting';
 import { hasStaffPermission } from '../config/staffAccess';
 import { getStaffRoutePath } from '../utils/rolePaths';
+import { ROLES, normalizeRole } from '../constants/roles';
 import Home from '../pages/shared/Home';
+
+const mapLegacyStaffSuffix = (userType, suffix) => {
+    if (normalizeRole(userType) === ROLES.SUPERVISOR && suffix === 'users') {
+        return 'valets';
+    }
+    return suffix;
+};
 
 export function LegacyStaffRedirect() {
     const user = useCurrentUser();
@@ -11,7 +19,10 @@ export function LegacyStaffRedirect() {
 
     if (!user?.token) return <Navigate to="/" replace />;
 
-    const suffix = location.pathname.replace(/^\/admin\/?/, '') || 'dashboard';
+    const suffix = mapLegacyStaffSuffix(
+        user.type,
+        location.pathname.replace(/^\/admin\/?/, '') || 'dashboard'
+    );
     return <Navigate to={getStaffRoutePath(user.type, suffix)} replace />;
 }
 
@@ -22,6 +33,10 @@ export function LegacyUsersRedirect() {
 
     if (hasStaffPermission(user.type, 'users')) {
         return <Navigate to={getStaffRoutePath(user.type, 'users')} replace />;
+    }
+
+    if (hasStaffPermission(user.type, 'valets')) {
+        return <Navigate to={getStaffRoutePath(user.type, 'valets')} replace />;
     }
 
     return <Navigate to={getDashboardPathForUser(user)} replace />;

@@ -7,6 +7,7 @@ import { VALET_ROLE } from '../../constants/roles';
 import { useRequireRole } from '../../hooks/useRequireRole';
 import { useChatUnread } from '../../hooks/useChatUnread';
 import { useValetTheme } from '../../hooks/useValetTheme';
+import { useSessionUserSync } from '../../hooks/useSessionUserSync';
 import DashboardShell from '../../components/layout/DashboardShell';
 import {
     LayoutDashboard,
@@ -28,6 +29,7 @@ const ValetDashboard = () => {
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
     const { user, isAuthorized } = useRequireRole([VALET_ROLE]);
+    useSessionUserSync();
     const { unreadCount, openChat } = useChatUnread('/valet/chat');
     const navigate = useNavigate();
     const location = useLocation();

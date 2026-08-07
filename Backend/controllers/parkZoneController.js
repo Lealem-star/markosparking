@@ -29,19 +29,19 @@ const listParkZones = async (req, res) => {
 
 const createParkZone = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const zone = await parkZoneService.createParkZone(currentUser, req.validated.body);
+    const zone = await parkZoneService.createParkZone(currentUser, req.validated.body, req);
     res.status(201).json({ message: 'Parking zone created successfully', zone });
 };
 
 const updateParkZone = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const zone = await parkZoneService.updateParkZone(currentUser, req.params.id, req.validated.body);
+    const zone = await parkZoneService.updateParkZone(currentUser, req.params.id, req.validated.body, req);
     res.json({ message: 'Parking zone updated successfully', zone });
 };
 
 const deleteParkZone = async (req, res) => {
     const currentUser = await loadCurrentUser(req);
-    const result = await parkZoneService.deleteParkZone(currentUser, req.params.id);
+    const result = await parkZoneService.deleteParkZone(currentUser, req.params.id, req);
     res.json(result);
 };
 

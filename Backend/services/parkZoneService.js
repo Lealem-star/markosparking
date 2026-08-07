@@ -3,6 +3,8 @@ const ParkZone = require('../models/parkZoneSchema');
 const User = require('../models/userSchema');
 const AppError = require('../errors/AppError');
 const { ROLES } = require('../constants/roles');
+const { logAudit } = require('./auditLogService');
+const { AUDIT_ACTIONS } = require('../constants/auditActions');
 
 const normalizeCode = (code) => code?.trim().toUpperCase() || '';
 
@@ -52,7 +54,7 @@ const assertSystemAdmin = (user) => {
 const listParkZones = async () =>
     ParkZone.find().sort({ code: 1 });
 
-const createParkZone = async (actor, data) => {
+const createParkZone = async (actor, data, req) => {
     assertSystemAdmin(actor);
 
     const name = data.name?.trim();
@@ -85,10 +87,20 @@ const createParkZone = async (actor, data) => {
         isActive: data.isActive !== false,
     });
 
+    await logAudit({
+        action: AUDIT_ACTIONS.ZONE_CREATED,
+        actor,
+        targetType: 'zone',
+        targetId: zone._id,
+        summary: `Created parking zone ${zone.name} (${zone.code})`,
+        metadata: { code: zone.code, name: zone.name, priceLevel: zone.priceLevel },
+        req,
+    });
+
     return zone;
 };
 
-const updateParkZone = async (actor, zoneId, data) => {
+const updateParkZone = async (actor, zoneId, data, req) => {
     assertSystemAdmin(actor);
 
     if (!Types.ObjectId.isValid(zoneId)) {
@@ -99,6 +111,13 @@ const updateParkZone = async (actor, zoneId, data) => {
     if (!zone) {
         throw new AppError('Parking zone not found', 404);
     }
+
+    const beforeSnapshot = {
+        name: zone.name,
+        location: zone.location,
+        priceLevel: zone.priceLevel,
+        isActive: zone.isActive,
+    };
 
     const previousPriceLevel = zone.priceLevel?.trim() || '';
 
@@ -115,10 +134,28 @@ const updateParkZone = async (actor, zoneId, data) => {
         await syncValetPriceLevelsForZone(zone.code, nextPriceLevel);
     }
 
+    await logAudit({
+        action: AUDIT_ACTIONS.ZONE_UPDATED,
+        actor,
+        targetType: 'zone',
+        targetId: zone._id,
+        summary: `Updated parking zone ${zone.name} (${zone.code})`,
+        metadata: {
+            before: beforeSnapshot,
+            after: {
+                name: zone.name,
+                location: zone.location,
+                priceLevel: zone.priceLevel,
+                isActive: zone.isActive,
+            },
+        },
+        req,
+    });
+
     return zone;
 };
 
-const deleteParkZone = async (actor, zoneId) => {
+const deleteParkZone = async (actor, zoneId, req) => {
     assertSystemAdmin(actor);
 
     if (!Types.ObjectId.isValid(zoneId)) {
@@ -142,6 +179,16 @@ const deleteParkZone = async (actor, zoneId) => {
     if (assignedCount > 0) {
         throw new AppError('Cannot delete a zone that is assigned to staff. Reassign staff first.', 400);
     }
+
+    await logAudit({
+        action: AUDIT_ACTIONS.ZONE_DELETED,
+        actor,
+        targetType: 'zone',
+        targetId: zone._id,
+        summary: `Deleted parking zone ${zone.name} (${zone.code})`,
+        metadata: { code: zone.code, name: zone.name },
+        req,
+    });
 
     await ParkZone.findByIdAndDelete(zoneId);
     return { message: 'Parking zone deleted successfully' };
