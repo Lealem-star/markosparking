@@ -1,3 +1,5 @@
+import { compareZoneCodes } from '../../utils/zoneSort';
+
 export const ATTENDANCE_SESSIONS = Object.freeze(['morning', 'afternoon']);
 export const DEFAULT_ATTENDANCE_SESSION = 'morning';
 
@@ -102,7 +104,7 @@ export const groupOfficersByZone = (officers = [], zones = []) => {
         const orderA = zoneOrder.get((a.code || '').toUpperCase()) ?? 999;
         const orderB = zoneOrder.get((b.code || '').toUpperCase()) ?? 999;
         if (orderA !== orderB) return orderA - orderB;
-        return (a.code || '').localeCompare(b.code || '');
+        return compareZoneCodes(a.code, b.code);
     });
 };
 

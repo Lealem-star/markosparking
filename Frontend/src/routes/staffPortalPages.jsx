@@ -7,15 +7,13 @@ import { ROLES, normalizeRole } from '../constants/roles';
 import DashboardOverview from '../pages/admin/DashboardOverview';
 import UserManagement from '../pages/admin/UserManagement';
 import SupervisorDashboardOverview from '../pages/supervisor/SupervisorDashboardOverview';
-import SupervisorValetList from '../pages/supervisor/SupervisorValetList';
+import SupervisorParkingOfficerList from '../pages/supervisor/SupervisorParkingOfficerList';
 import SupervisorAttendance from '../pages/supervisor/SupervisorAttendance';
 import SupervisorIncidents from '../pages/supervisor/SupervisorIncidents';
 import AuditLogs from '../pages/admin/AuditLogs';
 import FinanceDashboardOverview from '../pages/finance/FinanceDashboardOverview';
 import FinanceTransactions from '../pages/finance/FinanceTransactions';
 import FinanceAuditLogs from '../pages/finance/FinanceAuditLogs';
-import FinanceReconciliations from '../pages/finance/FinanceReconciliations';
-import SupervisorShiftClose from '../pages/supervisor/SupervisorShiftClose';
 
 const isSupervisor = (user) => normalizeRole(user?.type) === ROLES.SUPERVISOR;
 const isFinanceOfficer = (user) => normalizeRole(user?.type) === ROLES.FINANCE_OFFICER;
@@ -33,7 +31,7 @@ export function StaffUsersPage() {
     if (!user?.token) return <Navigate to="/" replace />;
 
     if (isSupervisor(user)) {
-        return <Navigate to={getStaffRoutePath(user.type, 'valets')} replace />;
+        return <Navigate to={getStaffRoutePath(user.type, 'parking-officers')} replace />;
     }
 
     if (!hasStaffPermission(user.type, 'users')) {
@@ -43,9 +41,12 @@ export function StaffUsersPage() {
     return <UserManagement />;
 }
 
-export function StaffValetsPage() {
-    return <SupervisorValetList />;
+export function StaffParkingOfficersPage() {
+    return <SupervisorParkingOfficerList />;
 }
+
+/** @deprecated use StaffParkingOfficersPage */
+export const StaffValetsPage = StaffParkingOfficersPage;
 
 export function StaffAttendancePage() {
     return <SupervisorAttendance />;
@@ -65,12 +66,4 @@ export function StaffTransactionsPage() {
 
 export function StaffFinanceAuditLogsPage() {
     return <FinanceAuditLogs />;
-}
-
-export function StaffReconciliationsPage() {
-    return <FinanceReconciliations />;
-}
-
-export function StaffShiftClosePage() {
-    return <SupervisorShiftClose />;
 }

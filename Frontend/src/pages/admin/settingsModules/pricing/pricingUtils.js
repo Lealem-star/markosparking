@@ -2,6 +2,8 @@ import {
     formatSupervisorNames,
     getStaffForParkingZone,
 } from '../../staffManagement/staffUtils';
+import { compareZoneCodes, sortZoneCodeStrings } from '../../../../utils/zoneSort';
+import { ROLES } from '../../../../constants/roles';
 
 export { getStaffForParkingZone, formatSupervisorNames };
 
@@ -29,19 +31,19 @@ export const buildZonePriceLevelMappings = (users = [], parkZones = []) => {
             location: zone.location,
             priceLevelName: zone.priceLevel?.trim() || null,
             valetCount: users.filter(
-                (u) => u?.type === 'valet'
+                (u) => u?.type === ROLES.VALET
                     && u?.isActive !== false
                     && normalizeZoneCodeKey(u.parkZoneCode) === normalizeZoneCodeKey(zone.code)
             ).length,
         }))
-        .sort((a, b) => a.zoneName.localeCompare(b.zoneName));
+        .sort((a, b) => compareZoneCodes(a.zoneName, b.zoneName));
 };
 
 export const buildPricingGroups = (priceLevels, users = []) => {
     const zoneMap = {};
 
     users
-        .filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false)
+        .filter((u) => u?.type === ROLES.VALET && u?.parkZoneCode && u?.isActive !== false)
         .forEach((u) => {
             if (!zoneMap[u.parkZoneCode]) {
                 zoneMap[u.parkZoneCode] = u.priceLevel || null;
@@ -105,15 +107,15 @@ export const getUniqueZones = (users, parkZones = []) => {
         .map((zone) => zone.code);
 
     if (fromApi.length > 0) {
-        return [...new Set(fromApi)].sort();
+        return sortZoneCodeStrings([...new Set(fromApi)]);
     }
 
-    return [...new Set(
+    return sortZoneCodeStrings([...new Set(
         users
-            .filter((u) => u?.type === 'valet' && u?.parkZoneCode && u?.isActive !== false)
+            .filter((u) => u?.type === ROLES.VALET && u?.parkZoneCode && u?.isActive !== false)
             .map((u) => u.parkZoneCode)
             .filter(Boolean)
-    )].sort();
+    )]);
 };
 
 export const formatPricingValue = (value) => {

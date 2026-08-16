@@ -51,14 +51,4 @@ export const queryKeys = {
         filters.page ?? 1,
         filters.limit ?? 50,
     ],
-    shiftReconciliations: (token, filters = {}) => [
-        'shiftReconciliations',
-        token,
-        filters.status ?? 'all',
-        filters.zone ?? 'all',
-        filters.date ?? '',
-        filters.session ?? 'all',
-        filters.page ?? 1,
-        filters.limit ?? 50,
-    ],
 };

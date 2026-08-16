@@ -8,7 +8,6 @@ import {
     ShieldAlert,
     ScrollText,
     Receipt,
-    Banknote,
 } from 'lucide-react';
 import {
     ROLES,
@@ -21,17 +20,15 @@ import { getStaffRoutePath } from '../utils/rolePaths';
 export const STAFF_PERMISSIONS = Object.freeze({
     dashboard: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
     users: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR],
-    valets: [ROLES.SUPERVISOR],
+    parkingOfficers: [ROLES.SUPERVISOR],
     attendance: [ROLES.SUPERVISOR],
     incidents: [ROLES.SUPERVISOR],
     reports: REPORT_ROLES,
     settings: [ROLES.SYSTEM_ADMIN],
     auditLogs: [ROLES.SYSTEM_ADMIN],
     flagged: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
-    transactions: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER],
-    financeAuditLogs: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER],
-    reconciliations: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER],
-    shiftClose: [ROLES.SUPERVISOR],
+    transactions: [ROLES.FINANCE_OFFICER],
+    financeAuditLogs: [ROLES.FINANCE_OFFICER],
     chat: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
 });
 
@@ -65,12 +62,6 @@ const MENU_DEFINITIONS = [
         icon: Receipt,
         labelKey: 'finance.transactionsTitle',
         segment: 'transactions',
-    },
-    {
-        id: 'reconciliations',
-        icon: Banknote,
-        labelKey: 'reconciliation.reviewQueueTitle',
-        segment: 'reconciliations',
     },
     {
         id: 'financeAuditLogs',
@@ -111,10 +102,10 @@ const SUPERVISOR_MENU_DEFINITIONS = [
         segment: 'dashboard',
     },
     {
-        id: 'valets',
+        id: 'parkingOfficers',
         icon: Users,
-        labelKey: 'supervisor.valetList',
-        segment: 'valets',
+        labelKey: 'supervisor.parkingOfficerList',
+        segment: 'parking-officers',
     },
     {
         id: 'attendance',
@@ -127,12 +118,6 @@ const SUPERVISOR_MENU_DEFINITIONS = [
         icon: ShieldAlert,
         labelKey: 'supervisor.incidents',
         segment: 'incidents',
-    },
-    {
-        id: 'shiftClose',
-        icon: Banknote,
-        labelKey: 'reconciliation.shiftCloseTitle',
-        segment: 'shift-close',
     },
     {
         id: 'flagged',

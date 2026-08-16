@@ -4,15 +4,15 @@ import { Search } from 'lucide-react';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { useUsersQuery, useParkZonesQuery } from '../../hooks/queries';
 import DashboardContentLoader from '../../components/loading/DashboardContentLoader';
-import SupervisorValetTable from './SupervisorValetTable';
+import SupervisorParkingOfficerTable from './SupervisorParkingOfficerTable';
 import {
-    filterSupervisorValets,
-    getSupervisorValets,
+    filterSupervisorParkingOfficers,
+    getSupervisorParkingOfficers,
     getSupervisorZoneFilterOptions,
 } from './supervisorUtils';
 import '../../styles/supervisorPortal.scss';
 
-const SupervisorValetList = () => {
+const SupervisorParkingOfficerList = () => {
     const { t } = useTranslation();
     const user = useCurrentUser();
     const [searchQuery, setSearchQuery] = useState('');
@@ -21,23 +21,23 @@ const SupervisorValetList = () => {
     const { data: users = [], isLoading } = useUsersQuery(user?.token);
     const { data: parkZones = [] } = useParkZonesQuery(user?.token);
 
-    const supervisorValets = useMemo(
-        () => getSupervisorValets(users, user),
+    const supervisorOfficers = useMemo(
+        () => getSupervisorParkingOfficers(users, user),
         [users, user]
     );
 
     const zoneOptions = useMemo(
-        () => getSupervisorZoneFilterOptions(user, parkZones, supervisorValets),
-        [user, parkZones, supervisorValets]
+        () => getSupervisorZoneFilterOptions(user, parkZones, supervisorOfficers),
+        [user, parkZones, supervisorOfficers]
     );
 
     useEffect(() => {
         setZoneFilter('all');
     }, [user?.parkZoneCode]);
 
-    const filteredValets = useMemo(
-        () => filterSupervisorValets(supervisorValets, { searchQuery, zoneFilter }),
-        [supervisorValets, searchQuery, zoneFilter]
+    const filteredOfficers = useMemo(
+        () => filterSupervisorParkingOfficers(supervisorOfficers, { searchQuery, zoneFilter }),
+        [supervisorOfficers, searchQuery, zoneFilter]
     );
 
     if (isLoading) {
@@ -74,8 +74,8 @@ const SupervisorValetList = () => {
             </div>
 
             <section className="supervisor-panel">
-                <SupervisorValetTable
-                    valets={filteredValets}
+                <SupervisorParkingOfficerTable
+                    officers={filteredOfficers}
                     parkZones={parkZones}
                     t={t}
                     emptyMessage={t('supervisor.noValetsInZone')}
@@ -85,4 +85,4 @@ const SupervisorValetList = () => {
     );
 };
 
-export default SupervisorValetList;
+export default SupervisorParkingOfficerList;

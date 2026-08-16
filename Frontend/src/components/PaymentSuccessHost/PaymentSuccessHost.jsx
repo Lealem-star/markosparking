@@ -10,6 +10,7 @@ import {
     queuePaymentSuccess,
     readPaymentSuccess,
 } from '../../utils/paymentSuccessQueue';
+import { getParkingOfficerRoutePath } from '../../utils/rolePaths';
 
 const RECENT_PAYMENT_MS = 15 * 60 * 1000;
 
@@ -58,7 +59,7 @@ const PaymentSuccessHost = () => {
                         queuePaymentSuccess({
                             message: t('valet.packagePaymentSuccessful'),
                             amount: stored.amount,
-                            navigateTo: '/valet/dashboard',
+                            navigateTo: getParkingOfficerRoutePath('dashboard'),
                         });
                     }
                 } catch {

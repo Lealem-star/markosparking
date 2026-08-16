@@ -24,9 +24,6 @@ const AUDIT_ACTIONS = Object.freeze({
     ZONE_CREATED: 'zone.created',
     ZONE_UPDATED: 'zone.updated',
     ZONE_DELETED: 'zone.deleted',
-    RECONCILIATION_SUBMITTED: 'reconciliation.submitted',
-    RECONCILIATION_APPROVED: 'reconciliation.approved',
-    RECONCILIATION_REJECTED: 'reconciliation.rejected',
 });
 
 const ACTION_CATEGORY_MAP = Object.freeze({
@@ -46,9 +43,6 @@ const ACTION_CATEGORY_MAP = Object.freeze({
     [AUDIT_ACTIONS.ZONE_CREATED]: 'zone',
     [AUDIT_ACTIONS.ZONE_UPDATED]: 'zone',
     [AUDIT_ACTIONS.ZONE_DELETED]: 'zone',
-    [AUDIT_ACTIONS.RECONCILIATION_SUBMITTED]: 'payment',
-    [AUDIT_ACTIONS.RECONCILIATION_APPROVED]: 'payment',
-    [AUDIT_ACTIONS.RECONCILIATION_REJECTED]: 'payment',
 });
 
 module.exports = {

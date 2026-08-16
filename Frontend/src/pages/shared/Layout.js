@@ -1,11 +1,10 @@
 import { useEffect } from "react";
-import { useDispatch } from "react-redux";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { useCurrentUser } from '../../hooks/useAuth';
-import { clearUser } from '../../store';
+import { clearAuthSession } from '../../api/authSession';
 import { isStaffShellRole, isValetRole } from '../../constants/roles';
-import { getStaffRoutePath } from '../../utils/rolePaths';
+import { getParkingOfficerRoutePath, getStaffRoutePath } from '../../utils/rolePaths';
 import { Mail } from "lucide-react";
 import tanaLogo from '../../assets/Tana.png';
 import partnerLogo from '../../assets/image.png';
@@ -16,11 +15,10 @@ const Layout = () => {
     const user = useCurrentUser();
     const navigate = useNavigate();
     const location = useLocation();
-    const dispatch = useDispatch();
     const isHome = location.pathname === '/';
 
     const handleLogout = () => {
-        dispatch(clearUser());
+        clearAuthSession();
         navigate('/');
     };
 
@@ -48,7 +46,7 @@ const Layout = () => {
                             )}
                             {isValetRole(user.type) && (
                                 <li>
-                                    <Link to="/valet/dashboard">{t('navigation.valetDashboard')}</Link>
+                                    <Link to={getParkingOfficerRoutePath('dashboard')}>{t('navigation.parkingOfficerDashboard')}</Link>
                                 </li>
                             )}
                             <li>

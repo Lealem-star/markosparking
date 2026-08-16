@@ -80,7 +80,7 @@ const UserManagement = () => {
         [filteredUsers]
     );
     const valetsByZone = useMemo(
-        () => groupValetsByZone(filteredUsers.filter((u) => u?.type === 'valet')),
+        () => groupValetsByZone(filteredUsers.filter((u) => u?.type === ROLES.VALET)),
         [filteredUsers]
     );
 

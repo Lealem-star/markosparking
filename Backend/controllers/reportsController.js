@@ -21,7 +21,8 @@ module.exports = {
     getCustomerVehicleHistory: wrap('getCustomerVehicleHistory'),
     getCustomerActivity: wrap('getCustomerActivity'),
     getAdministrativeUsers: wrap('getAdministrativeUsers'),
-    getAdministrativeValetPerformance: wrap('getAdministrativeValetPerformance'),
+    getAdministrativeParkingOfficerPerformance: wrap('getAdministrativeParkingOfficerPerformance'),
+    getAdministrativeValetPerformance: wrap('getAdministrativeParkingOfficerPerformance'),
     getComplianceTransactions: wrap('getComplianceTransactions'),
     getComplianceSystemActivity: wrap('getComplianceSystemActivity'),
 };

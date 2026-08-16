@@ -8,6 +8,7 @@ import {
     getSupervisorZoneList,
     supervisorCoversZone,
 } from '../../../constants/roles';
+import { compareZoneCodes, sortByZoneCode, sortZoneCodeStrings } from '../../../utils/zoneSort';
 
 export const getActiveParkZones = (parkZones = []) =>
     parkZones.filter((zone) => zone?.code && zone?.isActive !== false);
@@ -23,13 +24,13 @@ export const resolveParkZoneCode = (code = '', parkZones = []) => {
 };
 
 export const buildValetZoneOptions = (parkZones = []) =>
-    getActiveParkZones(parkZones)
-        .map((zone) => ({
+    sortByZoneCode(
+        getActiveParkZones(parkZones).map((zone) => ({
             code: zone.code,
             name: zone.name,
             priceLevel: zone.priceLevel?.trim() || '',
         }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+    );
 
 export const getPriceLevelForParkZone = (parkZoneCode = '', parkZones = []) => {
     const resolved = resolveParkZoneCode(parkZoneCode, parkZones);
@@ -66,7 +67,7 @@ export const buildSupervisorZoneOptions = (parkZones = [], legacyZones = [], cur
         }
     });
 
-    return Array.from(optionsMap.values()).sort((a, b) => a.code.localeCompare(b.code));
+    return sortByZoneCode(Array.from(optionsMap.values()));
 };
 
 export const isStaffActive = (staffMember) => staffMember?.isActive !== false;
@@ -167,7 +168,7 @@ export const groupValetsByZone = (valets) => {
     }, {});
 
     return Object.entries(grouped)
-        .sort(([a], [b]) => a.localeCompare(b))
+        .sort(([a], [b]) => compareZoneCodes(a, b))
         .map(([zoneCode, zoneValets]) => ({ zoneCode, staff: zoneValets }));
 };
 
@@ -177,15 +178,15 @@ export const getUniqueZones = (users, parkZones = []) => {
         .map((zone) => zone.code);
 
     if (fromApi.length > 0) {
-        return [...new Set(fromApi)].sort();
+        return sortZoneCodeStrings([...new Set(fromApi)]);
     }
 
-    return [...new Set(
+    return sortZoneCodeStrings([...new Set(
         users
             .filter((u) => normalizeRole(u?.type) === ROLES.VALET)
             .map((u) => u?.parkZoneCode)
             .filter(Boolean)
-    )].sort();
+    )]);
 };
 
 export const getStaffStats = (users) => {

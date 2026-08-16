@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getParkingOfficerRoutePath } from '../../utils/rolePaths';
 import { useTranslation } from 'react-i18next';
 import { updateParkedCarRecord, flagParkedCarRecord } from '../../api/api';
 import { getApiError } from '../../api/client';
@@ -29,7 +30,7 @@ import {
     DEFAULT_PRICING_SETTINGS,
 } from './parkedCarsModules';
 import '../../styles/parkedCarsList.scss';
-import '../../styles/valetOverview.scss';
+import '../../styles/parkingOfficerOverview.scss';
 
 const EMPTY_DAILY_STATS = {
     totalParked: 0,
@@ -246,7 +247,7 @@ const ParkedCarsList = () => {
                 calculateFee={calculateFee}
                 onCheckOut={(car) => handleStatusChange(car, 'checked_out')}
                 onParkIn={handleParkIn}
-                onRegisterCar={() => navigate('/valet/register-car')}
+                onRegisterCar={() => navigate(getParkingOfficerRoutePath('register-car'))}
             />
 
             <ParkedCarsStatusModal

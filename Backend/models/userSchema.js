@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ["system_admin", "director", "supervisor", "finance_officer", "valet"],
+        enum: ["system_admin", "parking_manager", "supervisor", "finance_officer", "parking_officer"],
         required: true
     },
     cash: {

@@ -1,6 +1,7 @@
 const User = require('../models/userSchema');
 const AppError = require('../errors/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const { normalizeRole } = require('../constants/roles');
 
 const attachCurrentUser = asyncHandler(async (req, res, next) => {
     if (!req.user?.phoneNumber) {
@@ -22,7 +23,10 @@ const requireRoles = (...roles) => (req, res, next) => {
         return next(new AppError('Unauthorized', 401));
     }
 
-    if (!roles.includes(req.currentUser.type)) {
+    const userRole = normalizeRole(req.currentUser.type);
+    const allowedRoles = roles.map((role) => normalizeRole(role));
+
+    if (!allowedRoles.includes(userRole)) {
         return next(new AppError('Access denied', 403));
     }
 

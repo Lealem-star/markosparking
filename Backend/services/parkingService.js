@@ -20,13 +20,14 @@ const {
     isAllZonesCode,
     supervisorCoversZone,
     getSupervisorZoneList,
+    normalizeRole,
 } = require('../constants/roles');
 
-const isStaffShellRole = (user) => STAFF_SHELL_ROLES.includes(user?.type);
+const isStaffShellRole = (user) => STAFF_SHELL_ROLES.includes(normalizeRole(user?.type));
 
 const assertValet = (user) => {
-    if (!user || user.type !== 'valet') {
-        throw new AppError('Only valets can register parked cars', 403);
+    if (!user || user.type !== ROLES.VALET) {
+        throw new AppError('Only parking officers can register parked cars', 403);
     }
 };
 
@@ -43,6 +44,10 @@ const canManageCar = (currentUser, car) => {
 };
 
 const applyCarVisibilityFilter = (query, currentUser) => {
+    if (!currentUser?.type) {
+        throw new AppError('Unauthorized', 401);
+    }
+
     if (currentUser.type === ROLES.VALET) {
         query.valet_id = currentUser._id;
         return;

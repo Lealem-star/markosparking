@@ -7,8 +7,9 @@ import {
     supervisorCoversZone,
 } from '../../constants/roles';
 import { isStaffActive } from '../admin/staffManagement/staffUtils';
+import { sortByZoneCode } from '../../utils/zoneSort';
 
-export const getSupervisorValets = (users = [], supervisor) => {
+export const getSupervisorParkingOfficers = (users = [], supervisor) => {
     const isSupervisor = normalizeRole(supervisor?.type) === ROLES.SUPERVISOR;
     return users.filter((entry) => {
         if (normalizeRole(entry?.type) !== ROLES.VALET || !isStaffActive(entry)) return false;
@@ -19,8 +20,8 @@ export const getSupervisorValets = (users = [], supervisor) => {
     });
 };
 
-export const getValetZoneLabel = (valet, parkZones = [], t) => {
-    const code = valet?.parkZoneCode?.trim();
+export const getParkingOfficerZoneLabel = (officer, parkZones = [], t) => {
+    const code = officer?.parkZoneCode?.trim();
     if (!code) return t('admin.unknownZone');
 
     const zone = parkZones.find(
@@ -55,22 +56,22 @@ export const partitionValetsByTodayAttendance = (valets = [], cars = []) => {
     );
 };
 
-export const filterSupervisorValets = (valets = [], { searchQuery = '', zoneFilter = 'all' }) => {
+export const filterSupervisorParkingOfficers = (officers = [], { searchQuery = '', zoneFilter = 'all' }) => {
     const query = searchQuery.trim().toLowerCase();
 
-    return valets.filter((valet) => {
+    return officers.filter((officer) => {
         const matchesSearch =
             !query ||
-            (valet?.name || '').toLowerCase().includes(query) ||
-            (valet?.phoneNumber || '').toLowerCase().includes(query) ||
-            (valet?.parkZoneCode || '').toLowerCase().includes(query);
+            (officer?.name || '').toLowerCase().includes(query) ||
+            (officer?.phoneNumber || '').toLowerCase().includes(query) ||
+            (officer?.parkZoneCode || '').toLowerCase().includes(query);
 
         const matchesZone =
             zoneFilter === 'all' ||
-            parseSupervisorZones(valet?.parkZoneCode).some(
+            parseSupervisorZones(officer?.parkZoneCode).some(
                 (zone) => zone.toUpperCase() === zoneFilter.toUpperCase()
             ) ||
-            valet?.parkZoneCode?.toUpperCase() === zoneFilter.toUpperCase();
+            officer?.parkZoneCode?.toUpperCase() === zoneFilter.toUpperCase();
 
         return matchesSearch && matchesZone;
     });
@@ -81,13 +82,14 @@ export const getSupervisorZoneFilterOptions = (supervisor, parkZones = [], valet
     let options = [];
 
     if (!code || isAllZonesCode(code)) {
-        options = parkZones
-            .filter((zone) => zone?.code && zone?.isActive !== false)
-            .map((zone) => ({ code: zone.code, name: zone.name || zone.code }))
-            .sort((a, b) => a.code.localeCompare(b.code));
+        options = sortByZoneCode(
+            parkZones
+                .filter((zone) => zone?.code && zone?.isActive !== false)
+                .map((zone) => ({ code: zone.code, name: zone.name || zone.code }))
+        );
     } else {
-        options = getSupervisorZoneList(code)
-            .map((zoneCode) => {
+        options = sortByZoneCode(
+            getSupervisorZoneList(code).map((zoneCode) => {
                 const zone = parkZones.find(
                     (entry) => entry.code?.toUpperCase() === zoneCode.toUpperCase()
                 );
@@ -96,14 +98,14 @@ export const getSupervisorZoneFilterOptions = (supervisor, parkZones = [], valet
                     name: zone?.name || zoneCode,
                 };
             })
-            .sort((a, b) => a.code.localeCompare(b.code));
+        );
     }
 
     if (options.length > 0) return options;
 
     const codes = [...new Set(valets.map((valet) => valet?.parkZoneCode?.trim()).filter(Boolean))];
-    return codes
-        .map((zoneCode) => {
+    return sortByZoneCode(
+        codes.map((zoneCode) => {
             const zone = parkZones.find(
                 (entry) => entry.code?.toUpperCase() === zoneCode.toUpperCase()
             );
@@ -112,5 +114,12 @@ export const getSupervisorZoneFilterOptions = (supervisor, parkZones = [], valet
                 name: zone?.name || zoneCode,
             };
         })
-        .sort((a, b) => a.code.localeCompare(b.code));
+    );
 };
+
+/** @deprecated use getSupervisorParkingOfficers */
+export const getSupervisorValets = getSupervisorParkingOfficers;
+/** @deprecated use getParkingOfficerZoneLabel */
+export const getValetZoneLabel = getParkingOfficerZoneLabel;
+/** @deprecated use filterSupervisorParkingOfficers */
+export const filterSupervisorValets = filterSupervisorParkingOfficers;

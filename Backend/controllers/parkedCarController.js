@@ -1,5 +1,6 @@
 const Joi = require('joi');
 const User = require('../models/userSchema');
+const AppError = require('../errors/AppError');
 const {
     registerParkedCar,
     listParkedCars,
@@ -62,7 +63,15 @@ const listTransactionsSchema = Joi.object({
     limit: Joi.number().integer().min(1).max(100).optional(),
 });
 
-const loadCurrentUser = (req) => User.findOne({ phoneNumber: req.user?.phoneNumber });
+const loadCurrentUser = async (req) => {
+    if (req.currentUser) return req.currentUser;
+
+    const user = await User.findOne({ phoneNumber: req.user?.phoneNumber });
+    if (!user || user.isActive === false) {
+        throw new AppError('Unauthorized', 401);
+    }
+    return user;
+};
 
 const create = async (req, res) => {
     const valetUser = await loadCurrentUser(req);

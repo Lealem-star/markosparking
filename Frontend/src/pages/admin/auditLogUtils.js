@@ -33,9 +33,6 @@ export const FINANCE_AUDIT_ACTIONS = [
     'pricing.updated',
     'vat.updated',
     'vat.toggled',
-    'reconciliation.submitted',
-    'reconciliation.approved',
-    'reconciliation.rejected',
 ];
 
 export const formatAuditTimestamp = (value, locale) => {

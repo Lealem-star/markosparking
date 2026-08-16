@@ -6,7 +6,7 @@ const User = require('../models/userSchema');
 
 // Default system admin credentials (change these!)
 const DEFAULT_ADMIN = {
-    name: 'System Administrator',
+    name: 'Lealem Meseret',
     phoneNumber: '+251934551781', // Example phone number (change this!)
     password: 'Admin@123', // Change this password!
     type: 'system_admin'

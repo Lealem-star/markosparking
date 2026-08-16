@@ -3,6 +3,7 @@ const ParkedCar = require("../models/parkedCarSchema");
 const User = require("../models/userSchema");
 const { isLoggedIn } = require("./middleware");
 const { Types } = require("mongoose");
+const { STAFF_SHELL_ROLES, ROLES, normalizeRole } = require("../constants/roles");
 
 const reportsRouter = Router();
 
@@ -16,9 +17,7 @@ const getDateRange = (startDate, endDate) => {
 };
 
 // Helper to check user permissions
-const checkAdminAccess = (userType) => {
-    return ['system_admin', 'director', 'supervisor', 'finance_officer'].includes(userType);
-};
+const checkAdminAccess = (userType) => STAFF_SHELL_ROLES.includes(normalizeRole(userType));
 
 // ==================== FINANCIAL REPORTS ====================
 
@@ -821,7 +820,7 @@ reportsRouter.get("/administrative/users", isLoggedIn, async (req, res) => {
 });
 
 // Valet Performance Report
-reportsRouter.get("/administrative/valet-performance", isLoggedIn, async (req, res) => {
+reportsRouter.get("/administrative/parking-officer-performance", isLoggedIn, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
         const currentUser = await User.findOne({ phoneNumber: req.user?.phoneNumber });
@@ -843,7 +842,7 @@ reportsRouter.get("/administrative/valet-performance", isLoggedIn, async (req, r
             start.setHours(0, 0, 0, 0);
         }
 
-        const valets = await User.find({ type: 'valet' });
+        const valets = await User.find({ type: ROLES.VALET });
         const performance = await Promise.all(
             valets.map(async (valet) => {
                 const carsParked = await ParkedCar.countDocuments({

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Plus, ChevronDown } from 'lucide-react';
+import { ROLES } from '../../../constants/roles';
 
 const StaffFilterBar = ({
     t,
@@ -36,10 +37,10 @@ const StaffFilterBar = ({
             >
                 <option value="all">{t('admin.allRoles')}</option>
                 <option value="system_admin">{t('admin.systemAdmin')}</option>
-                <option value="director">{t('admin.director')}</option>
-                <option value="supervisor">{t('admin.supervisor')}</option>
-                <option value="finance_officer">{t('admin.financeOfficer')}</option>
-                <option value="valet">{t('admin.valet')}</option>
+                <option value={ROLES.DIRECTOR}>{t('admin.director')}</option>
+                <option value={ROLES.SUPERVISOR}>{t('admin.supervisor')}</option>
+                <option value={ROLES.FINANCE_OFFICER}>{t('admin.financeOfficer')}</option>
+                <option value={ROLES.VALET}>{t('admin.valet')}</option>
             </select>
             <ChevronDown size={16} className="staff-filter-chevron" aria-hidden="true" />
         </div>

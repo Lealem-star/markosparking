@@ -4,7 +4,7 @@ import PricingStatCards from './PricingStatCards';
 import ParkingZoneListTable from './ParkingZoneListTable';
 import PriceLevelListTable from './PriceLevelListTable';
 import PriceLevelDetailsModal from './PriceLevelDetailsModal';
-import ParkZoneValetsModal from './ParkZoneValetsModal';
+import ParkZoneOfficersModal from './ParkZoneOfficersModal';
 import ZonePriceLevelMapping from './ZonePriceLevelMapping';
 import {
     buildZonePriceLevelMappings,
@@ -133,11 +133,11 @@ const CarTypePricingConfiguration = ({
                 onClose={() => setViewPriceLevel(null)}
             />
 
-            <ParkZoneValetsModal
+            <ParkZoneOfficersModal
                 t={t}
                 isOpen={Boolean(viewZoneValets)}
                 zone={viewZoneValets}
-                valets={zoneValets}
+                officers={zoneValets}
                 onClose={() => {
                     setViewZoneValets(null);
                     setZoneValets([]);

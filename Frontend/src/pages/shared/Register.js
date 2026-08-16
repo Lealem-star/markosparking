@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { registerUser } from '../../api/api'
 import { getApiError } from '../../api/client'
-import '../../styles/auth.scss'
+import { ROLES } from '../../constants/roles'
+import '../../styles/auth.scss';
 
 const Register = () => {
     const { t } = useTranslation();
@@ -60,7 +61,7 @@ const Register = () => {
                     <label htmlFor="password" className="form-label">{t('auth.type')}</label>
                     <select className="form-select" value={type} onChange={(e) => setType(e.target.value)} required>
                         <option value="">{t('auth.select')}</option>
-                        <option value="valet">{t('admin.valet')}</option>
+                        <option value={ROLES.VALET}>{t('admin.valet')}</option>
                     </select>
                 </div>
                 <div className='d-flex justify-content-between'>

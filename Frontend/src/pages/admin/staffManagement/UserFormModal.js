@@ -34,7 +34,7 @@ const UserFormModal = ({
 }) => {
     const { t } = useTranslation();
     const creatableRoles = useMemo(() => {
-        const allRoles = ['director', 'supervisor', 'finance_officer', 'valet'];
+        const allRoles = [ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER, ROLES.VALET];
         const allowed = allRoles.filter((role) => canCreateRole(actorType, role));
         if (formData.type && !allowed.includes(formData.type)) {
             return [formData.type, ...allowed];

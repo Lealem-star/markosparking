@@ -9,6 +9,7 @@ import { usePricingSettingsQuery } from '../../hooks/queries';
 import { useChapaPayment } from '../../hooks/useChapaPayment';
 import ChapaPaymentModal from '../../components/payment/ChapaPaymentModal';
 import AlertBanner from '../../components/ui/AlertBanner';
+import { getParkingOfficerRoutePath } from '../../utils/rolePaths';
 import {
     RegisterCarForm,
     RegisterCarServiceModal,
@@ -151,7 +152,7 @@ const RegisterCar = () => {
             }
 
                                         resetForm();
-            setTimeout(() => navigate('/valet/dashboard'), 1500);
+            setTimeout(() => navigate(getParkingOfficerRoutePath('dashboard')), 1500);
         } catch (err) {
             setError(getApiError(err, 'Failed to register car'));
             setLoading(false);
@@ -172,7 +173,7 @@ const RegisterCar = () => {
                     loading={loading}
                     onChange={handleChange}
                     onSubmit={handleSubmit}
-                    onCancel={() => navigate('/valet/dashboard')}
+                    onCancel={() => navigate(getParkingOfficerRoutePath('dashboard'))}
                             />
                         </div>
 

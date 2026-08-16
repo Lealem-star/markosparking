@@ -1,19 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getParkingOfficerRoutePath } from '../../utils/rolePaths';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { updateParkedCarRecord } from '../../api/api';
 import { getApiError } from '../../api/client';
 import {
-    ValetOverviewQuickActions,
-    ValetOverviewStatCards,
-    ValetOverviewPackageTable,
+    OverviewQuickActions,
+    OverviewStatCards,
+    OverviewPackageTable,
     aggregatePackageSubscriptions,
     filterSubscriptionsByPhone,
-} from './valetOverviewModules';
+} from './overviewModules';
 import { useParkedCarsQuery, useInvalidateParkingQueries } from '../../hooks/queries';
-import '../../styles/valetOverview.scss';
+import '../../styles/parkingOfficerOverview.scss';
 
-const ValetOverview = () => {
+const ParkingOfficerOverview = () => {
     const user = useCurrentUser();
     const navigate = useNavigate();
     const { invalidateAll } = useInvalidateParkingQueries();
@@ -52,14 +53,14 @@ const ValetOverview = () => {
 
     return (
         <div className="valet-overview">
-            <ValetOverviewQuickActions
-                onRegister={() => navigate('/valet/register-car')}
-                onViewCars={() => navigate('/valet/cars')}
+            <OverviewQuickActions
+                onRegister={() => navigate(getParkingOfficerRoutePath('register-car'))}
+                onViewCars={() => navigate(getParkingOfficerRoutePath('cars'))}
             />
 
-            <ValetOverviewStatCards stats={packageStats} />
+            <OverviewStatCards stats={packageStats} />
 
-            <ValetOverviewPackageTable
+            <OverviewPackageTable
                 subscriptions={packageServices}
                 filteredSubscriptions={filteredPackageServices}
                 phoneFilter={phoneFilter}
@@ -73,4 +74,4 @@ const ValetOverview = () => {
     );
 };
 
-export default ValetOverview;
+export default ParkingOfficerOverview;

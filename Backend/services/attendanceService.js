@@ -15,6 +15,7 @@ const {
     normalizeAttendanceSession,
     DEFAULT_ATTENDANCE_SESSION,
 } = require('../constants/attendanceSessions');
+const { compareZoneCodes } = require('../utils/zoneSort');
 
 const NOT_MARKED = 'not_marked';
 const ADMIN_EDIT_ROLES = [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR];
@@ -238,7 +239,7 @@ const getAttendanceSession = async (currentUser, dateKeyInput, sessionInput) => 
 
     const zoneGroups = [...zoneGroupsMap.values()]
         .filter((group) => group.officers.length > 0)
-        .sort((a, b) => a.code.localeCompare(b.code));
+        .sort((a, b) => compareZoneCodes(a.code, b.code));
 
     const { stats, progress } = computeStats(enrichedOfficers);
 

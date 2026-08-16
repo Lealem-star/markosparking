@@ -22,6 +22,7 @@ const {
     getSupervisorZoneList,
     parseSupervisorZones,
     serializeSupervisorZones,
+    getRoleDisplayName,
 } = require('../constants/roles');
 
 const sanitizeUser = (user) => {
@@ -93,7 +94,7 @@ const resolveValetPriceLevel = async (parkZoneCode) => {
 
 const createUser = async (actor, data, req) => {
     if (!actor || ![ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR].includes(actor.type)) {
-        throw new AppError('Only system admin or Bahir Dar City Administration can create users', 403);
+        throw new AppError(`Only system admin or ${getRoleDisplayName(ROLES.DIRECTOR)} can create users`, 403);
     }
 
     let { name, phoneNumber, password, type, parkZoneCode } = data;
@@ -483,7 +484,7 @@ const deactivateUser = async (currentUser, targetId, req) => {
     assertObjectId(targetId, 'Invalid user id');
 
     if (!currentUser || !isStaffManager(currentUser.type)) {
-        throw new AppError('Only system admin or Bahir Dar City Administration staff can deactivate users', 403);
+        throw new AppError(`Only system admin or ${getRoleDisplayName(ROLES.DIRECTOR)} staff can deactivate users`, 403);
     }
 
     if (currentUser._id.toString() === targetId) {

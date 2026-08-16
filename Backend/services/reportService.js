@@ -1,6 +1,7 @@
 const AppError = require('../errors/AppError');
 const ParkedCar = require('../models/parkedCarSchema');
 const User = require('../models/userSchema');
+const { ROLES, STAFF_SHELL_ROLES } = require('../constants/roles');
 
 const getDateRange = (startDate, endDate) => {
     const start = new Date(startDate);
@@ -678,7 +679,7 @@ const users = await User.find({}).select('-password');
         });
 };
 
-const getAdministrativeValetPerformance = async (query = {}) => {
+const getAdministrativeParkingOfficerPerformance = async (query = {}) => {
 const { startDate, endDate } = query;
         
 
@@ -695,7 +696,7 @@ const { startDate, endDate } = query;
             start.setHours(0, 0, 0, 0);
         }
 
-        const valets = await User.find({ type: 'valet' });
+        const valets = await User.find({ type: ROLES.VALET });
         const performance = await Promise.all(
             valets.map(async (valet) => {
                 const carsParked = await ParkedCar.countDocuments({
@@ -865,7 +866,8 @@ module.exports = {
     getCustomerVehicleHistory,
     getCustomerActivity,
     getAdministrativeUsers,
-    getAdministrativeValetPerformance,
+    getAdministrativeParkingOfficerPerformance,
+    getAdministrativeValetPerformance: getAdministrativeParkingOfficerPerformance,
     getComplianceTransactions,
     getComplianceSystemActivity,
 };

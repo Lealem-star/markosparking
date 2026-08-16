@@ -5,7 +5,7 @@ const STAT_CARDS = [
     { key: 'currentlyParked', label: 'Currently Parked', stroke: '#4facfe', className: 'stat-circle-parked', arcId: 'arc-parked-overview' },
 ];
 
-const ValetOverviewStatCards = ({ stats }) => (
+const OverviewStatCards = ({ stats }) => (
     <div className="stats-grid stats-grid-circular">
         {STAT_CARDS.map(({ key, label, stroke, className, arcId }) => (
             <div key={key} className={`stat-circle-card ${className}`}>
@@ -26,4 +26,4 @@ const ValetOverviewStatCards = ({ stats }) => (
     </div>
 );
 
-export default ValetOverviewStatCards;
+export default OverviewStatCards;

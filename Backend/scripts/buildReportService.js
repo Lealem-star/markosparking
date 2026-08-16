@@ -17,7 +17,8 @@ const routeNames = {
     '/customer/vehicle-history': 'getCustomerVehicleHistory',
     '/customer/activity': 'getCustomerActivity',
     '/administrative/users': 'getAdministrativeUsers',
-    '/administrative/valet-performance': 'getAdministrativeValetPerformance',
+    '/administrative/parking-officer-performance': 'getAdministrativeParkingOfficerPerformance',
+    '/administrative/valet-performance': 'getAdministrativeParkingOfficerPerformance',
     '/compliance/transactions': 'getComplianceTransactions',
     '/compliance/system-activity': 'getComplianceSystemActivity',
 };

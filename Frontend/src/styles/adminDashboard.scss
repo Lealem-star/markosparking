@@ -15,6 +15,7 @@
         left: 0;
         top: 0;
         z-index: 1000;
+        overflow: hidden;
 
         &.closed {
             width: 70px;
@@ -32,6 +33,7 @@
             position: relative;
             background: #111c34;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
 
                 .logo {
                     display: flex;
@@ -78,10 +80,26 @@
 
         .sidebar-nav {
             flex: 1;
+            min-height: 0;
             padding: 24px 12px;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+
+            &::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                background: rgba(148, 163, 184, 0.45);
+                border-radius: 999px;
+            }
 
             .nav-item {
                 display: flex;
@@ -97,6 +115,7 @@
                 font-size: 14px;
                 border-radius: 10px;
                 border-left: 4px solid transparent;
+                flex-shrink: 0;
 
                 &:hover {
                     background-color: rgba(148, 163, 184, 0.1);
@@ -125,6 +144,7 @@
             padding: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
             position: relative;
+            flex-shrink: 0;
 
             .user-profile-dropdown {
                 position: relative;
@@ -416,6 +436,7 @@
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
         transform: translateX(-100%); // Start off-screen
         transition: transform 0.3s ease-out; // Smooth transition
+        overflow: hidden;
 
         &.open { // Class to apply when mobile menu is open
             transform: translateX(0);
@@ -429,6 +450,7 @@
             position: relative;
             background: #111c34;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
 
             .logo {
                 display: flex;
@@ -475,10 +497,26 @@
 
         .sidebar-nav {
             flex: 1;
+            min-height: 0;
             padding: 24px 12px;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+
+            &::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                background: rgba(148, 163, 184, 0.45);
+                border-radius: 999px;
+            }
 
             .nav-item {
                 display: flex;

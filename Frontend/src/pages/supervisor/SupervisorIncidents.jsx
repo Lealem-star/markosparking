@@ -24,7 +24,7 @@ import {
     INCIDENT_STATUSES,
     INCIDENT_TYPES,
 } from './incidentUtils';
-import { getSupervisorValets } from './supervisorUtils';
+import { getSupervisorParkingOfficers } from './supervisorUtils';
 import '../../styles/supervisorIncidents.scss';
 
 const STAT_CARD_CONFIG = [
@@ -69,7 +69,7 @@ const SupervisorIncidents = () => {
     const resolveMutation = useResolveIncidentMutation(user?.token, filters);
 
     const supervisorOfficers = useMemo(
-        () => getSupervisorValets(users, user),
+        () => getSupervisorParkingOfficers(users, user),
         [users, user]
     );
 

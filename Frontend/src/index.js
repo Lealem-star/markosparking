@@ -13,7 +13,10 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { store, persistor } from './store';
 import { queryClient } from './api/queryClient';
+import { setupAuthInterceptor } from './api/authSession';
 import AppLoadingScreen from './components/loading/AppLoadingScreen';
+
+setupAuthInterceptor();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

@@ -2,15 +2,20 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useAuth';
 import { getDashboardPathForUser } from '../utils/authRouting';
 import { hasStaffPermission } from '../config/staffAccess';
-import { getStaffRoutePath } from '../utils/rolePaths';
+import {
+    getStaffRoutePath,
+    LEGACY_ROLE_PATH_PREFIX,
+    mapLegacyStaffSegment,
+} from '../utils/rolePaths';
 import { ROLES, normalizeRole } from '../constants/roles';
 import Home from '../pages/shared/Home';
 
 const mapLegacyStaffSuffix = (userType, suffix) => {
-    if (normalizeRole(userType) === ROLES.SUPERVISOR && suffix === 'users') {
-        return 'valets';
+    const mapped = mapLegacyStaffSegment(suffix);
+    if (normalizeRole(userType) === ROLES.SUPERVISOR && mapped === 'users') {
+        return 'parking-officers';
     }
-    return suffix;
+    return mapped;
 };
 
 export function LegacyStaffRedirect() {
@@ -26,6 +31,20 @@ export function LegacyStaffRedirect() {
     return <Navigate to={getStaffRoutePath(user.type, suffix)} replace />;
 }
 
+export function LegacyPrefixRedirect() {
+    const location = useLocation();
+    const parts = location.pathname.split('/').filter(Boolean);
+    const legacyPrefix = parts[0];
+    const currentPrefix = LEGACY_ROLE_PATH_PREFIX[legacyPrefix];
+
+    if (!currentPrefix) {
+        return <Navigate to="/" replace />;
+    }
+
+    const suffix = mapLegacyStaffSegment(parts.slice(1).join('/') || 'dashboard');
+    return <Navigate to={`/${currentPrefix}/${suffix}${location.search}${location.hash}`} replace />;
+}
+
 export function LegacyUsersRedirect() {
     const user = useCurrentUser();
 
@@ -35,8 +54,8 @@ export function LegacyUsersRedirect() {
         return <Navigate to={getStaffRoutePath(user.type, 'users')} replace />;
     }
 
-    if (hasStaffPermission(user.type, 'valets')) {
-        return <Navigate to={getStaffRoutePath(user.type, 'valets')} replace />;
+    if (hasStaffPermission(user.type, 'parkingOfficers')) {
+        return <Navigate to={getStaffRoutePath(user.type, 'parking-officers')} replace />;
     }
 
     return <Navigate to={getDashboardPathForUser(user)} replace />;

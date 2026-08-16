@@ -1,6 +1,6 @@
 import { Car, CheckCircle } from 'lucide-react';
 
-const ValetOverviewQuickActions = ({ onRegister, onViewCars }) => (
+const OverviewQuickActions = ({ onRegister, onViewCars }) => (
     <div className="quick-actions">
         <button type="button" className="action-btn primary" onClick={onRegister}>
             <Car size={20} />
@@ -13,4 +13,4 @@ const ValetOverviewQuickActions = ({ onRegister, onViewCars }) => (
     </div>
 );
 
-export default ValetOverviewQuickActions;
+export default OverviewQuickActions;

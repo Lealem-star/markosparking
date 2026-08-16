@@ -43,8 +43,11 @@ export const getPlateCodeDistributionReport = (token, { startDate, endDate } = {
 export const getCustomerActivityReport = (token, { startDate, endDate, minVisits } = {}) =>
     getReport(token, 'customer/activity', { startDate, endDate, minVisits });
 
-export const getValetPerformanceReport = (token, { startDate, endDate } = {}) =>
-    getReport(token, 'administrative/valet-performance', { startDate, endDate });
+export const getParkingOfficerPerformanceReport = (token, { startDate, endDate } = {}) =>
+    getReport(token, 'administrative/parking-officer-performance', { startDate, endDate });
+
+/** @deprecated use getParkingOfficerPerformanceReport */
+export const getValetPerformanceReport = getParkingOfficerPerformanceReport;
 
 export const getTransactionsReport = (token, { startDate, endDate, paymentMethod } = {}) =>
     getReport(token, 'compliance/transactions', { startDate, endDate, paymentMethod });

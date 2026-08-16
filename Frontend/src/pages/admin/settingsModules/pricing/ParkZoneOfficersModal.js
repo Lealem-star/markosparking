@@ -1,11 +1,11 @@
 import React from 'react';
 import { X as XIcon, Users } from 'lucide-react';
 
-const ParkZoneValetsModal = ({
+const ParkZoneOfficersModal = ({
     t,
     isOpen,
     zone,
-    valets = [],
+    officers = [],
     onClose,
 }) => {
     if (!isOpen || !zone) return null;
@@ -25,7 +25,7 @@ const ParkZoneValetsModal = ({
                     </button>
                 </div>
                 <div className="modal-body">
-                    {valets.length === 0 ? (
+                    {officers.length === 0 ? (
                         <div className="pricing-empty-message">
                             <Users size={28} />
                             <p>{t('settings.noValetsInZone')}</p>
@@ -42,14 +42,14 @@ const ParkZoneValetsModal = ({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {valets.map((valet) => (
-                                        <tr key={valet._id || valet.phoneNumber}>
-                                            <td>{valet.name}</td>
-                                            <td>{valet.phoneNumber || '—'}</td>
-                                            <td>{valet.priceLevel || '—'}</td>
+                                    {officers.map((officer) => (
+                                        <tr key={officer._id || officer.phoneNumber}>
+                                            <td>{officer.name}</td>
+                                            <td>{officer.phoneNumber || '—'}</td>
+                                            <td>{officer.priceLevel || '—'}</td>
                                             <td>
-                                                <span className={`pricing-zone-status ${valet.isActive !== false ? 'is-active' : 'is-inactive'}`}>
-                                                    {valet.isActive !== false ? t('admin.active') : t('admin.inactive')}
+                                                <span className={`pricing-zone-status ${officer.isActive !== false ? 'is-active' : 'is-inactive'}`}>
+                                                    {officer.isActive !== false ? t('admin.active') : t('admin.inactive')}
                                                 </span>
                                             </td>
                                         </tr>
@@ -69,4 +69,4 @@ const ParkZoneValetsModal = ({
     );
 };
 
-export default ParkZoneValetsModal;
+export default ParkZoneOfficersModal;

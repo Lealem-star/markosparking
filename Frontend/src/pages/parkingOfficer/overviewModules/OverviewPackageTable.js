@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { formatOverviewDateTime } from './valetOverviewUtils';
+import { formatOverviewDateTime } from './overviewUtils';
 
-const ValetOverviewPackageTable = ({
+const OverviewPackageTable = ({
     subscriptions,
     filteredSubscriptions,
     phoneFilter,
@@ -105,4 +105,4 @@ const ValetOverviewPackageTable = ({
     );
 };
 
-export default ValetOverviewPackageTable;
+export default OverviewPackageTable;

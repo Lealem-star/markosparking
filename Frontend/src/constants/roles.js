@@ -1,9 +1,9 @@
 export const ROLES = Object.freeze({
     SYSTEM_ADMIN: 'system_admin',
-    DIRECTOR: 'director',
+    DIRECTOR: 'parking_manager',
     SUPERVISOR: 'supervisor',
     FINANCE_OFFICER: 'finance_officer',
-    VALET: 'valet',
+    VALET: 'parking_officer',
 });
 
 export const STAFF_SHELL_ROLES = [
@@ -16,6 +16,7 @@ export const STAFF_SHELL_ROLES = [
 export const OFFICE_STAFF_TYPES = [...STAFF_SHELL_ROLES];
 
 export const VALET_ROLE = ROLES.VALET;
+export const PARKING_OFFICER_ROLE = ROLES.VALET;
 
 /** Wildcard park zone code — supervisors with this value can access all zones */
 export const ALL_ZONES_CODE = '*';
@@ -54,6 +55,8 @@ export const supervisorCoversZone = (supervisorZone, targetZone) => {
 export const LEGACY_ROLE_MAP = Object.freeze({
     manager: ROLES.DIRECTOR,
     admin: ROLES.FINANCE_OFFICER,
+    director: ROLES.DIRECTOR,
+    valet: ROLES.VALET,
 });
 
 /** English display names for reports, PDFs, and non-i18n contexts */
@@ -62,7 +65,7 @@ export const ROLE_DISPLAY_NAMES = Object.freeze({
     [ROLES.DIRECTOR]: 'Parking Manager',
     [ROLES.SUPERVISOR]: 'Parking Supervisor',
     [ROLES.FINANCE_OFFICER]: 'Finance Officer',
-    [ROLES.VALET]: 'Valet Attendant',
+    [ROLES.VALET]: 'Parking Officer',
 });
 
 export const normalizeRole = (type) => LEGACY_ROLE_MAP[type] || type;
@@ -74,6 +77,7 @@ export const getRoleDisplayName = (type) => {
 
 export const isStaffShellRole = (type) => STAFF_SHELL_ROLES.includes(normalizeRole(type));
 export const isValetRole = (type) => normalizeRole(type) === ROLES.VALET;
+export const isParkingOfficerRole = isValetRole;
 
 /** @deprecated use isStaffShellRole */
 export const isAdminRole = (type) => isStaffShellRole(type);
@@ -127,4 +131,4 @@ export const canResolveFlaggedAccounts = (type) =>
     [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER].includes(normalizeRole(type));
 
 export const canAccessFinanceTransactions = (type) =>
-    [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER].includes(normalizeRole(type));
+    normalizeRole(type) === ROLES.FINANCE_OFFICER;

@@ -33,6 +33,7 @@ export const useSessionUserSync = () => {
         enabled: Boolean(token),
         staleTime: 30_000,
         refetchOnWindowFocus: true,
+        retry: false,
     });
 
     useEffect(() => {

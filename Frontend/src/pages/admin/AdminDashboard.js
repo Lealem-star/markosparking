@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { clearUser } from '../../store';
+import { clearAuthSession } from '../../api/authSession';
 import { STAFF_SHELL_ROLES } from '../../constants/roles';
 import { useRequireRole } from '../../hooks/useRequireRole';
 import { useChatUnread } from '../../hooks/useChatUnread';
@@ -37,7 +36,6 @@ const AdminDashboard = () => {
     const urlPrefix = location.pathname.split('/').filter(Boolean)[0];
     const userPrefix = getRolePathPrefix(user?.type);
     const { unreadCount, openChat } = useChatUnread(chatPath);
-    const dispatch = useDispatch();
     const {
         profileForm,
         isUpdated,
@@ -84,7 +82,7 @@ const AdminDashboard = () => {
     }, [profileDropdownOpen]);
 
     const handleLogout = () => {
-        dispatch(clearUser());
+        clearAuthSession();
         navigate('/');
         setProfileDropdownOpen(false);
     };

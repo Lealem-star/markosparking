@@ -1,9 +1,9 @@
 import React from 'react';
 import { getInitials } from '../admin/staffManagement/staffUtils';
-import { getValetZoneLabel } from './supervisorUtils';
+import { getParkingOfficerZoneLabel } from './supervisorUtils';
 
-const SupervisorValetTable = ({ valets = [], parkZones = [], t, emptyMessage }) => {
-    if (valets.length === 0) {
+const SupervisorParkingOfficerTable = ({ officers = [], parkZones = [], t, emptyMessage }) => {
+    if (officers.length === 0) {
         return (
             <div className="supervisor-empty-message">
                 <em>{emptyMessage}</em>
@@ -23,17 +23,17 @@ const SupervisorValetTable = ({ valets = [], parkZones = [], t, emptyMessage }) 
                     </tr>
                 </thead>
                 <tbody>
-                    {valets.map((valet, index) => (
-                        <tr key={valet._id || index}>
+                    {officers.map((officer, index) => (
+                        <tr key={officer._id || index}>
                             <td>{index + 1}</td>
                             <td>
                                 <div className="supervisor-name-cell">
-                                    <span className="supervisor-avatar">{getInitials(valet?.name)}</span>
-                                    <strong>{valet?.name}</strong>
+                                    <span className="supervisor-avatar">{getInitials(officer?.name)}</span>
+                                    <strong>{officer?.name}</strong>
                                 </div>
                             </td>
-                            <td>{valet?.phoneNumber || '—'}</td>
-                            <td>{getValetZoneLabel(valet, parkZones, t)}</td>
+                            <td>{officer?.phoneNumber || '—'}</td>
+                            <td>{getParkingOfficerZoneLabel(officer, parkZones, t)}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -42,4 +42,4 @@ const SupervisorValetTable = ({ valets = [], parkZones = [], t, emptyMessage }) 
     );
 };
 
-export default SupervisorValetTable;
+export default SupervisorParkingOfficerTable;

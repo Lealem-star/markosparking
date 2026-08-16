@@ -118,10 +118,6 @@ const FinanceDashboardOverview = () => {
                     <Link to={reportsPath} className="finance-quick-link">
                         {t('navigation.reports')}
                     </Link>
-                    <Link to={getStaffRoutePath(user?.type, 'reconciliations')} className="finance-quick-link">
-                        <Banknote size={16} />
-                        {t('reconciliation.reviewQueueTitle')}
-                    </Link>
                     <Link to={getStaffRoutePath(user?.type, 'finance-audit-logs')} className="finance-quick-link">
                         {t('financeAuditLogs.title')}
                     </Link>

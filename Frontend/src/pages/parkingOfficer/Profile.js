@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { useProfileUpdate } from '../../hooks/useProfileUpdate';
 import ProfileModal from '../../components/profile/ProfileModal';
-import '../../styles/valetDashboard.scss';
+import { getParkingOfficerRoutePath } from '../../utils/rolePaths';
+import '../../styles/parkingOfficerDashboard.scss';
 
 const Profile = () => {
     const { t } = useTranslation();
@@ -31,7 +32,7 @@ const Profile = () => {
     }, [user, navigate, initFormFromUser]);
 
     const handleCloseProfileModal = () => {
-        navigate('/valet/dashboard');
+        navigate(getParkingOfficerRoutePath('dashboard'));
         resetProfileState();
     };
 

@@ -5,6 +5,7 @@ const AppError = require('../errors/AppError');
 const { ROLES } = require('../constants/roles');
 const { logAudit } = require('./auditLogService');
 const { AUDIT_ACTIONS } = require('../constants/auditActions');
+const { sortByZoneCode } = require('../utils/zoneSort');
 
 const normalizeCode = (code) => code?.trim().toUpperCase() || '';
 
@@ -51,8 +52,10 @@ const assertSystemAdmin = (user) => {
     }
 };
 
-const listParkZones = async () =>
-    ParkZone.find().sort({ code: 1 });
+const listParkZones = async () => {
+    const zones = await ParkZone.find();
+    return sortByZoneCode(zones);
+};
 
 const createParkZone = async (actor, data, req) => {
     assertSystemAdmin(actor);

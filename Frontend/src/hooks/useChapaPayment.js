@@ -9,6 +9,7 @@ import {
     CHAPA_BACKEND_CALLBACK_URL,
 } from '../api/api';
 import { getApiError } from '../api/client';
+import { getParkingOfficerRoutePath } from '../utils/rolePaths';
 import { useChapaInlineCheckout } from './useChapaInlineCheckout';
 import {
     buildStandardChapaConfig,
@@ -26,7 +27,7 @@ import {
 import {
     PACKAGE_DURATIONS,
     calculatePackageFee,
-} from '../pages/valet/registerCarModules/registerCarUtils';
+} from '../pages/parkingOfficer/registerCarModules/registerCarUtils';
 
 const verifyPackageWithRetry = async (txRef, token, maxAttempts = 10, delayMs = 1200) => {
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -377,7 +378,7 @@ export const useChapaPayment = ({
                         phoneNumber: formData.phoneNumber,
                         description: `${validatedDuration} parking package`,
                         callbackUrl: CHAPA_BACKEND_CALLBACK_URL,
-                        returnUrl: `${window.location.origin}/valet/register-car`,
+                        returnUrl: `${window.location.origin}${getParkingOfficerRoutePath('register-car')}`,
                         customizations: { buttonText: 'Pay Now' },
                         callbacks: {
                             onSuccessfulPayment: async () => {
@@ -406,7 +407,7 @@ export const useChapaPayment = ({
                                     queuePaymentSuccess({
                                         message: t('valet.packagePaymentSuccessful'),
                                         amount: feeInfo.totalWithVat,
-                                        navigateTo: '/valet/dashboard',
+                                        navigateTo: getParkingOfficerRoutePath('dashboard'),
                                     });
                                 } catch (verifyErr) {
                                     reportError(

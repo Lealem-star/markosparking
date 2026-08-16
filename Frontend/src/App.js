@@ -5,18 +5,19 @@ import { Layout, NoPage, Register, GroupChat, FlaggedCustomers } from './pages/s
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Settings from './pages/admin/Settings';
 import Reports from './pages/admin/Reports';
-import ValetDashboard from './pages/valet/ValetDashboard';
-import ValetOverview from './pages/valet/ValetOverview';
-import RegisterCar from './pages/valet/RegisterCar';
-import ParkedCarsList from './pages/valet/ParkedCarsList';
-import Profile from './pages/valet/Profile';
+import ParkingOfficerDashboard from './pages/parkingOfficer/ParkingOfficerDashboard';
+import ParkingOfficerOverview from './pages/parkingOfficer/ParkingOfficerOverview';
+import RegisterCar from './pages/parkingOfficer/RegisterCar';
+import ParkedCarsList from './pages/parkingOfficer/ParkedCarsList';
+import Profile from './pages/parkingOfficer/Profile';
 import PaymentSuccessHost from './components/PaymentSuccessHost/PaymentSuccessHost';
 import StaffRouteGuard from './components/auth/StaffRouteGuard';
 import { syncLanguageWithUser } from './utils/languageSync';
 import { useCurrentUser } from './hooks/useAuth';
-import { STAFF_PORTAL_PREFIXES } from './utils/rolePaths';
+import { STAFF_PORTAL_PREFIXES, PARKING_OFFICER_PORTAL_PREFIX } from './utils/rolePaths';
 import {
   LegacyPaymentRedirect,
+  LegacyPrefixRedirect,
   LegacyStaffRedirect,
   LegacyUsersRedirect,
   PublicRoute,
@@ -25,14 +26,12 @@ import {
 import {
   StaffDashboardPage,
   StaffUsersPage,
-  StaffValetsPage,
+  StaffParkingOfficersPage,
   StaffAttendancePage,
   StaffIncidentsPage,
   StaffAuditLogsPage,
   StaffTransactionsPage,
   StaffFinanceAuditLogsPage,
-  StaffReconciliationsPage,
-  StaffShiftClosePage,
 } from './routes/staffPortalPages';
 
 const staffPortalRoutes = (prefix) => (
@@ -58,11 +57,12 @@ const staffPortalRoutes = (prefix) => (
       path="users"
       element={<StaffUsersPage />}
     />
+    <Route path="valets" element={<Navigate to="parking-officers" replace />} />
     <Route
-      path="valets"
+      path="parking-officers"
       element={
-        <StaffRouteGuard permission="valets">
-          <StaffValetsPage />
+        <StaffRouteGuard permission="parkingOfficers">
+          <StaffParkingOfficersPage />
         </StaffRouteGuard>
       }
     />
@@ -115,26 +115,10 @@ const staffPortalRoutes = (prefix) => (
       }
     />
     <Route
-      path="reconciliations"
-      element={
-        <StaffRouteGuard permission="reconciliations">
-          <StaffReconciliationsPage />
-        </StaffRouteGuard>
-      }
-    />
-    <Route
       path="finance-audit-logs"
       element={
         <StaffRouteGuard permission="financeAuditLogs">
           <StaffFinanceAuditLogsPage />
-        </StaffRouteGuard>
-      }
-    />
-    <Route
-      path="shift-close"
-      element={
-        <StaffRouteGuard permission="shiftClose">
-          <StaffShiftClosePage />
         </StaffRouteGuard>
       }
     />
@@ -181,15 +165,17 @@ function App() {
           </Route>
         ))}
         <Route path="/admin/*" element={<LegacyStaffRedirect />} />
-        <Route path="/valet" element={<ValetDashboard />}>
+        <Route path={`/${PARKING_OFFICER_PORTAL_PREFIX}`} element={<ParkingOfficerDashboard />}>
           <Route index element={<ParkedCarsList />} />
           <Route path="dashboard" element={<ParkedCarsList />} />
           <Route path="register-car" element={<RegisterCar />} />
-          <Route path="cars" element={<ValetOverview />} />
+          <Route path="cars" element={<ParkingOfficerOverview />} />
           <Route path="profile" element={<Profile />} />
           <Route path="chat" element={<GroupChat />} />
           <Route path="flagged-customers" element={<FlaggedCustomers />} />
         </Route>
+        <Route path="/valet/*" element={<LegacyPrefixRedirect />} />
+        <Route path="/director/*" element={<LegacyPrefixRedirect />} />
         <Route path="login" element={<Navigate to="/" replace />} />
         <Route
           path="register"

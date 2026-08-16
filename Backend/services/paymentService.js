@@ -6,6 +6,7 @@ const { buildFlaggedCustomerError } = require('./pricingService');
 const { reverseCalculateVAT, getVATRate } = require('../utils/vatCalculator');
 const { logAudit } = require('./auditLogService');
 const { AUDIT_ACTIONS } = require('../constants/auditActions');
+const { ROLES } = require('../constants/roles');
 const {
     CHAPA_PUBLIC_KEY,
     isChapaConfigured,
@@ -253,8 +254,8 @@ const initializeParkingPayment = async (carId) => {
 };
 
 const initializePackagePayment = async ({ valetUser, amount, packageDuration, customerPhone, carData }) => {
-    if (!valetUser || valetUser.type !== 'valet') {
-        throw new AppError('Only valets can initialize package payments', 403);
+    if (!valetUser || valetUser.type !== ROLES.VALET) {
+        throw new AppError('Only parking officers can initialize package payments', 403);
     }
 
     const licensePlate = `${carData.plateCode}-${carData.region}-${carData.licensePlateNumber}`.toUpperCase();

@@ -1,9 +1,9 @@
 const ROLES = Object.freeze({
     SYSTEM_ADMIN: 'system_admin',
-    DIRECTOR: 'director',
+    DIRECTOR: 'parking_manager',
     SUPERVISOR: 'supervisor',
     FINANCE_OFFICER: 'finance_officer',
-    VALET: 'valet',
+    VALET: 'parking_officer',
 });
 
 const ALL_USER_TYPES = Object.values(ROLES);
@@ -66,6 +66,7 @@ const CREATABLE_BY = Object.freeze({
 });
 
 const VALET_ROLE = ROLES.VALET;
+const PARKING_OFFICER_ROLE = ROLES.VALET;
 
 /** Wildcard park zone code — supervisors with this value can access all zones */
 const ALL_ZONES_CODE = '*';
@@ -104,15 +105,17 @@ const supervisorCoversZone = (supervisorZone, targetZone) => {
 const LEGACY_ROLE_MAP = Object.freeze({
     manager: ROLES.DIRECTOR,
     admin: ROLES.FINANCE_OFFICER,
+    director: ROLES.DIRECTOR,
+    valet: ROLES.VALET,
 });
 
 /** English display names for API errors and logs */
 const ROLE_DISPLAY_NAMES = Object.freeze({
     [ROLES.SYSTEM_ADMIN]: 'System Admin',
-    [ROLES.DIRECTOR]: 'Bahir Dar City Administration',
+    [ROLES.DIRECTOR]: 'Parking Manager',
     [ROLES.SUPERVISOR]: 'Parking Supervisor',
     [ROLES.FINANCE_OFFICER]: 'Finance Officer',
-    [ROLES.VALET]: 'Valet Attendant',
+    [ROLES.VALET]: 'Parking Officer',
 });
 
 const normalizeRole = (type) => LEGACY_ROLE_MAP[type] || type;
@@ -209,4 +212,6 @@ module.exports = {
     canCreateRole,
     canManageUser,
     assertCanManageUser,
+    VALET_ROLE,
+    PARKING_OFFICER_ROLE,
 };

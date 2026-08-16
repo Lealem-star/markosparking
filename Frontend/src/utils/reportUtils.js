@@ -1,5 +1,5 @@
 import { EthiopianDateUtil } from 'habesha-datepicker';
-import { getRoleDisplayName } from '../constants/roles';
+import { getRoleDisplayName, ROLES, STAFF_SHELL_ROLES, normalizeRole } from '../constants/roles';
 
 export const formatReportCurrency = (amount) =>
     new Intl.NumberFormat('en-ET', {
@@ -35,9 +35,9 @@ export const partitionUsersReport = (usersByType = []) => {
     const administrativeUsers = [];
 
     usersByType.forEach((typeGroup) => {
-        if (typeGroup.type === 'valet') {
+        if (typeGroup.type === ROLES.VALET) {
             valetUsers.push(...typeGroup.users);
-        } else if (['system_admin', 'director', 'supervisor', 'finance_officer'].includes(typeGroup.type)) {
+        } else if (STAFF_SHELL_ROLES.includes(normalizeRole(typeGroup.type))) {
             administrativeUsers.push(...typeGroup.users.map((entry) => ({
                 ...entry,
                 role: getRoleDisplayName(typeGroup.type),

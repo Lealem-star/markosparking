@@ -7,7 +7,7 @@ import { useParkZonesQuery, useAttendanceSessionQuery } from '../../hooks/querie
 import { getApiError } from '../../api/client';
 import { getStaffRoutePath } from '../../utils/rolePaths';
 import DashboardContentLoader from '../../components/loading/DashboardContentLoader';
-import SupervisorValetTable from './SupervisorValetTable';
+import SupervisorParkingOfficerTable from './SupervisorParkingOfficerTable';
 import {
     attachZoneLabels,
     ATTENDANCE_SESSIONS,
@@ -59,8 +59,8 @@ const SessionAttendancePanel = ({ sessionKey, session, parkZones, t }) => {
                         <h3>{t('supervisor.attendedToday')}</h3>
                         <span className="supervisor-panel-count">{attended.length}</span>
                     </header>
-                    <SupervisorValetTable
-                        valets={attended}
+                    <SupervisorParkingOfficerTable
+                        officers={attended}
                         parkZones={parkZones}
                         t={t}
                         emptyMessage={t('supervisor.noAttendedValets')}
@@ -73,8 +73,8 @@ const SessionAttendancePanel = ({ sessionKey, session, parkZones, t }) => {
                         <h3>{t('supervisor.absentToday')}</h3>
                         <span className="supervisor-panel-count">{absent.length}</span>
                     </header>
-                    <SupervisorValetTable
-                        valets={absent}
+                    <SupervisorParkingOfficerTable
+                        officers={absent}
                         parkZones={parkZones}
                         t={t}
                         emptyMessage={t('supervisor.noAbsentValets')}
