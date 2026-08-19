@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText, DollarSign, Users } from 'lucide-react';
 import { useCurrentUser } from '../../hooks/useAuth';
@@ -23,6 +23,12 @@ const Reports = () => {
         [allowedTabIds]
     );
     const [activeTab, setActiveTab] = useState(() => tabs[0]?.id || 'financial');
+
+    useEffect(() => {
+        if (tabs.length > 0 && !tabs.some((tab) => tab.id === activeTab)) {
+            setActiveTab(tabs[0].id);
+        }
+    }, [tabs, activeTab]);
 
     const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || FinancialReports;
 

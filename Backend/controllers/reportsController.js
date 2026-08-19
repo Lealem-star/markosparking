@@ -1,5 +1,5 @@
 const reportService = require('../services/reportService');
-const { adminReportAccess, systemAdminOnly } = require('../middleware/reportAccess');
+const { adminReportAccess, systemAdminOnly, parkingManagerReportAccess } = require('../middleware/reportAccess');
 
 const wrap = (fn) => async (req, res) => {
     const data = await reportService[fn](req.query);
@@ -9,6 +9,7 @@ const wrap = (fn) => async (req, res) => {
 module.exports = {
     adminReportAccess,
     systemAdminOnly,
+    parkingManagerReportAccess,
     getFinancialDaily: wrap('getFinancialDaily'),
     getFinancialPeriod: wrap('getFinancialPeriod'),
     getFinancialPlateCode: wrap('getFinancialPlateCode'),

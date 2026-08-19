@@ -116,8 +116,19 @@ export const useChapaPayment = ({
         if (!force && loading) return;
         cleanup();
         setShowPaymentFormModal(false);
+        setLoading(false);
         if (onPaymentClosed) onPaymentClosed();
-    }, [cleanup, loading, setShowPaymentFormModal, onPaymentClosed]);
+    }, [cleanup, loading, setShowPaymentFormModal, setLoading, onPaymentClosed]);
+
+    /** Close payment modal first, then show error so the banner is not hidden behind the overlay. */
+    const dismissPaymentAndReportError = useCallback((storageKey, message) => {
+        if (storageKey) clearChapaStorageKey(storageKey);
+        cleanup();
+        setShowPaymentFormModal(false);
+        setLoading(false);
+        if (onPaymentClosed) onPaymentClosed();
+        window.setTimeout(() => reportError(onError, message), 150);
+    }, [cleanup, setShowPaymentFormModal, setLoading, onPaymentClosed, onError]);
 
     const openCheckout = useCallback(async (chapaConfig) => {
         setShowPaymentFormModal(true);
@@ -252,13 +263,10 @@ export const useChapaPayment = ({
                         }
                     },
                     onPaymentFailure: (paymentError) => {
-                        clearChapaStorageKey(storageKey);
-                        cleanup();
                         const message = isFlagged
                             ? `${t?.('messages.error') || 'Error'}: ${t?.('valet.paymentFailed') || 'Payment failed'}`
                             : `Payment failed: ${formatChapaPaymentFailureMessage(paymentError, car.phoneNumber)}`;
-                        reportError(onError, message);
-                        setLoading(false);
+                        dismissPaymentAndReportError(storageKey, message);
                     },
                     onClose: () => {
                         setShowPaymentFormModal(false);
@@ -273,9 +281,10 @@ export const useChapaPayment = ({
 
             await openCheckout(chapaConfig);
         } catch (error) {
-            reportError(onError, getApiError(error, 'An error occurred. Please try again.'));
-            setShowPaymentFormModal(false);
-            setLoading(false);
+            dismissPaymentAndReportError(
+                null,
+                getApiError(error, 'An error occurred. Please try again.')
+            );
         }
     }, [
         user?.token,
@@ -289,6 +298,7 @@ export const useChapaPayment = ({
         openCheckout,
         returnUrl,
         t,
+        dismissPaymentAndReportError,
     ]);
 
     const startPackageFlow = useCallback(async (duration) => {
@@ -410,19 +420,20 @@ export const useChapaPayment = ({
                                         navigateTo: getParkingOfficerRoutePath('dashboard'),
                                     });
                                 } catch (verifyErr) {
-                                    reportError(
-                                        onError,
+                                    dismissPaymentAndReportError(
+                                        `chapa_payment_pkg_${txRef}`,
                                         verifyErr?.message || 'Payment succeeded but verification is still pending. Please wait and refresh.'
                                     );
-                                    setLoading(false);
                                 }
                             },
                             onPaymentFailure: (err) => {
                                 const errorMessage = err?.message
                                     || (typeof err === 'string' ? err : err?.error)
                                     || 'Please try again';
-                                reportError(onError, `Payment failed: ${errorMessage}`);
-                                setLoading(false);
+                                dismissPaymentAndReportError(
+                                    `chapa_payment_pkg_${txRef}`,
+                                    `Payment failed: ${errorMessage}`
+                                );
                             },
                             onClose: () => {
                                 closePayment();
@@ -437,15 +448,18 @@ export const useChapaPayment = ({
                     await openCheckout(chapaConfig);
                 } catch (inlineErr) {
                     console.error('Package inline payment init error:', inlineErr);
-                    reportError(onError, 'Failed to load payment form. Please try again.');
-                    setShowPaymentFormModal(false);
-                    setLoading(false);
+                    dismissPaymentAndReportError(
+                        txRef ? `chapa_payment_pkg_${txRef}` : null,
+                        'Failed to load payment form. Please try again.'
+                    );
                 }
             }, 100);
         } catch (err) {
             console.error('startPackageFlow error:', err);
-            reportError(onError, getApiError(err, 'Failed to start package payment'));
-            setLoading(false);
+            dismissPaymentAndReportError(
+                null,
+                getApiError(err, 'Failed to start package payment')
+            );
         }
     }, [
         user,
@@ -460,6 +474,7 @@ export const useChapaPayment = ({
         onPaymentInitialized,
         closePayment,
         openCheckout,
+        dismissPaymentAndReportError,
     ]);
 
     const startPayment = useCallback(async (params) => {

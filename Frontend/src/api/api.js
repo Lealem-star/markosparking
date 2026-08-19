@@ -49,6 +49,7 @@ export {
 } from './parkZoneApi';
 export {
     getAttendanceSession,
+    getAttendancePeriodReport,
     updateAttendanceStatus,
     finishAttendanceSession,
 } from './attendanceApi';

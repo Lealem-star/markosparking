@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     finishAttendanceSession,
     getAttendanceSession,
+    getAttendancePeriodReport,
     updateAttendanceStatus,
 } from '../../api/api';
 import { queryKeys } from '../../api/queryKeys';
@@ -12,6 +13,14 @@ export const useAttendanceSessionQuery = (token, date, session = DEFAULT_ATTENDA
         queryKey: queryKeys.attendance(token, date, session),
         queryFn: () => getAttendanceSession(token, { date, session }),
         enabled: Boolean(token) && options.enabled !== false,
+        ...options,
+    });
+
+export const useAttendancePeriodReportQuery = (token, filters = {}, options = {}) =>
+    useQuery({
+        queryKey: queryKeys.attendancePeriodReport(token, filters),
+        queryFn: () => getAttendancePeriodReport(token, filters),
+        enabled: Boolean(token) && Boolean(filters.startDate) && Boolean(filters.endDate) && options.enabled !== false,
         ...options,
     });
 

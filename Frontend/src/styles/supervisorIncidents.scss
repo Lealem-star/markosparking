@@ -5,6 +5,10 @@
     flex-direction: column;
     gap: 1rem;
     color: #0f172a;
+
+    &--report {
+        padding-bottom: 0;
+    }
 }
 
 .supervisor-incidents__header {

@@ -10,7 +10,7 @@ router.get(
     '/',
     isLoggedIn,
     attachCurrentUser,
-    requireRoles(ROLES.SUPERVISOR),
+    requireRoles(ROLES.SUPERVISOR, ROLES.DIRECTOR, ROLES.SYSTEM_ADMIN),
     validate(incidentController.listSchema, 'query'),
     asyncHandler(incidentController.list)
 );

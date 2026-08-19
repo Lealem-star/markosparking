@@ -33,7 +33,7 @@ const STAT_CARD_CONFIG = [
     { key: 'resolved', labelKey: 'supervisor.incidentStatsResolved', modifier: 'resolved' },
 ];
 
-const SupervisorIncidents = () => {
+const SupervisorIncidents = ({ reportMode = false }) => {
     const { t, i18n } = useTranslation();
     const user = useCurrentUser();
 
@@ -63,7 +63,7 @@ const SupervisorIncidents = () => {
         error: loadError,
     } = useIncidentsQuery(user?.token, filters);
 
-    const { data: users = [] } = useUsersQuery(user?.token);
+    const { data: users = [] } = useUsersQuery(user?.token, { enabled: !reportMode });
     const createMutation = useCreateIncidentMutation(user?.token, filters);
     const assignMutation = useAssignIncidentMutation(user?.token, filters);
     const resolveMutation = useResolveIncidentMutation(user?.token, filters);
@@ -110,24 +110,26 @@ const SupervisorIncidents = () => {
         : actionError;
 
     return (
-        <div className="supervisor-incidents">
+        <div className={`supervisor-incidents${reportMode ? ' supervisor-incidents--report' : ''}`}>
             {errorMessage && (
                 <div className="supervisor-alert supervisor-alert--error">{errorMessage}</div>
             )}
 
             <header className="supervisor-incidents__header">
                 <div>
-                    <h1>{t('supervisor.incidents')}</h1>
-                    <p>{t('supervisor.incidentsSubtitle')}</p>
+                    <h1>{t(reportMode ? 'reports.incidentReports' : 'supervisor.incidents')}</h1>
+                    <p>{t(reportMode ? 'reports.incidentReportsSubtitle' : 'supervisor.incidentsSubtitle')}</p>
                 </div>
-                <button
-                    type="button"
-                    className="incident-btn incident-btn--primary"
-                    onClick={() => setShowCreateModal(true)}
-                >
-                    <Plus size={18} />
-                    {t('supervisor.createIncident')}
-                </button>
+                {!reportMode && (
+                    <button
+                        type="button"
+                        className="incident-btn incident-btn--primary"
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                        <Plus size={18} />
+                        {t('supervisor.createIncident')}
+                    </button>
+                )}
             </header>
 
             <div className="supervisor-incidents__stats">
@@ -176,7 +178,7 @@ const SupervisorIncidents = () => {
                     ))}
                 </select>
 
-                {(data?.assignedZones || []).length > 1 && (
+                {(data?.assignedZones || []).length > (reportMode ? 0 : 1) && (
                     <select
                         className="supervisor-zone-filter"
                         value={zoneFilter}
@@ -237,64 +239,70 @@ const SupervisorIncidents = () => {
                                     </p>
                                 )}
 
-                                <div className="incident-card__actions">
-                                    {canAssign && (
-                                        <button
-                                            type="button"
-                                            className="incident-btn incident-btn--secondary"
-                                            onClick={() => setAssignTarget(incident)}
-                                        >
-                                            <UserPlus size={16} />
-                                            {incident.status === 'assigned'
-                                                ? t('supervisor.reassignOfficer')
-                                                : t('supervisor.assignOfficer')}
-                                        </button>
-                                    )}
-                                    {canResolve && (
-                                        <button
-                                            type="button"
-                                            className="incident-btn incident-btn--success"
-                                            onClick={() => setResolveTarget(incident)}
-                                        >
-                                            <CheckCircle2 size={16} />
-                                            {t('supervisor.resolveIncident')}
-                                        </button>
-                                    )}
-                                </div>
+                                {!reportMode && (
+                                    <div className="incident-card__actions">
+                                        {canAssign && (
+                                            <button
+                                                type="button"
+                                                className="incident-btn incident-btn--secondary"
+                                                onClick={() => setAssignTarget(incident)}
+                                            >
+                                                <UserPlus size={16} />
+                                                {incident.status === 'assigned'
+                                                    ? t('supervisor.reassignOfficer')
+                                                    : t('supervisor.assignOfficer')}
+                                            </button>
+                                        )}
+                                        {canResolve && (
+                                            <button
+                                                type="button"
+                                                className="incident-btn incident-btn--success"
+                                                onClick={() => setResolveTarget(incident)}
+                                            >
+                                                <CheckCircle2 size={16} />
+                                                {t('supervisor.resolveIncident')}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </article>
                         );
                     })
                 )}
             </div>
 
-            <CreateIncidentModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onSubmit={handleCreate}
-                assignedZones={data?.assignedZones || []}
-                defaultZone={defaultZone}
-                isSaving={createMutation.isPending}
-                t={t}
-            />
+            {!reportMode && (
+                <>
+                    <CreateIncidentModal
+                        isOpen={showCreateModal}
+                        onClose={() => setShowCreateModal(false)}
+                        onSubmit={handleCreate}
+                        assignedZones={data?.assignedZones || []}
+                        defaultZone={defaultZone}
+                        isSaving={createMutation.isPending}
+                        t={t}
+                    />
 
-            <AssignIncidentModal
-                isOpen={Boolean(assignTarget)}
-                onClose={() => setAssignTarget(null)}
-                incident={assignTarget}
-                officers={assignOfficers}
-                onSubmit={handleAssign}
-                isSaving={assignMutation.isPending}
-                t={t}
-            />
+                    <AssignIncidentModal
+                        isOpen={Boolean(assignTarget)}
+                        onClose={() => setAssignTarget(null)}
+                        incident={assignTarget}
+                        officers={assignOfficers}
+                        onSubmit={handleAssign}
+                        isSaving={assignMutation.isPending}
+                        t={t}
+                    />
 
-            <ResolveIncidentModal
-                isOpen={Boolean(resolveTarget)}
-                onClose={() => setResolveTarget(null)}
-                incident={resolveTarget}
-                onSubmit={handleResolve}
-                isSaving={resolveMutation.isPending}
-                t={t}
-            />
+                    <ResolveIncidentModal
+                        isOpen={Boolean(resolveTarget)}
+                        onClose={() => setResolveTarget(null)}
+                        incident={resolveTarget}
+                        onSubmit={handleResolve}
+                        isSaving={resolveMutation.isPending}
+                        t={t}
+                    />
+                </>
+            )}
         </div>
     );
 };

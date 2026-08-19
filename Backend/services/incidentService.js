@@ -8,7 +8,26 @@ const {
     isAllZonesCode,
     getSupervisorZoneList,
     supervisorCoversZone,
+    normalizeRole,
 } = require('../constants/roles');
+
+const INCIDENT_VIEW_ROLES = [
+    ROLES.SUPERVISOR,
+    ROLES.DIRECTOR,
+    ROLES.SYSTEM_ADMIN,
+];
+
+const hasOfficeWideIncidentView = (user) => {
+    const role = normalizeRole(user?.type);
+    return role === ROLES.DIRECTOR || role === ROLES.SYSTEM_ADMIN;
+};
+
+const assertCanViewIncidents = (user) => {
+    const role = normalizeRole(user?.type);
+    if (!INCIDENT_VIEW_ROLES.includes(role)) {
+        throw new AppError('Access denied', 403);
+    }
+};
 
 const populateIncident = (query) => query
     .populate('createdBy', 'name phoneNumber type')
@@ -35,6 +54,16 @@ const assertZoneInSupervisorScope = (supervisor, zoneCode) => {
     if (!supervisorCoversZone(supervisor.parkZoneCode, zoneCode)) {
         throw new AppError('Zone is not in your assigned areas', 403);
     }
+};
+
+const buildZoneFilterForUser = (user, zoneCode) => {
+    if (hasOfficeWideIncidentView(user)) {
+        if (zoneCode && zoneCode !== 'all') {
+            return { parkZoneCode: zoneCode.trim() };
+        }
+        return {};
+    }
+    return buildZoneFilterForSupervisor(user, zoneCode);
 };
 
 const buildZoneFilterForSupervisor = (supervisor, zoneCode) => {
@@ -97,10 +126,10 @@ const findIncidentForSupervisor = async (supervisor, incidentId) => {
     return incident;
 };
 
-const listIncidents = async (supervisor, { status, type, zone, search } = {}) => {
-    assertSupervisor(supervisor);
+const listIncidents = async (user, { status, type, zone, search } = {}) => {
+    assertCanViewIncidents(user);
 
-    const query = buildZoneFilterForSupervisor(supervisor, zone);
+    const query = buildZoneFilterForUser(user, zone);
 
     if (status && status !== 'all') {
         query.status = status;
@@ -140,7 +169,9 @@ const listIncidents = async (supervisor, { status, type, zone, search } = {}) =>
         { total: 0, open: 0, assigned: 0, resolved: 0 }
     );
 
-    const supervisorZones = getSupervisorZoneCodes(supervisor);
+    const supervisorZones = hasOfficeWideIncidentView(user)
+        ? null
+        : getSupervisorZoneCodes(user);
     const allZones = await ParkZone.find({ isActive: { $ne: false } }).select('code name');
     const assignedZones = supervisorZones === null
         ? allZones.map((z) => ({

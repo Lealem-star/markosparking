@@ -35,6 +35,31 @@
         align-items: center;
         gap: 0.4rem;
     }
+
+    .supervisor-attendance__date-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        input[type='date'] {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0.35rem 0.5rem;
+            font: inherit;
+            color: #0f172a;
+            background: #fff;
+        }
+    }
+}
+
+.supervisor-attendance__report-note {
+    margin: 0.5rem 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.supervisor-attendance--report {
+    padding-bottom: 1rem;
 }
 
 .supervisor-attendance__progress {

@@ -36,14 +36,37 @@ export const STATUS_BADGE_CLASS = Object.freeze({
 
 const ETHIOPIA_UTC_OFFSET_HOURS = 3;
 
-export const getTodayDateKey = () => {
-    const now = new Date();
-    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+export const toEthiopiaDateKey = (value = new Date()) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const utcMs = date.getTime() + date.getTimezoneOffset() * 60000;
     const ethiopia = new Date(utcMs + ETHIOPIA_UTC_OFFSET_HOURS * 3600000);
     const year = ethiopia.getFullYear();
     const month = String(ethiopia.getMonth() + 1).padStart(2, '0');
     const day = String(ethiopia.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+};
+
+export const getTodayDateKey = () => toEthiopiaDateKey(new Date());
+
+export const isOnEthiopiaDate = (value, dateKey = getTodayDateKey()) =>
+    Boolean(value) && toEthiopiaDateKey(value) === dateKey;
+
+export const shiftDateKey = (dateKey, deltaDays) => {
+    const [year, month, day] = (dateKey || getTodayDateKey()).split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    date.setUTCDate(date.getUTCDate() + deltaDays);
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+};
+
+export const getAttendancePeriodPresets = () => {
+    const today = getTodayDateKey();
+    return {
+        last7: { start: shiftDateKey(today, -6), end: today },
+        last30: { start: shiftDateKey(today, -29), end: today },
+        thisMonth: { start: `${today.slice(0, 7)}-01`, end: today },
+    };
 };
 
 export const formatDisplayDate = (dateKey, locale = undefined) => {
@@ -213,3 +236,36 @@ export const partitionOfficersByAttendance = (officers = []) =>
         },
         { attended: [], absent: [], notMarked: [] }
     );
+
+export const summarizeDailyAttendance = (...officerLists) => {
+    const byId = new Map();
+
+    officerLists.flat().forEach((officer) => {
+        if (!officer?._id) return;
+        const id = String(officer._id);
+        if (!byId.has(id)) {
+            byId.set(id, { attended: false, absent: false });
+        }
+
+        const status = officer.status || ATTENDANCE_STATUS.NOT_MARKED;
+        const entry = byId.get(id);
+        if (ATTENDED_DASHBOARD_STATUSES.has(status)) {
+            entry.attended = true;
+        } else if (status === ATTENDANCE_STATUS.ABSENT) {
+            entry.absent = true;
+        }
+    });
+
+    let present = 0;
+    let absent = 0;
+
+    byId.forEach((entry) => {
+        if (entry.attended) {
+            present += 1;
+        } else if (entry.absent) {
+            absent += 1;
+        }
+    });
+
+    return { present, absent };
+};

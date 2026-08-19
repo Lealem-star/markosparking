@@ -25,24 +25,16 @@ import {
 } from './attendanceUtils';
 import '../../styles/supervisorAttendance.scss';
 
-const STAT_CARD_CONFIG = [
-    { key: 'expected', labelKey: 'supervisor.statsExpected', modifier: 'expected' },
-    { key: 'present', labelKey: 'supervisor.statsPresent', modifier: 'present' },
-    { key: 'late', labelKey: 'supervisor.statsLate', modifier: 'late' },
-    { key: 'leave', labelKey: 'supervisor.statsLeave', modifier: 'leave' },
-    { key: 'absent', labelKey: 'supervisor.statsAbsent', modifier: 'absent' },
-    { key: 'notMarked', labelKey: 'supervisor.statsNotMarked', modifier: 'not-marked' },
-];
-
 const SESSION_ICONS = {
     morning: Sun,
     afternoon: Sunset,
 };
 
-const SupervisorAttendance = () => {
+const SupervisorAttendance = ({ reportMode = false }) => {
     const { t, i18n } = useTranslation();
     const user = useCurrentUser();
-    const dateKey = getTodayDateKey();
+    const [selectedDate, setSelectedDate] = useState(getTodayDateKey());
+    const dateKey = reportMode ? selectedDate : getTodayDateKey();
 
     const [attendanceSession, setAttendanceSession] = useState(DEFAULT_ATTENDANCE_SESSION);
     const [searchQuery, setSearchQuery] = useState('');
@@ -149,26 +141,42 @@ const SupervisorAttendance = () => {
         : actionError;
 
     return (
-        <div className="supervisor-attendance">
+        <div className={`supervisor-attendance${reportMode ? ' supervisor-attendance--report' : ''}`}>
             {errorMessage && (
                 <div className="supervisor-alert supervisor-alert--error">{errorMessage}</div>
             )}
 
             <header className="supervisor-attendance__top">
                 <div>
-                    <h1>{t('supervisor.attendanceTitle')}</h1>
+                    <h1>{t(reportMode ? 'reports.attendanceReports' : 'supervisor.attendanceTitle')}</h1>
                     <div className="supervisor-attendance__meta">
-                        <span>
-                            <CalendarDays size={16} />
-                            {formatDisplayDate(session?.date || dateKey, i18n.language)}
-                        </span>
+                        {reportMode ? (
+                            <label className="supervisor-attendance__date-picker">
+                                <CalendarDays size={16} />
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(event) => setSelectedDate(event.target.value)}
+                                />
+                            </label>
+                        ) : (
+                            <span>
+                                <CalendarDays size={16} />
+                                {formatDisplayDate(session?.date || dateKey, i18n.language)}
+                            </span>
+                        )}
                         {assignedZoneSummary && (
                             <span>
                                 <MapPin size={16} />
-                                {assignedZoneSummary}
+                                {reportMode ? t('reports.allZones') : assignedZoneSummary}
                             </span>
                         )}
                     </div>
+                    {reportMode && (
+                        <p className="supervisor-attendance__report-note">
+                            {t('reports.attendanceReportsSubtitle')}
+                        </p>
+                    )}
                 </div>
 
                 <div className="supervisor-attendance__progress">
@@ -219,7 +227,7 @@ const SupervisorAttendance = () => {
                     />
                 </label>
 
-                {(session?.assignedZones || []).length > 1 && (
+                {(session?.assignedZones || []).length > (reportMode ? 0 : 1) && (
                     <select
                         className="supervisor-zone-filter"
                         value={zoneFilter}
@@ -248,15 +256,6 @@ const SupervisorAttendance = () => {
                 </select>
             </div>
 
-            <div className="supervisor-attendance__stats">
-                {STAT_CARD_CONFIG.map(({ key, labelKey, modifier }) => (
-                    <article key={key} className={`attendance-stat-card attendance-stat-card--${modifier}`}>
-                        <div className="attendance-stat-card__value">{stats[key] ?? 0}</div>
-                        <div className="attendance-stat-card__label">{t(labelKey)}</div>
-                    </article>
-                ))}
-            </div>
-
             <div className="supervisor-attendance__list">
                 {filteredGroups.length === 0 ? (
                     <div className="supervisor-empty-message">
@@ -275,8 +274,8 @@ const SupervisorAttendance = () => {
                                         key={officer._id}
                                         officer={officer}
                                         t={t}
-                                        disabled={!canEdit || updateStatusMutation.isPending}
-                                        onSelect={setSelectedOfficer}
+                                        disabled={reportMode || !canEdit || updateStatusMutation.isPending}
+                                        onSelect={reportMode ? undefined : setSelectedOfficer}
                                     />
                                 ))}
                             </div>
@@ -285,7 +284,7 @@ const SupervisorAttendance = () => {
                 )}
             </div>
 
-            {canEdit && (
+            {!reportMode && canEdit && (
                 <div className="supervisor-attendance__footer">
                     <button
                         type="button"
@@ -299,24 +298,28 @@ const SupervisorAttendance = () => {
                 </div>
             )}
 
-            <AttendanceStatusSheet
-                officer={selectedOfficer}
-                isOpen={Boolean(selectedOfficer)}
-                onClose={() => setSelectedOfficer(null)}
-                onSelectStatus={handleSelectStatus}
-                isSaving={updateStatusMutation.isPending}
-                t={t}
-            />
+            {!reportMode && (
+                <>
+                    <AttendanceStatusSheet
+                        officer={selectedOfficer}
+                        isOpen={Boolean(selectedOfficer)}
+                        onClose={() => setSelectedOfficer(null)}
+                        onSelectStatus={handleSelectStatus}
+                        isSaving={updateStatusMutation.isPending}
+                        t={t}
+                    />
 
-            <FinishAttendanceDialog
-                isOpen={showFinishDialog}
-                onClose={() => setShowFinishDialog(false)}
-                remainingCount={notMarkedCount}
-                onMarkRemainingAbsent={handleMarkRemainingAbsent}
-                onContinueEditing={() => setShowFinishDialog(false)}
-                t={t}
-                isSaving={finishMutation.isPending}
-            />
+                    <FinishAttendanceDialog
+                        isOpen={showFinishDialog}
+                        onClose={() => setShowFinishDialog(false)}
+                        remainingCount={notMarkedCount}
+                        onMarkRemainingAbsent={handleMarkRemainingAbsent}
+                        onContinueEditing={() => setShowFinishDialog(false)}
+                        t={t}
+                        isSaving={finishMutation.isPending}
+                    />
+                </>
+            )}
         </div>
     );
 };

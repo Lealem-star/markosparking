@@ -7,10 +7,19 @@ const attendanceController = require('../controllers/attendanceController');
 const router = Router();
 
 router.get(
+    '/report',
+    isLoggedIn,
+    attachCurrentUser,
+    requireRoles(ROLES.SUPERVISOR, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER, ROLES.SYSTEM_ADMIN),
+    validate(attendanceController.periodReportSchema, 'query'),
+    asyncHandler(attendanceController.getPeriodReport)
+);
+
+router.get(
     '/',
     isLoggedIn,
     attachCurrentUser,
-    requireRoles(ROLES.SUPERVISOR),
+    requireRoles(ROLES.SUPERVISOR, ROLES.DIRECTOR, ROLES.FINANCE_OFFICER, ROLES.SYSTEM_ADMIN),
     validate(attendanceController.getSessionSchema, 'query'),
     asyncHandler(attendanceController.getSession)
 );

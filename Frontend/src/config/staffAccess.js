@@ -30,6 +30,8 @@ export const STAFF_PERMISSIONS = Object.freeze({
     transactions: [ROLES.FINANCE_OFFICER],
     financeAuditLogs: [ROLES.FINANCE_OFFICER],
     chat: [ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR, ROLES.SUPERVISOR, ROLES.FINANCE_OFFICER],
+    incidentReports: [ROLES.DIRECTOR],
+    attendanceReports: [ROLES.DIRECTOR, ROLES.FINANCE_OFFICER],
 });
 
 export const REPORT_TAB_PERMISSIONS = Object.freeze({
@@ -56,6 +58,18 @@ const MENU_DEFINITIONS = [
         icon: FileText,
         labelKey: 'navigation.reports',
         segment: 'reports',
+    },
+    {
+        id: 'incidentReports',
+        icon: ShieldAlert,
+        labelKey: 'reports.incidentReports',
+        segment: 'incident-reports',
+    },
+    {
+        id: 'attendanceReports',
+        icon: ClipboardCheck,
+        labelKey: 'reports.attendanceReports',
+        segment: 'attendance-reports',
     },
     {
         id: 'transactions',

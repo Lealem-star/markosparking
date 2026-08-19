@@ -15,7 +15,7 @@ router.get('/operational/peak-hours', ...reportsController.adminReportAccess, as
 router.get('/operational/plate-code-distribution', ...reportsController.adminReportAccess, asyncHandler(reportsController.getOperationalPlateCodeDistribution));
 router.get('/customer/vehicle-history', ...reportsController.adminReportAccess, asyncHandler(reportsController.getCustomerVehicleHistory));
 router.get('/customer/activity', ...reportsController.adminReportAccess, asyncHandler(reportsController.getCustomerActivity));
-router.get('/administrative/users', ...reportsController.systemAdminOnly, asyncHandler(reportsController.getAdministrativeUsers));
+router.get('/administrative/users', ...reportsController.parkingManagerReportAccess, asyncHandler(reportsController.getAdministrativeUsers));
 router.get('/administrative/parking-officer-performance', ...reportsController.adminReportAccess, asyncHandler(reportsController.getAdministrativeParkingOfficerPerformance));
 router.get('/administrative/valet-performance', ...reportsController.adminReportAccess, asyncHandler(reportsController.getAdministrativeParkingOfficerPerformance));
 router.get('/compliance/transactions', ...reportsController.adminReportAccess, asyncHandler(reportsController.getComplianceTransactions));

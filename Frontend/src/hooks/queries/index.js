@@ -9,6 +9,7 @@ export { useParkZonesQuery, useInvalidateParkZones } from './useParkZonesQuery';
 export { useUsersQuery, useInvalidateUsers } from './useUsersQuery';
 export {
     useAttendanceSessionQuery,
+    useAttendancePeriodReportQuery,
     useUpdateAttendanceStatusMutation,
     useFinishAttendanceMutation,
 } from './useAttendanceQuery';

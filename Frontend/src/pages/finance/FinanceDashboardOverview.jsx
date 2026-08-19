@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     DollarSign,
-    Banknote,
     Smartphone,
     AlertTriangle,
     Receipt,
@@ -51,7 +50,6 @@ const FinanceDashboardOverview = () => {
     const financeStats = useMemo(() => {
         let totalRevenue = 0;
         let totalVat = 0;
-        let cashTotal = 0;
         let onlineTotal = 0;
         let transactionCount = 0;
 
@@ -65,15 +63,12 @@ const FinanceDashboardOverview = () => {
 
             if (car.paymentMethod === 'online') {
                 onlineTotal += paid;
-            } else {
-                cashTotal += paid;
             }
         });
 
         return {
             totalRevenue,
             totalVat,
-            cashTotal,
             onlineTotal,
             transactionCount,
         };
@@ -138,16 +133,6 @@ const FinanceDashboardOverview = () => {
                 <article className="stat-card stat-card--cars">
                     <div className="stat-card-body">
                         <div className="stat-icon">
-                            <Banknote size={20} />
-                        </div>
-                        <div className="stat-value">{financeStats.cashTotal.toFixed(2)}</div>
-                        <div className="stat-label">{t('finance.cashPayments')}</div>
-                    </div>
-                </article>
-
-                <article className="stat-card stat-card--cars">
-                    <div className="stat-card-body">
-                        <div className="stat-icon">
                             <Smartphone size={20} />
                         </div>
                         <div className="stat-value">{financeStats.onlineTotal.toFixed(2)}</div>
@@ -205,14 +190,6 @@ const FinanceDashboardOverview = () => {
                             <li>
                                 <span>{t('finance.paidCheckouts')}</span>
                                 <strong>{financeStats.transactionCount}</strong>
-                            </li>
-                            <li>
-                                <span>{t('finance.cashShare')}</span>
-                                <strong>
-                                    {financeStats.totalRevenue > 0
-                                        ? `${((financeStats.cashTotal / financeStats.totalRevenue) * 100).toFixed(0)}%`
-                                        : '—'}
-                                </strong>
                             </li>
                             <li>
                                 <span>{t('finance.onlineShare')}</span>

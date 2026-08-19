@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/
 import { pdf } from '@react-pdf/renderer';
 import { EthiopianDateUtil } from 'habesha-datepicker';
 import { getRoleDisplayName, ROLES, STAFF_SHELL_ROLES, normalizeRole } from '../constants/roles';
+import { formatReportEthiopianDate } from './reportUtils';
 
 // Register fonts for Amharic (Ethiopic script) support
 // @react-pdf/renderer requires TTF or OTF format fonts (not WOFF/WOFF2)
@@ -745,6 +746,176 @@ export const exportCustomerReportToPDF = async ({
         URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Error generating PDF:', error);
+        throw error;
+    }
+};
+
+const AttendanceReportPDF = ({ title, subtitle, summary, officers, dailyTrends, alerts, labels, logoBase64, policyTarget }) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    const renderHeader = () => (
+        <View style={styles.header}>
+            <View style={styles.logoContainer}>
+                {logoBase64 && <Image src={logoBase64} style={styles.logo} />}
+                <Text style={styles.companyName}>TanaPark</Text>
+            </View>
+            <Text style={styles.title}>{title}</Text>
+            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+            <Text style={styles.generatedDate}>Generated on: {dateStr}</Text>
+        </View>
+    );
+
+    return (
+        <Document>
+            <Page size="A4" style={styles.page}>
+                {renderHeader()}
+
+                <View style={styles.summary}>
+                    <Text style={styles.summaryTitle}>{labels.summary}</Text>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{labels.attendanceRate}:</Text>
+                        <Text style={styles.summaryValue}>{summary.attendanceRate ?? 0}%</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{labels.onTime}:</Text>
+                        <Text style={styles.summaryValue}>{summary.onTime ?? 0}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{labels.late}:</Text>
+                        <Text style={styles.summaryValue}>{summary.late ?? 0}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{labels.unexcusedAbsent}:</Text>
+                        <Text style={styles.summaryValue}>{summary.unexcusedAbsent ?? 0}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{labels.notMarked}:</Text>
+                        <Text style={styles.summaryValue}>{summary.notMarked ?? 0}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{labels.officers}:</Text>
+                        <Text style={styles.summaryValue}>{summary.officerCount ?? 0}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{labels.policyTarget}:</Text>
+                        <Text style={styles.summaryValue}>{policyTarget}%</Text>
+                    </View>
+                </View>
+
+                {alerts?.length > 0 && (
+                    <View style={{ marginTop: 10 }}>
+                        <Text style={styles.dateHeader}>{labels.attentionRequired}</Text>
+                        {alerts.map((alert, index) => (
+                            <View key={index} style={{ marginBottom: 6 }}>
+                                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#3c3c3c' }}>{alert.title}</Text>
+                                <Text style={{ fontSize: 9, color: '#646464' }}>{alert.subtitle}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
+                <View style={{ marginTop: 15 }}>
+                    <Text style={styles.dateHeader}>{labels.officerBreakdown}</Text>
+                    <View style={styles.tableHeader}>
+                        <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{labels.name}</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 0.9 }]}>{labels.zone}</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.onTime}</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.late}</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.absent}</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.notMarked}</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 0.6 }]}>{labels.rate}</Text>
+                    </View>
+                    {officers.map((officer, index) => (
+                        <View key={officer._id || index} style={[styles.tableRow, index % 2 === 1 && styles.tableRowEven]}>
+                            <Text style={[styles.tableCell, { flex: 1 }]}>{officer.name || 'N/A'}</Text>
+                            <Text style={[styles.tableCell, { flex: 0.9 }]}>{officer.zoneLabel || officer.parkZoneCode || 'N/A'}</Text>
+                            <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{officer.onTime ?? 0}</Text>
+                            <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{officer.late ?? 0}</Text>
+                            <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{officer.unexcusedAbsent ?? 0}</Text>
+                            <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{officer.notMarked ?? 0}</Text>
+                            <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.6 }]}>{officer.attendanceRate ?? 0}%</Text>
+                        </View>
+                    ))}
+                </View>
+
+                <Text style={styles.footer}>TanaPark - Professional Parking Management System</Text>
+            </Page>
+
+            {dailyTrends?.length > 0 && (
+                <Page size="A4" style={styles.page}>
+                    {renderHeader()}
+                    <View style={{ marginTop: 10 }}>
+                        <Text style={styles.dateHeader}>{labels.dailySummary}</Text>
+                        <View style={styles.tableHeader}>
+                            <Text style={[styles.tableHeaderCell, { flex: 0.8 }]}>{labels.date}</Text>
+                            <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.present}</Text>
+                            <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.late}</Text>
+                            <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.absent}</Text>
+                            <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{labels.notMarked}</Text>
+                            <Text style={[styles.tableHeaderCell, { flex: 0.6 }]}>{labels.rate}</Text>
+                        </View>
+                        {dailyTrends.map((day, index) => (
+                            <View key={day.dateKey || index} style={[styles.tableRow, index % 2 === 1 && styles.tableRowEven]}>
+                                <Text style={[styles.tableCell, { flex: 0.8 }]}>{formatReportEthiopianDate(day.dateKey)}</Text>
+                                <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{day.present ?? 0}</Text>
+                                <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{day.late ?? 0}</Text>
+                                <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{day.absent ?? 0}</Text>
+                                <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.5 }]}>{day.notMarked ?? 0}</Text>
+                                <Text style={[styles.tableCell, styles.tableCellCenter, { flex: 0.6 }]}>{day.attendanceRate ?? 0}%</Text>
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.footer}>TanaPark - Professional Parking Management System</Text>
+                </Page>
+            )}
+        </Document>
+    );
+};
+
+export const exportAttendanceReportToPDF = async ({
+    title,
+    subtitle,
+    summary,
+    officers,
+    dailyTrends,
+    alerts,
+    labels,
+    filename,
+    policyTarget = 80,
+}) => {
+    try {
+        const logoBase64 = await getImageAsBase64();
+        const doc = (
+            <AttendanceReportPDF
+                title={title}
+                subtitle={subtitle}
+                summary={summary}
+                officers={officers}
+                dailyTrends={dailyTrends}
+                alerts={alerts}
+                labels={labels}
+                logoBase64={logoBase64}
+                policyTarget={policyTarget}
+            />
+        );
+        const blob = await pdf(doc).toBlob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error generating attendance PDF:', error);
         throw error;
     }
 };

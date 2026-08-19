@@ -7,6 +7,14 @@ export const queryKeys = {
     parkZones: (token) => ['parkZones', token],
     users: (token) => ['users', token],
     attendance: (token, date, session) => ['attendance', token, date ?? null, session ?? null],
+    attendancePeriodReport: (token, filters = {}) => [
+        'attendancePeriodReport',
+        token,
+        filters.startDate ?? null,
+        filters.endDate ?? null,
+        filters.session ?? 'all',
+        filters.zone ?? 'all',
+    ],
     incidents: (token, filters = {}) => [
         'incidents',
         token,

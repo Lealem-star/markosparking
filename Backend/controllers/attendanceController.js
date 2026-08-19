@@ -23,6 +23,13 @@ const finishSchema = Joi.object({
     markRemainingAbsent: Joi.boolean().required(),
 });
 
+const periodReportSchema = Joi.object({
+    startDate: dateKeySchema.required(),
+    endDate: dateKeySchema.required(),
+    session: Joi.string().valid('all', ...attendanceService.ATTENDANCE_SESSIONS).optional(),
+    zone: Joi.string().trim().optional(),
+});
+
 const getSession = async (req, res) => {
     const { date, session } = req.validated?.query || {};
     const result = await attendanceService.getAttendanceSession(
@@ -50,11 +57,22 @@ const finish = async (req, res) => {
     res.json(result);
 };
 
+const getPeriodReport = async (req, res) => {
+    const { startDate, endDate, session, zone } = req.validated?.query || {};
+    const result = await attendanceService.getAttendancePeriodReport(
+        req.currentUser,
+        { startDate, endDate, session, zone }
+    );
+    res.json(result);
+};
+
 module.exports = {
     getSessionSchema,
     updateStatusSchema,
     finishSchema,
+    periodReportSchema,
     getSession,
     updateStatus,
     finish,
+    getPeriodReport,
 };

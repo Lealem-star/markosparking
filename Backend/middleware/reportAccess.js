@@ -18,6 +18,12 @@ const systemAdminOnly = [
     requireRoles(ROLES.SYSTEM_ADMIN),
 ];
 
+const parkingManagerReportAccess = [
+    isLoggedIn,
+    attachCurrentUser,
+    requireRoles(ROLES.SYSTEM_ADMIN, ROLES.DIRECTOR),
+];
+
 const staffManagerAccess = [
     isLoggedIn,
     attachCurrentUser,
@@ -33,6 +39,7 @@ const systemAdminOnlyAccess = [
 module.exports = {
     adminReportAccess,
     systemAdminOnly,
+    parkingManagerReportAccess,
     staffManagerAccess,
     systemAdminOnlyAccess,
 };

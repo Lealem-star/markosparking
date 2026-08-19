@@ -8,10 +8,33 @@ export const formatReportCurrency = (amount) =>
         minimumFractionDigits: 2,
     }).format(amount || 0);
 
+export const parseReportDateKey = (dateString) => {
+    if (!dateString) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(Date.UTC(year, month - 1, day));
+    }
+
+    const parsed = new Date(dateString);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 export const formatReportEthiopianDate = (dateString) => {
-    const gregorianDate = new Date(dateString);
+    const gregorianDate = parseReportDateKey(dateString);
+    if (!gregorianDate) return dateString || '—';
+
     const ethiopianDate = EthiopianDateUtil.toEth(gregorianDate);
     return EthiopianDateUtil.formatEtDate(ethiopianDate, 'EC');
+};
+
+export const formatReportEthiopianDateShort = (dateString) => {
+    const gregorianDate = parseReportDateKey(dateString);
+    if (!gregorianDate) return '—';
+
+    const ethiopianDate = EthiopianDateUtil.toEth(gregorianDate);
+    const formatted = EthiopianDateUtil.formatEtDate(ethiopianDate, 'EC');
+    return formatted.replace(/\s+\d{4}$/, '');
 };
 
 export const groupDailyBreakdownByDate = (dailyBreakdown = []) => {

@@ -10,6 +10,8 @@ import SupervisorDashboardOverview from '../pages/supervisor/SupervisorDashboard
 import SupervisorParkingOfficerList from '../pages/supervisor/SupervisorParkingOfficerList';
 import SupervisorAttendance from '../pages/supervisor/SupervisorAttendance';
 import SupervisorIncidents from '../pages/supervisor/SupervisorIncidents';
+import IncidentReports from '../pages/admin/reports/IncidentReports';
+import AttendanceReports from '../pages/admin/reports/AttendanceReports';
 import AuditLogs from '../pages/admin/AuditLogs';
 import FinanceDashboardOverview from '../pages/finance/FinanceDashboardOverview';
 import FinanceTransactions from '../pages/finance/FinanceTransactions';
@@ -54,6 +56,14 @@ export function StaffAttendancePage() {
 
 export function StaffIncidentsPage() {
     return <SupervisorIncidents />;
+}
+
+export function StaffIncidentReportsPage() {
+    return <IncidentReports />;
+}
+
+export function StaffAttendanceReportsPage() {
+    return <AttendanceReports />;
 }
 
 export function StaffAuditLogsPage() {
