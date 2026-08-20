@@ -10,8 +10,6 @@ import { getVehicleHistoryReport } from '../../../api/api';
 
 import { Car, Search, Download } from 'lucide-react';
 
-import { exportCustomerReportToPDF } from '../../../utils/pdfExportReact';
-
 import { formatReportCurrency } from '../../../utils/reportUtils';
 
 import { ReportAlert } from './reportModules';
@@ -82,6 +80,7 @@ const CustomerReports = () => {
 
 
 
+            const { exportCustomerReportToPDF } = await import('../../../utils/pdfExportReact');
             await exportCustomerReportToPDF({
 
                 title: 'Vehicle History Report',

@@ -1,17 +1,11 @@
 import './App.css';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Layout, NoPage, Register, GroupChat, FlaggedCustomers } from './pages/shared';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Settings from './pages/admin/Settings';
-import Reports from './pages/admin/Reports';
-import ParkingOfficerDashboard from './pages/parkingOfficer/ParkingOfficerDashboard';
-import ParkingOfficerOverview from './pages/parkingOfficer/ParkingOfficerOverview';
-import RegisterCar from './pages/parkingOfficer/RegisterCar';
-import ParkedCarsList from './pages/parkingOfficer/ParkedCarsList';
-import Profile from './pages/parkingOfficer/Profile';
-import PaymentSuccessHost from './components/PaymentSuccessHost/PaymentSuccessHost';
+import Layout from './pages/shared/Layout';
 import StaffRouteGuard from './components/auth/StaffRouteGuard';
+import PaymentSuccessHost from './components/PaymentSuccessHost/PaymentSuccessHost';
+import DashboardContentLoader from './components/loading/DashboardContentLoader';
 import { syncLanguageWithUser } from './utils/languageSync';
 import { useCurrentUser } from './hooks/useAuth';
 import { STAFF_PORTAL_PREFIXES, PARKING_OFFICER_PORTAL_PREFIX } from './utils/rolePaths';
@@ -36,6 +30,25 @@ import {
   StaffFinanceAuditLogsPage,
 } from './routes/staffPortalPages';
 
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const Settings = lazy(() => import('./pages/admin/Settings'));
+const Reports = lazy(() => import('./pages/admin/Reports'));
+const ParkingOfficerDashboard = lazy(() => import('./pages/parkingOfficer/ParkingOfficerDashboard'));
+const ParkingOfficerOverview = lazy(() => import('./pages/parkingOfficer/ParkingOfficerOverview'));
+const RegisterCar = lazy(() => import('./pages/parkingOfficer/RegisterCar'));
+const ParkedCarsList = lazy(() => import('./pages/parkingOfficer/ParkedCarsList'));
+const Profile = lazy(() => import('./pages/parkingOfficer/Profile'));
+const GroupChat = lazy(() => import('./pages/shared/GroupChat'));
+const FlaggedCustomers = lazy(() => import('./pages/shared/FlaggedCustomers'));
+const Register = lazy(() => import('./pages/shared/Register'));
+const NoPage = lazy(() => import('./pages/shared/NoPage'));
+
+const page = (element) => (
+  <Suspense fallback={<DashboardContentLoader />}>
+    {element}
+  </Suspense>
+);
+
 const staffPortalRoutes = (prefix) => (
   <>
     <Route index element={<Navigate to={`/${prefix}/dashboard`} replace />} />
@@ -55,10 +68,7 @@ const staffPortalRoutes = (prefix) => (
         </StaffRouteGuard>
       }
     />
-    <Route
-      path="users"
-      element={<StaffUsersPage />}
-    />
+    <Route path="users" element={<StaffUsersPage />} />
     <Route path="valets" element={<Navigate to="parking-officers" replace />} />
     <Route
       path="parking-officers"
@@ -88,7 +98,7 @@ const staffPortalRoutes = (prefix) => (
       path="reports"
       element={
         <StaffRouteGuard permission="reports">
-          <Reports />
+          {page(<Reports />)}
         </StaffRouteGuard>
       }
     />
@@ -112,7 +122,7 @@ const staffPortalRoutes = (prefix) => (
       path="settings"
       element={
         <StaffRouteGuard permission="settings">
-          <Settings />
+          {page(<Settings />)}
         </StaffRouteGuard>
       }
     />
@@ -144,7 +154,7 @@ const staffPortalRoutes = (prefix) => (
       path="chat"
       element={
         <StaffRouteGuard permission="chat">
-          <GroupChat />
+          {page(<GroupChat />)}
         </StaffRouteGuard>
       }
     />
@@ -152,7 +162,7 @@ const staffPortalRoutes = (prefix) => (
       path="flagged-customers"
       element={
         <StaffRouteGuard permission="flagged">
-          <FlaggedCustomers />
+          {page(<FlaggedCustomers />)}
         </StaffRouteGuard>
       }
     />
@@ -174,23 +184,30 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<RootRedirect />} />
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile" element={page(<Profile />)} />
           <Route path="users" element={<LegacyUsersRedirect />} />
         </Route>
         {STAFF_PORTAL_PREFIXES.map((prefix) => (
-          <Route key={prefix} path={`/${prefix}`} element={<AdminDashboard />}>
+          <Route
+            key={prefix}
+            path={`/${prefix}`}
+            element={page(<AdminDashboard />)}
+          >
             {staffPortalRoutes(prefix)}
           </Route>
         ))}
         <Route path="/admin/*" element={<LegacyStaffRedirect />} />
-        <Route path={`/${PARKING_OFFICER_PORTAL_PREFIX}`} element={<ParkingOfficerDashboard />}>
-          <Route index element={<ParkedCarsList />} />
-          <Route path="dashboard" element={<ParkedCarsList />} />
-          <Route path="register-car" element={<RegisterCar />} />
-          <Route path="cars" element={<ParkingOfficerOverview />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="chat" element={<GroupChat />} />
-          <Route path="flagged-customers" element={<FlaggedCustomers />} />
+        <Route
+          path={`/${PARKING_OFFICER_PORTAL_PREFIX}`}
+          element={page(<ParkingOfficerDashboard />)}
+        >
+          <Route index element={page(<ParkedCarsList />)} />
+          <Route path="dashboard" element={page(<ParkedCarsList />)} />
+          <Route path="register-car" element={page(<RegisterCar />)} />
+          <Route path="cars" element={page(<ParkingOfficerOverview />)} />
+          <Route path="profile" element={page(<Profile />)} />
+          <Route path="chat" element={page(<GroupChat />)} />
+          <Route path="flagged-customers" element={page(<FlaggedCustomers />)} />
         </Route>
         <Route path="/valet/*" element={<LegacyPrefixRedirect />} />
         <Route path="/director/*" element={<LegacyPrefixRedirect />} />
@@ -199,13 +216,13 @@ function App() {
           path="register"
           element={
             <PublicRoute>
-              <Register />
+              {page(<Register />)}
             </PublicRoute>
           }
         />
         <Route path="payment/success" element={<LegacyPaymentRedirect />} />
         <Route path="payment/callback" element={<LegacyPaymentRedirect />} />
-        <Route path="*" element={<NoPage />} />
+        <Route path="*" element={page(<NoPage />)} />
       </Routes>
     </BrowserRouter>
   );

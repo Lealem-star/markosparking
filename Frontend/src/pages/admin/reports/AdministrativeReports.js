@@ -4,7 +4,6 @@ import { useReportQuery } from '../../../hooks/useReportQuery';
 import { queryKeys } from '../../../api/queryKeys';
 import { getUsersReport } from '../../../api/api';
 import { Users, Download } from 'lucide-react';
-import { exportAdministrativeReportToPDF } from '../../../utils/pdfExportReact';
 import { partitionUsersReport } from '../../../utils/reportUtils';
 import { ReportAlert } from './reportModules';
 import '../../../styles/reports.scss';
@@ -23,6 +22,7 @@ const AdministrativeReports = () => {
         try {
             if (!usersData) return;
 
+            const { exportAdministrativeReportToPDF } = await import('../../../utils/pdfExportReact');
             await exportAdministrativeReportToPDF({
                 title: 'User Management Report',
                 subtitle: 'Complete user listing and activity',

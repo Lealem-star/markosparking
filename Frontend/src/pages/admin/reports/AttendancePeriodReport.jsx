@@ -4,7 +4,6 @@ import { Search, Download } from 'lucide-react';
 import { useCurrentUser } from '../../../hooks/useAuth';
 import { useAttendancePeriodReportQuery } from '../../../hooks/queries';
 import { getApiError } from '../../../api/client';
-import { exportAttendanceReportToPDF } from '../../../utils/pdfExportReact';
 import { formatReportEthiopianDate } from '../../../utils/reportUtils';
 import { EthiopianDatePicker } from '../../../components';
 import DashboardContentLoader from '../../../components/loading/DashboardContentLoader';
@@ -122,6 +121,7 @@ const AttendancePeriodReport = () => {
         setExporting(true);
 
         try {
+            const { exportAttendanceReportToPDF } = await import('../../../utils/pdfExportReact');
             await exportAttendanceReportToPDF({
                 title: t('reports.attendanceReports'),
                 subtitle: t('reports.attendanceOverviewMeta', periodMeta),

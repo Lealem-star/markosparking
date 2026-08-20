@@ -1,4 +1,6 @@
-const BASE_URL_RAW = process.env.REACT_APP_BASE_URL || 'http://localhost:4000/';
+import { API_BASE_URL_RAW } from '../config/env';
+
+const BASE_URL_RAW = API_BASE_URL_RAW;
 export const BASE_URL = BASE_URL_RAW.endsWith('/') ? BASE_URL_RAW : `${BASE_URL_RAW}/`;
 
 export const authHeaders = (token) => {

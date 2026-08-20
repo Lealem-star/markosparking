@@ -5,7 +5,6 @@ import { useReportQuery } from '../../../hooks/useReportQuery';
 import { queryKeys } from '../../../api/queryKeys';
 import { getPeriodRevenueReport } from '../../../api/api';
 import { Download, DollarSign, Car } from 'lucide-react';
-import { exportFinancialReportToPDF } from '../../../utils/pdfExportReact';
 import {
     formatReportCurrency,
     formatReportEthiopianDate,
@@ -39,6 +38,7 @@ const FinancialReports = () => {
         try {
             if (!periodData) return;
 
+            const { exportFinancialReportToPDF } = await import('../../../utils/pdfExportReact');
             await exportFinancialReportToPDF({
                 title: t('reports.periodRevenueReport'),
                 subtitle: `${t('reports.from')} ${periodStartDate} ${t('reports.to')} ${periodEndDate}`,

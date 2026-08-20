@@ -9,6 +9,7 @@ import {
     CHAPA_BACKEND_CALLBACK_URL,
 } from '../api/api';
 import { getApiError } from '../api/client';
+import { CHAPA_PUBLIC_KEY } from '../config/env';
 import { getParkingOfficerRoutePath } from '../utils/rolePaths';
 import { useChapaInlineCheckout } from './useChapaInlineCheckout';
 import {
@@ -175,7 +176,7 @@ export const useChapaPayment = ({
                 initiatedAt: Date.now(),
             }));
 
-            const chapaPublicKey = data.publicKey || process.env.REACT_APP_CHAPA_PUBLIC_KEY;
+            const chapaPublicKey = data.publicKey || CHAPA_PUBLIC_KEY;
             const keyValidation = validateChapaPublicKey(chapaPublicKey);
 
             if (!keyValidation.valid || !data.txRef) {
@@ -353,7 +354,7 @@ export const useChapaPayment = ({
             }, user?.token);
 
             const txRef = data?.txRef;
-            const chapaPublicKey = data?.publicKey || process.env.REACT_APP_CHAPA_PUBLIC_KEY;
+            const chapaPublicKey = data?.publicKey || CHAPA_PUBLIC_KEY;
 
             if (!txRef || !chapaPublicKey) {
                 reportError(onError, 'Payment service is temporarily unavailable. Please try again.');
