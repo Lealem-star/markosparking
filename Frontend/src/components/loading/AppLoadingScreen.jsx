@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import tanaLogo from '../../assets/Tana.png';
+import markosLogo from '../../assets/Markos.png';
 import '../../styles/appLoadingScreen.scss';
 
 const CAR_TYPES = ['tripod', 'automobile', 'truck', 'trailer', 'special_vehicles'];
@@ -101,7 +101,7 @@ const AppLoadingScreen = ({ messageKey = 'loadingScreen.preparingWorkspace' }) =
 
             <div className="app-loader-content">
                 <div className="app-loader-logo-wrap">
-                    <img src={tanaLogo} alt="" className="app-loader-logo" />
+                    <img src={markosLogo} alt="" className="app-loader-logo" />
                     <span className="app-loader-ring" aria-hidden="true" />
                 </div>
 

@@ -21,7 +21,7 @@ node scripts/seedAdmin.js
 ### Default Credentials
 
 The default system admin credentials are:
-- **Email:** `admin@tanapark.com`
+- **Email:** `admin@markospark.com`
 - **Password:** `Admin@123`
 
 ⚠️ **IMPORTANT:** 

@@ -23,8 +23,8 @@
     "refresh": "Refresh",
     "loading": "Loading...",
     "loadingScreen": {
-      "title": "TanaPark",
-      "startingApp": "Starting TanaPark...",
+      "title": "MarkosPark",
+      "startingApp": "Starting MarkosPark...",
       "loadingDashboard": "Loading your dashboard...",
       "preparingWorkspace": "Preparing your workspace..."
     },
@@ -261,7 +261,7 @@
     "statCurrentlyInPark": "Currently in park",
     "statToday": "Today",
     "searchPlaceholder": "Search license plate, phone number...",
-    "footerCopyright": "© 2026 Tana Parking. All rights reserved.",
+    "footerCopyright": "© 2026 Markos Parking. All rights reserved.",
     "mobileNavRegister": "Register",
     "mobileNavService": "Service",
     "mobileNavFlagged": "Flagged",
@@ -614,7 +614,7 @@
     "networkError": "Network error. Please check your connection."
   },
   "splash": {
-    "welcomeTitle": "Welcome to Tanapark",
+    "welcomeTitle": "Welcome to MarkosPark",
     "tagline": "Smart Parking Management System",
     "signInToAccount": "Sign in to your account",
     "rememberMe": "Remember me",

@@ -223,10 +223,10 @@ const formatDate = (date) => {
 const getImageAsBase64 = () => {
     return new Promise((resolve) => {
         const logoPaths = [
-            '/Tana.png',
-            './Tana.png',
-            '../assets/Tana.png',
-            'Tana.png'
+            '/Markos.png',
+            './Markos.png',
+            '../assets/Markos.png',
+            'Markos.png'
         ];
 
         const tryLoadLogo = (index) => {
@@ -311,7 +311,7 @@ const FinancialReportPDF = ({ title, subtitle, data, logoBase64, type = 'period'
                 {logoBase64 && (
                     <Image src={logoBase64} style={styles.logo} />
                 )}
-                <Text style={styles.companyName}>TanaPark</Text>
+                <Text style={styles.companyName}>MarkosPark</Text>
             </View>
             <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -413,7 +413,7 @@ const FinancialReportPDF = ({ title, subtitle, data, logoBase64, type = 'period'
                 {sortedDates.length > 0 && renderDateTable(sortedDates[0], groupedByDate[sortedDates[0]])}
                 
                 <Text style={styles.footer}>
-                    TanaPark - Professional Parking Management System
+                    MarkosPark - Professional Parking Management System
                 </Text>
             </Page>
 
@@ -423,7 +423,7 @@ const FinancialReportPDF = ({ title, subtitle, data, logoBase64, type = 'period'
                     {renderHeader()}
                     {renderDateTable(date, groupedByDate[date])}
                     <Text style={styles.footer}>
-                        TanaPark - Professional Parking Management System
+                        MarkosPark - Professional Parking Management System
                     </Text>
                 </Page>
             ))}
@@ -489,7 +489,7 @@ const AdministrativeReportPDF = ({ title, subtitle, data, logoBase64, type = 'us
                 {logoBase64 && (
                     <Image src={logoBase64} style={styles.logo} />
                 )}
-                <Text style={styles.companyName}>TanaPark</Text>
+                <Text style={styles.companyName}>MarkosPark</Text>
             </View>
             <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -574,7 +574,7 @@ const AdministrativeReportPDF = ({ title, subtitle, data, logoBase64, type = 'us
                     )}
 
                     <Text style={styles.footer}>
-                        TanaPark - Professional Parking Management System
+                        MarkosPark - Professional Parking Management System
                     </Text>
                 </Page>
             </Document>
@@ -635,7 +635,7 @@ const CustomerReportPDF = ({ title, subtitle, data, logoBase64, type = 'vehicle-
                 {logoBase64 && (
                     <Image src={logoBase64} style={styles.logo} />
                 )}
-                <Text style={styles.companyName}>TanaPark</Text>
+                <Text style={styles.companyName}>MarkosPark</Text>
             </View>
             <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -706,7 +706,7 @@ const CustomerReportPDF = ({ title, subtitle, data, logoBase64, type = 'vehicle-
                     </View>
 
                     <Text style={styles.footer}>
-                        TanaPark - Professional Parking Management System
+                        MarkosPark - Professional Parking Management System
                     </Text>
                 </Page>
             </Document>
@@ -764,7 +764,7 @@ const AttendanceReportPDF = ({ title, subtitle, summary, officers, dailyTrends, 
         <View style={styles.header}>
             <View style={styles.logoContainer}>
                 {logoBase64 && <Image src={logoBase64} style={styles.logo} />}
-                <Text style={styles.companyName}>TanaPark</Text>
+                <Text style={styles.companyName}>MarkosPark</Text>
             </View>
             <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -845,7 +845,7 @@ const AttendanceReportPDF = ({ title, subtitle, summary, officers, dailyTrends, 
                     ))}
                 </View>
 
-                <Text style={styles.footer}>TanaPark - Professional Parking Management System</Text>
+                <Text style={styles.footer}>MarkosPark - Professional Parking Management System</Text>
             </Page>
 
             {dailyTrends?.length > 0 && (
@@ -872,7 +872,7 @@ const AttendanceReportPDF = ({ title, subtitle, summary, officers, dailyTrends, 
                             </View>
                         ))}
                     </View>
-                    <Text style={styles.footer}>TanaPark - Professional Parking Management System</Text>
+                    <Text style={styles.footer}>MarkosPark - Professional Parking Management System</Text>
                 </Page>
             )}
         </Document>

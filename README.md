@@ -1,8 +1,8 @@
-## TanaPark 🚗💨
-TanaPark is a platform designed to help parking valets manage their services efficiently within the community.
+## MarkosPark 🚗💨
+MarkosPark is a platform designed to help parking valets manage their services efficiently within the community.
 
 ## Objective 🎯 
-TanaPark aims to help parking valets by:
+MarkosPark aims to help parking valets by:
 Providing tools for effective service management
 Streamlining communication and management processes
 

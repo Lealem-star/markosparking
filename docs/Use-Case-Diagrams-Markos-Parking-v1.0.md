@@ -1,9 +1,9 @@
-# Use Case Diagrams — Tana Parking
+# Use Case Diagrams — Markos Parking
 
-**Document ID:** UCD-TANA-PARK-001  
+**Document ID:** UCD-MARKOS-PARK-001  
 **Version:** 1.0  
 **Date:** 13 July 2026  
-**Related:** [SRS](./SRS-Tana-Parking-v1.0.md) | [Test Plan](./Test-Plan-Tana-Parking-v1.0.md)
+**Related:** [SRS](./SRS-Markos-Parking-v1.0.md) | [Test Plan](./Test-Plan-Markos-Parking-v1.0.md)
 
 ---
 
@@ -39,7 +39,7 @@ flowchart TB
         SMS[Twilio]
     end
 
-    subgraph system [Tana Parking System]
+    subgraph system [Markos Parking System]
         WEB[Web Application]
         API[REST API]
         DB[(MongoDB)]
@@ -429,7 +429,7 @@ flowchart LR
 
 ```mermaid
 mindmap
-  root((Tana Parking))
+  root((Markos Parking))
     System Admin
       Settings
       All Reports

@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 
-**Project:** Tana Parking (ParkingSystem)  
-**Document ID:** SRS-TANA-PARK-001  
+**Project:** Markos Parking (ParkingSystem)  
+**Document ID:** SRS-MARKOS-PARK-001  
 **Version:** 1.0  
 **Date:** 13 July 2026  
 **Status:** Draft — aligned with current implementation  
@@ -15,8 +15,8 @@
 | 1.0 | 13 Jul 2026 | Initial SRS based on implemented system |
 
 **Related documents:**
-- [Use Case Diagrams](./Use-Case-Diagrams-Tana-Parking-v1.0.md)
-- [Test Plan](./Test-Plan-Tana-Parking-v1.0.md)
+- [Use Case Diagrams](./Use-Case-Diagrams-Markos-Parking-v1.0.md)
+- [Test Plan](./Test-Plan-Markos-Parking-v1.0.md)
 
 ---
 
@@ -39,13 +39,13 @@
 
 ### 1.1 Purpose
 
-This Software Requirements Specification (SRS) defines the functional and non-functional requirements for **Tana Parking**, a web-based valet parking management platform for city parking operations.
+This Software Requirements Specification (SRS) defines the functional and non-functional requirements for **Markos Parking**, a web-based valet parking management platform for city parking operations.
 
 **Intended audience:** product owners, developers, QA engineers, and stakeholders.
 
 ### 1.2 Scope
 
-Tana Parking supports:
+Markos Parking supports:
 
 - Vehicle registration (hourly and package)
 - Zone-based staff organization

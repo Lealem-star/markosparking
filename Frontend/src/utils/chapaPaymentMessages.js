@@ -12,7 +12,7 @@ export const buildCheckoutSmsMessage = (car, feeDetails) => {
             const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
             remainingDaysText = `Package expires on ${end.toLocaleDateString()} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining).`;
         }
-        return `Thank you for using Tana Parking services!\nYour package car (${licenseDisplay}) has checked out.\nPackage type: ${car.packageDuration}.\n${remainingDaysText}`;
+        return `Thank you for using Markos Parking services!\nYour package car (${licenseDisplay}) has checked out.\nPackage type: ${car.packageDuration}.\n${remainingDaysText}`;
     }
 
     const totalMinutes = Math.round(feeDetails.hoursParked * 60);
@@ -20,7 +20,7 @@ export const buildCheckoutSmsMessage = (car, feeDetails) => {
         ? `${Math.floor(totalMinutes / 60)} hour${Math.floor(totalMinutes / 60) > 1 ? 's' : ''}${totalMinutes % 60 > 0 ? ` ${totalMinutes % 60} min` : ''}`.trim()
         : `${totalMinutes} min`;
 
-    return `Thank you for using Tana Parking services! Your car (${licenseDisplay}) has been received.\nParking fee: ${feeDetails.parkingFee.toFixed(2)} ETB\nVAT (15%): ${feeDetails.vatAmount.toFixed(2)} ETB\nTotal: ${feeDetails.totalWithVat.toFixed(2)} ETB (${durationDisplay} × ${feeDetails.pricePerHour} ETB/hour).\nPayment method: Online Payment.`;
+    return `Thank you for using Markos Parking services! Your car (${licenseDisplay}) has been received.\nParking fee: ${feeDetails.parkingFee.toFixed(2)} ETB\nVAT (15%): ${feeDetails.vatAmount.toFixed(2)} ETB\nTotal: ${feeDetails.totalWithVat.toFixed(2)} ETB (${durationDisplay} × ${feeDetails.pricePerHour} ETB/hour).\nPayment method: Online Payment.`;
 };
 
 export const buildHourlyRegistrationSms = (formData) => {
@@ -28,7 +28,7 @@ export const buildHourlyRegistrationSms = (formData) => {
     const parkingTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const parkingDate = now.toLocaleDateString();
 
-    return `Dear customer,\nyour car (Plate Code: ${formData.plateCode}, License Plate Number: ${formData.licensePlateNumber}, Model: ${formData.model}) is now parked at Tana parking.\nParking started at ${parkingTime} on ${parkingDate}.\nThank you!`;
+    return `Dear customer,\nyour car (Plate Code: ${formData.plateCode}, License Plate Number: ${formData.licensePlateNumber}, Model: ${formData.model}) is now parked at Markos parking.\nParking started at ${parkingTime} on ${parkingDate}.\nThank you!`;
 };
 
 export const buildPackageActivationSms = (formData, carInfo, validatedDuration, totalWithVat) => {
@@ -44,7 +44,7 @@ export const buildPackageActivationSms = (formData, carInfo, validatedDuration, 
         remainingDaysText = `Package expires on ${end.toLocaleDateString()} (${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining).`;
     }
 
-    return `Dear customer,\nYour ${packageDurationLabel} parking package at Tana Parking is now active for car (Plate: ${licenseDisplay}, Model: ${formData.model}).\n${remainingDaysText}\nTotal paid: ${totalWithVat.toFixed(2)} ETB.\nThank you!`;
+    return `Dear customer,\nYour ${packageDurationLabel} parking package at Markos Parking is now active for car (Plate: ${licenseDisplay}, Model: ${formData.model}).\n${remainingDaysText}\nTotal paid: ${totalWithVat.toFixed(2)} ETB.\nThank you!`;
 };
 
 export const formatChapaPaymentFailureMessage = (error, phoneNumber = 'N/A') => {

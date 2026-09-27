@@ -44,13 +44,13 @@ const buildPackageEndDate = (packageStartDate, packageDuration) => {
 const generateCarTxRef = (carId) => {
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 10);
-    return `tana-${carId.substring(0, 10)}-${timestamp}-${randomSuffix}`;
+    return `markos-${carId.substring(0, 10)}-${timestamp}-${randomSuffix}`;
 };
 
 const generatePackageTxRef = () => {
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 10);
-    return `tana-pkg-${timestamp}-${randomSuffix}`;
+    return `markos-pkg-${timestamp}-${randomSuffix}`;
 };
 
 // ─── Car payment state ────────────────────────────────────────────────────────
@@ -182,7 +182,7 @@ const resolveCarIdFromTransaction = async (transaction, queryCarId) => {
         return transaction.meta.carId;
     }
 
-    const txRefMatch = transaction.tx_ref?.match(/^tana-([a-f0-9]{10,24})-/);
+    const txRefMatch = transaction.tx_ref?.match(/^(?:tana|markos)-([a-f0-9]{10,24})-/);
     if (!txRefMatch) {
         return null;
     }
@@ -687,7 +687,7 @@ const handleWebhook = async (body) => {
         return { received: true };
     }
 
-    const carIdMatch = tx_ref.match(/tana-([a-f0-9]{10,24})/);
+    const carIdMatch = tx_ref.match(/(?:tana|markos)-([a-f0-9]{10,24})/);
     const carId = carIdMatch ? carIdMatch[1] : null;
 
     if (carId && Types.ObjectId.isValid(carId)) {

@@ -7,7 +7,7 @@ import { loginUser } from '../../api/api';
 import { getApiError } from '../../api/client';
 import { setUser } from '../../store';
 import { getDashboardPathForUser } from '../../utils/authRouting';
-import tanaLogo from '../../assets/Tana.png';
+import markosLogo from '../../assets/Markos.png';
 import '../../styles/home.scss';
 import '../../styles/splashScreen.scss';
 
@@ -134,7 +134,7 @@ function Home() {
 
       <div className="home-content">
         <div className="home-hero">
-          <img src={tanaLogo} alt="TanaPark" className="home-hero-logo" />
+          <img src={markosLogo} alt="MarkosPark" className="home-hero-logo" />
           <h1 className="home-hero-title">{t('splash.welcomeTitle')}</h1>
           <p className="home-hero-subtitle">{t('splash.tagline')}</p>
         </div>

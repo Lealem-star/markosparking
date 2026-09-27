@@ -92,9 +92,9 @@ const ParkingOfficerDashboard = () => {
     return (
         <DashboardShell
             shellClassName={`valet-dashboard ${lightMode ? '' : 'valet-dashboard--dark'}`}
-            logoText="TANA PARKING"
-            mobileLogoText="TANA PARKING"
-            mobileSidebarLogoText="tana parking"
+            logoText="MARKOS PARKING"
+            mobileLogoText="MARKOS PARKING"
+            mobileSidebarLogoText="markos parking"
             menuItems={menuItems}
             isActive={isActive}
             onNavigate={navigate}

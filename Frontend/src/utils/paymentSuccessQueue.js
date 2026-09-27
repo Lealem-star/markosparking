@@ -1,5 +1,5 @@
-const STORAGE_KEY = 'tana_payment_success_pending';
-export const PAYMENT_SUCCESS_EVENT = 'tana-payment-success-queued';
+const STORAGE_KEY = 'markos_payment_success_pending';
+export const PAYMENT_SUCCESS_EVENT = 'markos-payment-success-queued';
 const MAX_AGE_MS = 10 * 60 * 1000;
 
 export function queuePaymentSuccess({ message, amount, navigateTo = null }) {

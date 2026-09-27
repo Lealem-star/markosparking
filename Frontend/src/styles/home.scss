@@ -1,8 +1,8 @@
-$tanapark-blue: #2563eb;
-$tanapark-blue-dark: #1d4ed8;
-$tanapark-text: #1e293b;
-$tanapark-muted: #64748b;
-$tanapark-border: #e2e8f0;
+$markospark-blue: #2563eb;
+$markospark-blue-dark: #1d4ed8;
+$markospark-text: #1e293b;
+$markospark-muted: #64748b;
+$markospark-border: #e2e8f0;
 
 .home-splash {
     position: relative;
@@ -42,13 +42,13 @@ $tanapark-border: #e2e8f0;
 .home-hero-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: $tanapark-text;
+    color: $markospark-text;
     margin: 0 0 0.375rem;
 }
 
 .home-hero-subtitle {
     font-size: 0.9375rem;
-    color: $tanapark-muted;
+    color: $markospark-muted;
     margin: 0;
 }
 
@@ -66,7 +66,7 @@ $tanapark-border: #e2e8f0;
 .home-content .login-card-title {
     font-size: 1.0625rem;
     font-weight: 600;
-    color: $tanapark-blue-dark;
+    color: $markospark-blue-dark;
     margin: 0 0 1.25rem;
     text-align: center;
 }
@@ -91,7 +91,7 @@ $tanapark-border: #e2e8f0;
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: $tanapark-muted;
+    color: $markospark-muted;
     pointer-events: none;
 }
 
@@ -101,7 +101,7 @@ $tanapark-border: #e2e8f0;
     border: 1px solid #bfdbfe;
     border-radius: 10px;
     font-size: 0.9375rem;
-    color: $tanapark-text;
+    color: $markospark-text;
     background: #fff;
     transition: border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
@@ -112,7 +112,7 @@ $tanapark-border: #e2e8f0;
 
     &:focus {
         outline: none;
-        border-color: $tanapark-blue;
+        border-color: $markospark-blue;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
 }
@@ -125,13 +125,13 @@ $tanapark-border: #e2e8f0;
     background: none;
     border: none;
     padding: 0;
-    color: $tanapark-muted;
+    color: $markospark-muted;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
 
     &:hover {
-        color: $tanapark-text;
+        color: $markospark-text;
     }
 }
 
@@ -147,19 +147,19 @@ $tanapark-border: #e2e8f0;
     display: flex;
     align-items: center;
     gap: 0.375rem;
-    color: $tanapark-muted;
+    color: $markospark-muted;
     cursor: pointer;
     user-select: none;
 
     input[type="checkbox"] {
-        accent-color: $tanapark-blue;
+        accent-color: $markospark-blue;
     }
 }
 
 .login-submit-btn {
     width: 100%;
     padding: 0.8125rem;
-    background: $tanapark-blue;
+    background: $markospark-blue;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -169,7 +169,7 @@ $tanapark-border: #e2e8f0;
     transition: background 0.15s, transform 0.1s;
 
     &:hover:not(:disabled) {
-        background: $tanapark-blue-dark;
+        background: $markospark-blue-dark;
     }
 
     &:active:not(:disabled) {
@@ -188,7 +188,7 @@ $tanapark-border: #e2e8f0;
     p {
         margin: 0.25rem 0;
         font-size: 0.75rem;
-        color: $tanapark-muted;
+        color: $markospark-muted;
     }
 }
 

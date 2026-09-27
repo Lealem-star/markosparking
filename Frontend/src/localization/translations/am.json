@@ -23,8 +23,8 @@
     "refresh": "አድስ",
     "loading": "በመጫን ላይ...",
     "loadingScreen": {
-      "title": "ታናፓርክ",
-      "startingApp": "ታናፓርክ በመጀመር ላይ...",
+      "title": "ማርኮስፓርክ",
+      "startingApp": "ማርኮስፓርክ በመጀመር ላይ...",
       "loadingDashboard": "ዳሽቦርድ በመጫን ላይ...",
       "preparingWorkspace": "የስራ ቦታዎን በማዘጋጀት ላይ..."
     },
@@ -261,7 +261,7 @@
     "statCurrentlyInPark": "አሁን በፓርክ ውስጥ",
     "statToday": "ዛሬ",
     "searchPlaceholder": "የሰሌዳ ቁጥር፣ ስልክ ቁጥር ይፈልጉ...",
-    "footerCopyright": "© 2026 ታና ፓርክ። ሁሉም መብቶች የተጠበቁ ናቸው።",
+    "footerCopyright": "© 2026 ማርኮስ ፓርክ። ሁሉም መብቶች የተጠበቁ ናቸው።",
     "mobileNavRegister": "መመዝገብ",
     "mobileNavService": "አገልግሎት",
     "mobileNavFlagged": "ተጠቆሙ",
@@ -554,7 +554,7 @@
     "networkError": "የአውታረ መረብ ስህተት። እባክዎ ግንኙነትዎን ይፈትሹ።"
   },
   "splash": {
-    "welcomeTitle": "ወደ ታናፓርክ እንኳን ደህና መጡ",
+    "welcomeTitle": "ወደ ማርኮስፓርክ እንኳን ደህና መጡ",
     "tagline": "ዘመናዊ የመኪና ማቆሚያ አስተዳደር ስርዓት",
     "signInToAccount": "ወደ መለያዎ ይግቡ",
     "rememberMe": "አስታውሰኝ",

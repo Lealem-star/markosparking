@@ -1,11 +1,11 @@
 import { Menu, X, Bell, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import TanaLogo from '../../assets/Tana.png';
+import MarkosLogo from '../../assets/Markos.png';
 import UserAvatar from './UserAvatar';
 
 const DashboardShell = ({
     shellClassName = '',
-    logoText = 'tana parking',
+    logoText = 'markos parking',
     mobileLogoText,
     mobileSidebarLogoText,
     menuItems = [],
@@ -49,7 +49,7 @@ const DashboardShell = ({
             <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
                     <div className="logo">
-                        <img src={TanaLogo} alt="Logo" className="logo-img" />
+                        <img src={MarkosLogo} alt="Logo" className="logo-img" />
                         <span className="logo-text">{logoText}</span>
                     </div>
                     <button type="button" className="sidebar-toggle" onClick={onToggleSidebar}>
@@ -118,7 +118,7 @@ const DashboardShell = ({
                                 <Menu size={22} />
                             </button>
                             <div className="mobile-header-logo">
-                                <img src={TanaLogo} alt="Tana Parking" className="mobile-header-logo-img" />
+                                <img src={MarkosLogo} alt="Markos Parking" className="mobile-header-logo-img" />
                                 <span>{mobileLogoText}</span>
                             </div>
                             <div className="header-left">
@@ -154,7 +154,7 @@ const DashboardShell = ({
                         >
                             <div className="sidebar-header">
                                 <div className="logo">
-                                    <img src={TanaLogo} alt="Logo" className="logo-img" />
+                                    <img src={MarkosLogo} alt="Logo" className="logo-img" />
                                     <span className="logo-text">{resolvedMobileSidebarLogoText}</span>
                                 </div>
                                 <button type="button" className="sidebar-toggle" onClick={closeMobileMenu}>

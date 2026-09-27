@@ -155,7 +155,7 @@ export const useChapaPayment = ({
         setLoading(true);
 
         const customerName = car.customerName || 'Customer';
-        const customerEmail = car.customerEmail || `${car.phoneNumber?.replace(/[^0-9]/g, '') || 'customer'}@tana-parking.com`;
+        const customerEmail = car.customerEmail || `${car.phoneNumber?.replace(/[^0-9]/g, '') || 'customer'}@markos-parking.com`;
         const resolvedReturnUrl = returnUrl || `${window.location.origin}${window.location.pathname}`;
 
         try {

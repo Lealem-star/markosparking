@@ -1,9 +1,9 @@
-# Test Plan — Tana Parking
+# Test Plan — Markos Parking
 
-**Document ID:** TP-TANA-PARK-001  
+**Document ID:** TP-MARKOS-PARK-001  
 **Version:** 1.0  
 **Date:** 13 July 2026  
-**Related:** [SRS](./SRS-Tana-Parking-v1.0.md) | [Use Cases](./Use-Case-Diagrams-Tana-Parking-v1.0.md)
+**Related:** [SRS](./SRS-Markos-Parking-v1.0.md) | [Use Cases](./Use-Case-Diagrams-Markos-Parking-v1.0.md)
 
 ---
 
@@ -11,7 +11,7 @@
 
 ### 1.1 Purpose
 
-This test plan maps QA test cases to SRS requirement IDs (`REQ-*`) for Tana Parking v1.0.
+This test plan maps QA test cases to SRS requirement IDs (`REQ-*`) for Markos Parking v1.0.
 
 ### 1.2 Scope
 

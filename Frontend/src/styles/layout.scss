@@ -1,20 +1,20 @@
-$tanapark-blue: #2563eb;
-$tanapark-blue-dark: #1d4ed8;
-$tanapark-text: #1e293b;
-$tanapark-muted: #64748b;
-$tanapark-border: #e2e8f0;
-$tanapark-bg: #f8fafc;
+$markospark-blue: #2563eb;
+$markospark-blue-dark: #1d4ed8;
+$markospark-text: #1e293b;
+$markospark-muted: #64748b;
+$markospark-border: #e2e8f0;
+$markospark-bg: #f8fafc;
 
 .main-container {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: $tanapark-bg;
+    background: $markospark-bg;
 }
 
-.tanapark-nav {
+.markospark-nav {
     background: #fff;
-    border-bottom: 1px solid $tanapark-border;
+    border-bottom: 1px solid $markospark-border;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     position: sticky;
     top: 0;
@@ -52,7 +52,7 @@ $tanapark-bg: #f8fafc;
 .nav-brand-name {
     font-size: 1.25rem;
     font-weight: 700;
-    color: $tanapark-blue;
+    color: $markospark-blue;
     letter-spacing: 0.04em;
 }
 
@@ -71,7 +71,7 @@ $tanapark-bg: #f8fafc;
     }
 
     a {
-        color: $tanapark-text;
+        color: $markospark-text;
         text-decoration: none;
         font-size: 0.9rem;
         font-weight: 500;
@@ -81,7 +81,7 @@ $tanapark-bg: #f8fafc;
 
         &:hover {
             background: #eff6ff;
-            color: $tanapark-blue;
+            color: $markospark-blue;
         }
     }
 }
@@ -93,22 +93,22 @@ $tanapark-bg: #f8fafc;
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: $tanapark-blue !important;
+    background: $markospark-blue !important;
     color: #fff !important;
     font-weight: 600;
     font-size: 0.85rem;
     padding: 0 !important;
 
     &:hover {
-        background: $tanapark-blue-dark !important;
+        background: $markospark-blue-dark !important;
         color: #fff !important;
     }
 }
 
 .nav-logout-btn {
     background: none;
-    border: 1px solid $tanapark-border;
-    color: $tanapark-muted;
+    border: 1px solid $markospark-border;
+    color: $markospark-muted;
     font-size: 0.875rem;
     font-weight: 500;
     padding: 0.35rem 0.875rem;
@@ -117,8 +117,8 @@ $tanapark-bg: #f8fafc;
     transition: border-color 0.15s, color 0.15s;
 
     &:hover {
-        border-color: $tanapark-blue;
-        color: $tanapark-blue;
+        border-color: $markospark-blue;
+        color: $markospark-blue;
     }
 }
 
@@ -138,14 +138,14 @@ main {
     flex-direction: column;
 }
 
-.tanapark-footer {
+.markospark-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem;
     background: #fff;
-    border-top: 1px solid $tanapark-border;
-    color: $tanapark-muted;
+    border-top: 1px solid $markospark-border;
+    color: $markospark-muted;
     font-size: 0.8125rem;
 
     p {
@@ -153,12 +153,12 @@ main {
     }
 
     a {
-        color: $tanapark-muted;
+        color: $markospark-muted;
         display: inline-flex;
         align-items: center;
 
         &:hover {
-            color: $tanapark-blue;
+            color: $markospark-blue;
         }
     }
 }

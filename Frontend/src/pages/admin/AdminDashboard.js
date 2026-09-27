@@ -108,7 +108,7 @@ const AdminDashboard = () => {
         <>
             <DashboardShell
                 shellClassName="admin-dashboard"
-                logoText="tana parking"
+                logoText="markos parking"
                 mobileSidebarLogoText={roleLabel}
                 menuItems={menuItems}
                 isActive={isActive}

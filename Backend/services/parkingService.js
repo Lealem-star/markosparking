@@ -116,7 +116,7 @@ const sendPackageReParkSms = async (car) => {
     }
 
     const licenseDisplay = getLicenseDisplay(car);
-    const smsMessage = `Security alert: Your package car (${licenseDisplay}) has been parked at Tana Parking.\nPackage type: ${car.packageDuration || 'package'}.\n${remainingText}`;
+    const smsMessage = `Security alert: Your package car (${licenseDisplay}) has been parked at Markos Parking.\nPackage type: ${car.packageDuration || 'package'}.\n${remainingText}`;
 
     await sendSms(car.phoneNumber, smsMessage);
 };
@@ -728,7 +728,7 @@ const notifyFlaggedCustomer = async (id) => {
         ? new Date(car.checkedOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : 'N/A';
 
-    const smsMessage = `⚠️ WARNING: Unpaid Parking Fee\n\nDear customer,\n\nYour vehicle (${licenseDisplay}) was checked out from Tana Parking on ${checkedOutDate} at ${checkedOutTime} without payment.\n\nOutstanding Amount:\nParking Fee: ${parkingFee.toFixed(2)} ETB\nVAT: ${vatAmount.toFixed(2)} ETB\nTotal: ${totalWithVat.toFixed(2)} ETB\n\nPlease return to the parking facility to complete your payment. Failure to pay may result in additional penalties.\n\nThank you for your cooperation.`;
+    const smsMessage = `⚠️ WARNING: Unpaid Parking Fee\n\nDear customer,\n\nYour vehicle (${licenseDisplay}) was checked out from Markos Parking on ${checkedOutDate} at ${checkedOutTime} without payment.\n\nOutstanding Amount:\nParking Fee: ${parkingFee.toFixed(2)} ETB\nVAT: ${vatAmount.toFixed(2)} ETB\nTotal: ${totalWithVat.toFixed(2)} ETB\n\nPlease return to the parking facility to complete your payment. Failure to pay may result in additional penalties.\n\nThank you for your cooperation.`;
 
     const sent = await sendSms(car.phoneNumber, smsMessage);
     if (!sent) {

@@ -48,7 +48,7 @@ export const formatPhoneForChapa = (phone, publicKey) => {
 export const buildChapaCustomerEmail = (phone, fallbackEmail) => {
     if (fallbackEmail) return fallbackEmail;
     const digits = (phone || '').replace(/[^0-9]/g, '') || 'customer';
-    return `${digits}@tana-parking.com`;
+    return `${digits}@markos-parking.com`;
 };
 
 export const loadChapaCheckout = () =>
@@ -104,7 +104,7 @@ export const buildStandardChapaConfig = ({
         email: resolvedEmail,
         availablePaymentMethods: ['telebirr', 'cbebirr', 'ebirr', 'mpesa'],
         customizations: {
-            title: 'Tana Parking Payment',
+            title: 'Markos Parking Payment',
             description,
             buttonText: 'Pay Now',
             ...customizations,

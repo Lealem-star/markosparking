@@ -6,7 +6,7 @@ import { clearAuthSession } from '../../api/authSession';
 import { isStaffShellRole, isValetRole } from '../../constants/roles';
 import { getParkingOfficerRoutePath, getStaffRoutePath } from '../../utils/rolePaths';
 import { Mail } from "lucide-react";
-import tanaLogo from '../../assets/Tana.png';
+import markosLogo from '../../assets/Markos.png';
 import partnerLogo from '../../assets/image.png';
 import '../../styles/layout.scss';
 
@@ -30,11 +30,11 @@ const Layout = () => {
 
     return (
         <div className="main-container">
-            <nav className="tanapark-nav">
+            <nav className="markospark-nav">
                 <div className="nav-inner">
                     <Link className="nav-brand" to="/">
-                        <img src={tanaLogo} alt="" className="nav-brand-icon" />
-                        <span className="nav-brand-name">TanaPark</span>
+                        <img src={markosLogo} alt="" className="nav-brand-icon" />
+                        <span className="nav-brand-name">MarkosPark</span>
                     </Link>
 
                     {user && (
@@ -79,7 +79,7 @@ const Layout = () => {
             </main>
 
             {!isHome && (
-                <footer className="tanapark-footer">
+                <footer className="markospark-footer">
                     <p>Copyright &copy; 2026 by Enqopa Technologies Plc</p>
                     <a href="mailto:enqopatechplc@gmail.com" aria-label="Email">
                         <Mail size={18} />
